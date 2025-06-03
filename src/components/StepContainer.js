@@ -10,13 +10,14 @@ import SR22Step from './steps/SR22Step';
 import InsuranceHistoryStep from './steps/InsuranceHistoryStep';
 import CurrentAutoInsuranceStep from './steps/CurrentAutoInsuranceStep';
 import InsuranceDurationStep from './steps/InsuranceDurationStep';
+import CoverageTypeStep from './steps/CoverageTypeStep';
 import GenderStep from './steps/GenderStep';
 import MaritalStatusStep from './steps/MaritalStatusStep';
+import CreditScoreStep from './steps/CreditScoreStep';
 import HomeownerStep from './steps/HomeownerStep';
 import MilitaryStep from './steps/MilitaryStep';
 import BirthdateStep from './steps/BirthdateStep';
 import ContactInfoStep from './steps/ContactInfoStep';
-import AddressInfoStep from './steps/AddressInfoStep';
 
 const StepContainer = ({ 
   step, 
@@ -79,6 +80,7 @@ const StepContainer = ({
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}
+            vehicleData={vehicleData}
           />
         );
 
@@ -94,7 +96,8 @@ const StepContainer = ({
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}
-            makes={vehicleData.makes}
+            vehicleData={vehicleData}
+            selectedYear={selectedYear}
           />
         );
 
@@ -111,7 +114,9 @@ const StepContainer = ({
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}
-            models={vehicleData.models[selectedMake] || []}
+            vehicleData={vehicleData}
+            selectedYear={vYear}
+            selectedMake={selectedMake}
           />
         );
 
@@ -170,6 +175,17 @@ const StepContainer = ({
           />
         );
 
+      case 'coverage-type':
+        return (
+          <CoverageTypeStep
+            value={formData.coverageType}
+            onChange={(value) => updateFormData('coverageType', value)}
+            onNext={onNext}
+            onPrevious={onPrevious}
+            canGoPrevious={canGoPrevious}
+          />
+        );
+
       case 'gender':
         return (
           <GenderStep
@@ -186,6 +202,17 @@ const StepContainer = ({
           <MaritalStatusStep
             value={formData.maritalStatus}
             onChange={(value) => updateFormData('maritalStatus', value)}
+            onNext={onNext}
+            onPrevious={onPrevious}
+            canGoPrevious={canGoPrevious}
+          />
+        );
+
+      case 'credit-score':
+        return (
+          <CreditScoreStep
+            value={formData.creditScore}
+            onChange={(value) => updateFormData('creditScore', value)}
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}
@@ -231,23 +258,13 @@ const StepContainer = ({
             firstName={formData.firstName}
             lastName={formData.lastName}
             email={formData.email}
+            phoneNumber={formData.phoneNumber}
+            streetAddress={formData.streetAddress}
             onFirstNameChange={(value) => updateFormData('firstName', value)}
             onLastNameChange={(value) => updateFormData('lastName', value)}
             onEmailChange={(value) => updateFormData('email', value)}
-            onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
-          />
-        );
-
-      case 'address-info':
-        return (
-          <AddressInfoStep
-            streetAddress={formData.streetAddress}
-            zipcode={formData.zipcode}
-            phoneNumber={formData.phoneNumber}
-            onStreetAddressChange={(value) => updateFormData('streetAddress', value)}
             onPhoneNumberChange={(value) => updateFormData('phoneNumber', value)}
+            onStreetAddressChange={(value) => updateFormData('streetAddress', value)}
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}

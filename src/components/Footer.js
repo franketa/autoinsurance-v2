@@ -21,7 +21,7 @@ const Footer = () => {
         </div>
 
         <div className="footer-info">
-          <p className="copyright">© 2025 QuoteWizard</p>
+          <p className="copyright">© 2025 TrueQuote</p>
           <div className="footer-links">
             <a href="#" className="footer-link">Contact Us</a>
             <a href="#" className="footer-link">Privacy Policy</a>

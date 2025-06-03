@@ -1,12 +1,9 @@
 import React from 'react';
 import PreviousButton from '../PreviousButton';
 
-const VehicleYearStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious }) => {
-  // Generate years from 2025 down to 1987
-  const years = [];
-  for (let year = 2025; year >= 1987; year--) {
-    years.push(year.toString());
-  }
+const VehicleYearStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious, vehicleData }) => {
+  // Get available years from vehicleData and sort them in descending order (newest first)
+  const years = Object.keys(vehicleData).sort((a, b) => parseInt(b) - parseInt(a));
 
   const handleSelect = (selectedYear) => {
     onChange(selectedYear);

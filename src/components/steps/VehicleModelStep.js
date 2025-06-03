@@ -1,7 +1,12 @@
 import React from 'react';
 import PreviousButton from '../PreviousButton';
 
-const VehicleModelStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious, models }) => {
+const VehicleModelStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious, vehicleData, selectedYear, selectedMake }) => {
+  // Get models available for the selected year and make
+  const models = selectedYear && selectedMake && vehicleData[selectedYear] && vehicleData[selectedYear][selectedMake] 
+    ? vehicleData[selectedYear][selectedMake].sort() 
+    : [];
+
   const handleSelect = (selectedModel) => {
     onChange(selectedModel);
     // Auto-advance after selection

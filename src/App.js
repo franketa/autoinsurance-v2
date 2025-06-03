@@ -21,13 +21,14 @@ const STEPS = [
   { id: 'insurance-history', title: 'Have you had auto insurance in the past 30 days?', progress: 42 },
   { id: 'current-auto-insurance', title: 'Current Auto Insurance', progress: 43 },
   { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?', progress: 44 },
+  { id: 'coverage-type', title: 'Which coverage type do you need?', progress: 44.5 },
   { id: 'gender', title: 'Select your gender', progress: 45 },
   { id: 'marital-status', title: 'Are you married?', progress: 48 },
+  { id: 'credit-score', title: 'What is your credit score?', progress: 50 },
   { id: 'homeowner', title: 'Homeowner?', progress: 53 },
   { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?', progress: 58 },
   { id: 'birthdate', title: 'What is your birthdate?', progress: 60 },
-  { id: 'contact-info', title: 'Contact Information', progress: 62 },
-  { id: 'address-info', title: 'Address Information', progress: 67 }
+  { id: 'contact-info', title: 'Contact Information', progress: 67 }
 ];
 
 function App() {
@@ -45,8 +46,10 @@ function App() {
     insuranceHistory: '',
     currentAutoInsurance: '',
     insuranceDuration: '',
+    coverageType: '',
     gender: '',
     maritalStatus: '',
+    creditScore: '',
     homeowner: '',
     military: '',
     birthdate: '',

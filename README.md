@@ -1,6 +1,6 @@
 # Auto Insurance Quote Application
 
-A multi-step car insurance quote application built with React, replicating the QuoteWizard design and user flow.
+A multi-step car insurance quote application built with React.
 
 ## Features
 
