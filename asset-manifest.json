@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/autoinsurance-v2/static/css/main.d28a6bfe.css",
+    "main.js": "/autoinsurance-v2/static/js/main.47dbcb0d.js",
+    "index.html": "/autoinsurance-v2/index.html",
+    "main.d28a6bfe.css.map": "/autoinsurance-v2/static/css/main.d28a6bfe.css.map",
+    "main.47dbcb0d.js.map": "/autoinsurance-v2/static/js/main.47dbcb0d.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.d28a6bfe.css",
+    "static/js/main.47dbcb0d.js"
+  ]
+}
