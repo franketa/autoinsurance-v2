@@ -28,7 +28,7 @@ const Header = () => {
           </div>
         </div>
         <p className="tagline">
-          Get fast, cheap car insurance quotes with one simple form.
+          Get fast, cheap car insurance quotes with one simple form!.
         </p>
       </div>
     </header>
