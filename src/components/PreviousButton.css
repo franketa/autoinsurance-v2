@@ -1,0 +1,27 @@
+.previous-button {
+  padding: 12px 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.previous-button:hover {
+  border-color: #467FCE;
+  color: #467FCE;
+  background-color: #f0f9ff;
+}
+
+.previous-button:focus {
+  outline: none;
+  border-color: #467FCE;
+  box-shadow: 0 0 0 3px rgba(70, 127, 206, 0.1);
+} 
