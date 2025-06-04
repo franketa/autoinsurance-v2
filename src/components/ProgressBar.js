@@ -1,7 +1,7 @@
 import React from 'react';
 import './ProgressBar.css';
 
-const ProgressBar = ({ progress, location }) => {
+const ProgressBar = ({ progress, location, onExitClick }) => {
   return (
     <div className="progress-container">
       <div className="progress-content">
@@ -16,7 +16,7 @@ const ProgressBar = ({ progress, location }) => {
             <span className="progress-text">{progress}% Complete</span>
             <div className="progress-icons">
               <button className="help-icon" title="Help">?</button>
-              <button className="close-icon" title="Close">×</button>
+              <button className="close-icon" title="Close" onClick={onExitClick}>×</button>
             </div>
           </div>
         </div>

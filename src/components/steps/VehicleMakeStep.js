@@ -68,7 +68,7 @@ const VehicleMakeStep = ({ title, value, onChange, onNext, onPrevious, canGoPrev
     if (brandLogos[make]) {
       return (
         <img 
-          src={`/images/brands/${brandLogos[make]}`} 
+          src={`${process.env.PUBLIC_URL}/images/brands/${brandLogos[make]}`} 
           alt={`${make} logo`}
           className="brand-logo-image"
         />
