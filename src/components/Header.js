@@ -15,7 +15,7 @@ const Header = () => {
           <div className="logo">
             {!imageError ? (
               <img 
-                src="/truequote-logo.png" 
+                src={`${process.env.PUBLIC_URL}/truequote-logo.png`} 
                 alt="TrueQuote" 
                 className="logo-image"
                 onError={handleImageError}

@@ -23,16 +23,17 @@ const STEPS = [
   { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?', progress: 44 },
   { id: 'coverage-type', title: 'Which coverage type do you need?', progress: 44.5 },
   { id: 'gender', title: 'Select your gender', progress: 45 },
-  { id: 'marital-status', title: 'Are you married?', progress: 48 },
-  { id: 'credit-score', title: 'What is your credit score?', progress: 50 },
-  { id: 'homeowner', title: 'Homeowner?', progress: 53 },
-  { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?', progress: 58 },
-  { id: 'birthdate', title: 'What is your birthdate?', progress: 60 },
-  { id: 'contact-info', title: 'Contact Information', progress: 67 }
+  { id: 'marital-status', title: 'Are you married?', progress: 60 },
+  { id: 'credit-score', title: 'What is your credit score?', progress: 68 },
+  { id: 'homeowner', title: 'Homeowner?', progress: 75 },
+  { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?', progress: 82 },
+  { id: 'birthdate', title: 'What is your birthdate?', progress: 89 },
+  { id: 'contact-info', title: 'Contact Information', progress: 92 }
 ];
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [showExitModal, setShowExitModal] = useState(false);
   const [formData, setFormData] = useState({
     zipcode: '',
     vehicleCount: '',
@@ -59,6 +60,20 @@ function App() {
     streetAddress: '',
     phoneNumber: ''
   });
+
+  // Handle exit modal
+  const handleExitClick = () => {
+    setShowExitModal(true);
+  };
+
+  const handleBackToForm = () => {
+    setShowExitModal(false);
+  };
+
+  const handleExit = () => {
+    // You can add any cleanup logic here
+    window.location.href = '/'; // Or redirect to homepage
+  };
 
   // Determine which steps to show based on vehicle count and upsell response
   const getVisibleSteps = () => {
@@ -193,7 +208,8 @@ function App() {
       <Header />
       <ProgressBar 
         progress={currentStepData?.progress || 0} 
-        location="District of Columbia" 
+        location="District of Columbia"
+        onExitClick={handleExitClick}
       />
       <main className="main-content">
         <StepContainer
@@ -208,6 +224,25 @@ function App() {
         />
       </main>
       <Footer />
+      
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <button className="modal-close" onClick={handleBackToForm}>×</button>
+            <h3 className="modal-title">Are you sure?</h3>
+            <p className="modal-text">You have a few more questions to get your rates</p>
+            <div className="modal-buttons">
+              <button className="modal-button secondary" onClick={handleBackToForm}>
+                Back to Form
+              </button>
+              <button className="modal-button primary" onClick={handleExit}>
+                Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
