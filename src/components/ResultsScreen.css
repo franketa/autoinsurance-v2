@@ -1,0 +1,180 @@
+.results-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.results-content {
+  max-width: 500px;
+  width: 100%;
+}
+
+.results-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 40px;
+  line-height: 1.4;
+}
+
+.user-name {
+  color: #00d4aa;
+  font-weight: 700;
+}
+
+.carrier-card {
+  background: white;
+  border: 3px solid #00d4aa;
+  border-radius: 20px;
+  padding: 40px 30px;
+  margin: 40px 0;
+  box-shadow: 0 12px 48px rgba(0, 212, 170, 0.15);
+  position: relative;
+  animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.top-rated-badge {
+  background: #00d4aa;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+  letter-spacing: 1px;
+  margin-bottom: 30px;
+  display: inline-block;
+}
+
+.carrier-logo {
+  margin: 30px 0;
+}
+
+.usaa-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo-lines {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+}
+
+.line {
+  background: #1e3a8a;
+  border-radius: 2px;
+}
+
+.line-1 {
+  width: 8px;
+  height: 20px;
+}
+
+.line-2 {
+  width: 8px;
+  height: 30px;
+}
+
+.line-3 {
+  width: 8px;
+  height: 25px;
+}
+
+.line-4 {
+  width: 8px;
+  height: 35px;
+}
+
+.logo-text {
+  font-size: 32px;
+  font-weight: 900;
+  color: #1e3a8a;
+  letter-spacing: 2px;
+}
+
+.view-rate-button {
+  background: #00d4aa;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 40px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 30px;
+}
+
+.view-rate-button:hover {
+  background: #00b894;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3);
+}
+
+.additional-options {
+  margin-top: 40px;
+}
+
+.options-text {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.view-all-button {
+  background: transparent;
+  color: #0066cc;
+  border: 2px solid #0066cc;
+  border-radius: 12px;
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-all-button:hover {
+  background: #0066cc;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 102, 204, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .results-title {
+    font-size: 20px;
+  }
+  
+  .carrier-card {
+    padding: 30px 20px;
+    margin: 30px 0;
+  }
+  
+  .logo-text {
+    font-size: 28px;
+  }
+  
+  .view-rate-button {
+    padding: 14px 30px;
+    font-size: 16px;
+  }
+} 

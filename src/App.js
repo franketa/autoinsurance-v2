@@ -4,6 +4,8 @@ import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import StepContainer from './components/StepContainer';
 import Footer from './components/Footer';
+import SearchingScreen from './components/SearchingScreen';
+import ResultsScreen from './components/ResultsScreen';
 import { vehicleData } from './data/vehicleData';
 
 const STEPS = [
@@ -34,6 +36,7 @@ const STEPS = [
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [submissionState, setSubmissionState] = useState('form'); // 'form', 'searching', 'results'
   const [formData, setFormData] = useState({
     zipcode: '',
     city: '',
@@ -174,6 +177,16 @@ function App() {
     console.log('Location data updated:', locationData);
   };
 
+  const handleViewRate = () => {
+    // Redirect to external quote page or handle rate viewing
+    alert('Redirecting to your personalized quote...');
+  };
+
+  const handleViewAllRates = () => {
+    // Could show all available rates or restart the process
+    alert('Showing all available rates...');
+  };
+
   const nextStep = () => {
     if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -191,6 +204,9 @@ function App() {
 
   const submitFormData = async () => {
     try {
+      // Start the searching phase
+      setSubmissionState('searching');
+      
       // Filter out empty vehicles
       const activeVehicles = formData.vehicles.filter(v => v.year && v.make && v.model);
       
@@ -233,8 +249,8 @@ function App() {
 
       console.log('Submitting form data:', submissionData);
       
-      // Show loading state
-      const originalText = 'Processing your quote request...';
+      // Simulate searching time (5 seconds)
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       const response = await fetch('/api/submit-quote', {
         method: 'POST',
@@ -247,20 +263,50 @@ function App() {
       
       const result = await response.json();
       
-      if (result.success) {
+      //if (result.success) {
+      if (true) {
         console.log('Quote submission successful:', result);
-        alert('Quote request submitted successfully! You will be contacted with your insurance quotes shortly.');
-        
-        // Optional: Redirect to a thank you page
-        // window.location.href = '/thank-you';
+        // Show results screen
+        setSubmissionState('results');
       } else {
         throw new Error(result.error || 'Unknown error occurred');
       }
     } catch (error) {
       console.error('Submission error:', error);
+      // Go back to form and show error
+      setSubmissionState('form');
       alert('Error submitting quote request. Please try again or contact support.');
     }
   };
+
+  // Conditional rendering based on submission state
+  if (submissionState === 'searching') {
+    return (
+      <div className="app">
+        <Header />
+        <main className="main-content">
+          <SearchingScreen userName={formData.firstName || 'franco'} />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (submissionState === 'results') {
+    return (
+      <div className="app">
+        <Header />
+        <main className="main-content">
+          <ResultsScreen 
+            userName={formData.firstName || 'franco'} 
+            onViewRate={handleViewRate}
+            onViewAllRates={handleViewAllRates}
+          />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="app">

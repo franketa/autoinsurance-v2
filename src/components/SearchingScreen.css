@@ -1,0 +1,137 @@
+.searching-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.searching-content {
+  max-width: 500px;
+  width: 100%;
+}
+
+.searching-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 40px;
+  line-height: 1.4;
+}
+
+.user-name {
+  color: #00d4aa;
+  font-weight: 700;
+}
+
+.provider-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  margin: 40px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 2px solid #f0f0f0;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.provider-logo {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.provider-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.insurance-text {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+.progress-container {
+  margin-top: 40px;
+}
+
+.progress-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d4aa 0%, #0066cc 100%);
+  border-radius: 8px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .searching-title {
+    font-size: 20px;
+  }
+  
+  .provider-name {
+    font-size: 24px;
+  }
+  
+  .provider-card {
+    padding: 24px;
+    margin: 30px 0;
+  }
+} 
