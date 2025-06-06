@@ -22,13 +22,13 @@
 }
 
 .user-name {
-  color: #00d4aa;
+  color: #06c;
   font-weight: 700;
 }
 
 .carrier-card {
   background: white;
-  border: 3px solid #00d4aa;
+  border: 3px solid #06c;
   border-radius: 20px;
   padding: 40px 30px;
   margin: 40px 0;
@@ -49,7 +49,7 @@
 }
 
 .top-rated-badge {
-  background: #00d4aa;
+  background: #06c;
   color: white;
   font-size: 12px;
   font-weight: 700;
@@ -110,7 +110,7 @@
 }
 
 .view-rate-button {
-  background: #00d4aa;
+  background: #06c;
   color: white;
   border: none;
   border-radius: 12px;
