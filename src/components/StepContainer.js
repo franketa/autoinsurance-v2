@@ -24,6 +24,7 @@ const StepContainer = ({
   formData, 
   updateFormData, 
   updateVehicleData, 
+  updateLocationData,
   onNext, 
   onPrevious,
   canGoPrevious,
@@ -42,6 +43,7 @@ const StepContainer = ({
           <ZipCodeStep
             value={formData.zipcode}
             onChange={(value) => updateFormData('zipcode', value)}
+            onLocationUpdate={updateLocationData}
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}

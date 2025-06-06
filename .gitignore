@@ -41,6 +41,10 @@ pids
 
 # dotenv environment variables file
 .env
+.env.*
+
+# Server configuration
+server/config.js
 
 # IDE
 .vscode/

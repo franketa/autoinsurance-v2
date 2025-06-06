@@ -36,6 +36,8 @@ function App() {
   const [showExitModal, setShowExitModal] = useState(false);
   const [formData, setFormData] = useState({
     zipcode: '',
+    city: '',
+    state: '',
     vehicleCount: '',
     addSecondVehicle: '',
     vehicles: [
@@ -161,6 +163,17 @@ function App() {
     }));
   };
 
+  const updateLocationData = (locationData) => {
+    setFormData(prev => ({
+      ...prev,
+      city: locationData.city || prev.city,
+      state: locationData.state || prev.state,
+      zipcode: locationData.zipcode || prev.zipcode
+    }));
+    
+    console.log('Location data updated:', locationData);
+  };
+
   const nextStep = () => {
     if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -181,25 +194,71 @@ function App() {
       // Filter out empty vehicles
       const activeVehicles = formData.vehicles.filter(v => v.year && v.make && v.model);
       
+      // Map form data to match the expected format
       const submissionData = {
-        ...formData,
+        // Personal Information
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        streetAddress: formData.streetAddress,
+        zipcode: formData.zipcode,
+        birthdate: formData.birthdate,
+        
+        // Insurance Information
+        gender: formData.gender,
+        maritalStatus: formData.maritalStatus,
+        creditScore: formData.creditScore,
+        homeowner: formData.homeowner,
+        driversLicense: formData.driversLicense,
+        sr22: formData.sr22,
+        currentAutoInsurance: formData.currentAutoInsurance,
+        insuranceHistory: formData.insuranceHistory,
+        insuranceDuration: formData.insuranceDuration,
+        coverageType: formData.coverageType,
+        military: formData.military,
+        
+        // Vehicle Information
         vehicles: activeVehicles,
-        submittedAt: new Date().toISOString()
+        vehicleCount: formData.vehicleCount,
+        
+        // Location Information
+        city: formData.city,
+        state: formData.state,
+        
+        // Metadata
+        submittedAt: new Date().toISOString(),
+        trusted_form_cert_id: '' // Add if you have TrustedForm integration
       };
 
       console.log('Submitting form data:', submissionData);
       
-      // TODO: Replace with actual webhook endpoint
-      // const response = await fetch('/api/quote', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(submissionData)
-      // });
+      // Show loading state
+      const originalText = 'Processing your quote request...';
       
-      alert('Quote request submitted successfully!');
+      const response = await fetch('/api/submit-quote', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(submissionData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Quote submission successful:', result);
+        alert('Quote request submitted successfully! You will be contacted with your insurance quotes shortly.');
+        
+        // Optional: Redirect to a thank you page
+        // window.location.href = '/thank-you';
+      } else {
+        throw new Error(result.error || 'Unknown error occurred');
+      }
     } catch (error) {
       console.error('Submission error:', error);
-      alert('Error submitting quote request. Please try again.');
+      alert('Error submitting quote request. Please try again or contact support.');
     }
   };
 
@@ -217,6 +276,7 @@ function App() {
           formData={formData}
           updateFormData={updateFormData}
           updateVehicleData={updateVehicleData}
+          updateLocationData={updateLocationData}
           onNext={nextStep}
           onPrevious={previousStep}
           canGoPrevious={currentStep > 0}
