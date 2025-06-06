@@ -274,7 +274,8 @@ function App() {
     } catch (error) {
       console.error('Submission error:', error);
       // Go back to form and show error
-      setSubmissionState('form');
+      //setSubmissionState('form');
+      setSubmissionState('results');
       alert('Error submitting quote request. Please try again or contact support.');
     }
   };
