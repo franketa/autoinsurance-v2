@@ -262,11 +262,15 @@ const StepContainer = ({
             email={formData.email}
             phoneNumber={formData.phoneNumber}
             streetAddress={formData.streetAddress}
+            city={formData.city}
+            state={formData.state}
             onFirstNameChange={(value) => updateFormData('firstName', value)}
             onLastNameChange={(value) => updateFormData('lastName', value)}
             onEmailChange={(value) => updateFormData('email', value)}
             onPhoneNumberChange={(value) => updateFormData('phoneNumber', value)}
             onStreetAddressChange={(value) => updateFormData('streetAddress', value)}
+            onCityChange={(value) => updateFormData('city', value)}
+            onStateChange={(value) => updateFormData('state', value)}
             onNext={onNext}
             onPrevious={onPrevious}
             canGoPrevious={canGoPrevious}

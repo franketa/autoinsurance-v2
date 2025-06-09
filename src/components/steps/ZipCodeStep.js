@@ -1,21 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PreviousButton from '../PreviousButton';
+import { validateZipCode } from '../../utils/validations';
 
 const ZipCodeStep = ({ value, onChange, onNext, onPrevious, canGoPrevious, onLocationUpdate }) => {
   const [zipcode, setZipcode] = useState(value || '');
+  const [error, setError] = useState('');
   const hasAttemptedLocationFetch = useRef(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (zipcode.length === 5 && /^\d{5}$/.test(zipcode)) {
+    
+    // Validate the zip code
+    const validation = validateZipCode(zipcode);
+    
+    if (validation.isValid) {
+      setError(''); // Clear any previous errors
       onChange(zipcode);
       onNext();
+    } else {
+      setError(validation.message);
     }
   };
 
   const handleChange = (e) => {
     const value = e.target.value.replace(/\D+/g, '').slice(0, 5);
     setZipcode(value);
+    
+    // Clear error when user starts typing
+    if (error) {
+      setError('');
+    }
   };
 
   // Auto-populate on component mount
@@ -81,17 +95,18 @@ const ZipCodeStep = ({ value, onChange, onNext, onPrevious, canGoPrevious, onLoc
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          className="form-input"
+          className={`form-input ${error ? 'error' : ''}`}
           placeholder="00000"
           value={zipcode}
           onChange={handleChange}
           maxLength={5}
           autoFocus
         />
+        {error && <div className="error-message">{error}</div>}
         <button 
           type="submit" 
           className="primary-button"
-          disabled={zipcode.length !== 5}
+          disabled={zipcode.length !== 5 || error}
         >
           CHECK RATES
         </button>

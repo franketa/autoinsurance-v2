@@ -7,12 +7,12 @@
 .header-content {
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 10px;
   text-align: center;
 }
 
 .logo-container {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .logo {
@@ -22,7 +22,7 @@
 }
 
 .logo-image {
-  height: 40px;
+  height: 35px;
   width: auto;
   max-width: 300px;
   object-fit: contain;
@@ -53,7 +53,7 @@
   }
   
   .logo-image {
-    height: 45px;
+    height: 35px;
   }
   
   .logo-text {

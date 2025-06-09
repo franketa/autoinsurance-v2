@@ -86,7 +86,8 @@
 .step-container {
   width: 100%;
   max-width: 480px;
-  padding: 40px 20px;
+  padding: 20px 20px;
+  align-content: center;
 }
 
 .step-title {
@@ -394,6 +395,46 @@
   background-color: #f0fdfa;
   color: #047857;
   font-weight: 600;
+}
+
+/* Error states for form validation */
+.form-input.error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.form-input.error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: -12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error-message::before {
+  content: "⚠️";
+  font-size: 12px;
+}
+
+/* Disabled button state */
+.primary-button:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+}
+
+.primary-button:disabled:hover {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
 }
 
 /* Responsive design */

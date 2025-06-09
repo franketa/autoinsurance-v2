@@ -73,14 +73,13 @@
 }
 
 .progress-container {
-  margin-top: 40px;
+  margin-top: 20px;
 }
 
 .progress-text {
   font-size: 18px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 16px;
 }
 
 .progress-bar {

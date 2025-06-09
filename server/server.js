@@ -3,6 +3,7 @@ const cors = require('cors');
 const mysql = require('mysql2');
 const axios = require('axios');
 const xml2js = require('xml2js');
+const path = require('path');
 const { getLocationFromIP } = require('./location');
 require('dotenv').config();
 
@@ -12,6 +13,11 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from React build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../build')));
+}
 
 // Database configuration
 const dbConfig = {
@@ -305,7 +311,19 @@ app.post('/api/submit-quote', async (req, res) => {
   try {
     const inputData = req.body;
     
-    // Extract and set defaults for form data
+    // Debug: Log incoming data
+    console.log('Incoming form data:', {
+      firstName: inputData.firstName,
+      lastName: inputData.lastName,
+      email: inputData.email,
+      phoneNumber: inputData.phoneNumber,
+      streetAddress: inputData.streetAddress,
+      city: inputData.city,
+      state: inputData.state,
+      vehicles: inputData.vehicles
+    });
+    
+    // Extract and set defaults for form data (only use defaults if data is actually missing)
     const firstName = inputData.firstName || 'Matvii';
     const lastName = inputData.lastName || 'Kapralov';
     const phone = transformPhoneNumber(inputData.phoneNumber);
@@ -409,8 +427,7 @@ app.post('/api/submit-quote', async (req, res) => {
       drivers,
       vehicles,
       insuranceProfile,
-      contact,
-      ...inputData
+      contact
     };
     
     // Validate we have vehicles
@@ -508,6 +525,13 @@ app.get('/api/location', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// Catch-all handler for React SPA in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../build', 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

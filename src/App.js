@@ -18,19 +18,19 @@ const STEPS = [
   { id: 'vehicle-year-2', title: 'Second vehicle year', progress: 36 },
   { id: 'vehicle-make-2', title: 'Second vehicle make', progress: 38 },
   { id: 'vehicle-model-2', title: 'Second vehicle model', progress: 40 },
-  { id: 'drivers-license', title: 'Do you have a valid drivers license?', progress: 41 },
-  { id: 'sr22', title: 'Do you need an SR-22?', progress: 41.5 },
-  { id: 'insurance-history', title: 'Have you had auto insurance in the past 30 days?', progress: 42 },
-  { id: 'current-auto-insurance', title: 'Current Auto Insurance', progress: 43 },
-  { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?', progress: 44 },
-  { id: 'coverage-type', title: 'Which coverage type do you need?', progress: 44.5 },
-  { id: 'gender', title: 'Select your gender', progress: 45 },
-  { id: 'marital-status', title: 'Are you married?', progress: 60 },
-  { id: 'credit-score', title: 'What is your credit score?', progress: 68 },
-  { id: 'homeowner', title: 'Homeowner?', progress: 75 },
+  { id: 'drivers-license', title: 'Do you have a valid drivers license?', progress: 45 },
+  { id: 'sr22', title: 'Do you need an SR-22?', progress: 50 },
+  { id: 'insurance-history', title: 'Have you had auto insurance in the past 30 days?', progress: 55 },
+  { id: 'current-auto-insurance', title: 'Current Auto Insurance', progress: 58 },
+  { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?', progress: 62 },
+  { id: 'coverage-type', title: 'Which coverage type do you need?', progress: 65 },
+  { id: 'gender', title: 'Select your gender', progress: 69 },
+  { id: 'marital-status', title: 'Are you married?', progress: 74 },
+  { id: 'credit-score', title: 'What is your credit score?', progress: 78 },
+  { id: 'homeowner', title: 'Homeowner?', progress: 80 },
   { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?', progress: 82 },
   { id: 'birthdate', title: 'What is your birthdate?', progress: 89 },
-  { id: 'contact-info', title: 'Contact Information', progress: 92 }
+  { id: 'contact-info', title: 'Contact Information', progress: 97 }
 ];
 
 function App() {
@@ -169,12 +169,11 @@ function App() {
   const updateLocationData = (locationData) => {
     setFormData(prev => ({
       ...prev,
-      city: locationData.city || prev.city,
-      state: locationData.state || prev.state,
+      // Only update zipcode from auto-location, not city/state
       zipcode: locationData.zipcode || prev.zipcode
     }));
     
-    console.log('Location data updated:', locationData);
+    console.log('Location data updated (zipcode only):', locationData);
   };
 
   const handleViewRate = () => {
@@ -248,6 +247,17 @@ function App() {
       };
 
       console.log('Submitting form data:', submissionData);
+      
+      // Debug: Check if contact info is present
+      console.log('Contact Info Check:', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        streetAddress: formData.streetAddress,
+        city: formData.city,
+        state: formData.state
+      });
       
       // Simulate searching time (5 seconds)
       await new Promise(resolve => setTimeout(resolve, 5000));
