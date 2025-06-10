@@ -9,7 +9,7 @@ const Footer = () => {
           <div className="trust-icon">✓</div>
           <span>Free quotes, secure form, competitive offers.</span>
         </div>
-        
+
         {/* <div className="trust-badges">
           <div className="badge bbb-badge">
             <span className="badge-text">BBB</span>
