@@ -148,6 +148,12 @@ Core colors can be updated in the CSS files:
 - **Responsive**: Mobile-first design with tablet/desktop enhancements
 - **Accessibility**: Proper form labels, focus management, semantic HTML
 
+- To deploy after git push use ./deploy-update.sh on deploy user ssh deploy@66.42.86.208
+- # Go back to previous commit
+- git reset --hard HEAD~1
+- npm run build
+- pm2 restart auto-insurance-app
+
 ## Browser Support
 
 - Chrome (latest)
