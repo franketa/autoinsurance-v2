@@ -154,6 +154,10 @@ Core colors can be updated in the CSS files:
 - npm run build
 - pm2 restart auto-insurance-app
 
+- pm2 start server/server.js --name auto-insurance-app --env production
+- pm2 stop all, pm2 delete all, pm2 kill, run ./deploy-update.sh
+
+
 ## Browser Support
 
 - Chrome (latest)
