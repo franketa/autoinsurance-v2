@@ -63,13 +63,12 @@
 /* Input styles */
 .form-input {
   width: 100%;
-  padding: 16px;
+  padding: 22px;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 16px;
   background-color: #f8f9fa;
   color: #374151;
-  margin-bottom: 16px;
 }
 
 .form-input:focus {
@@ -94,7 +93,7 @@
   font-size: 24px;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 32px;
+  margin-bottom: 15px;
   text-align: left;
 }
 
