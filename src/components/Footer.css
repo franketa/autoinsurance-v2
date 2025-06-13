@@ -100,8 +100,12 @@
 .footer-link {
   font-size: 12px;
   color: #727272;
+  background: none;
+  border: none;
   text-decoration: none;
   transition: color 0.2s ease;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .footer-link:hover {

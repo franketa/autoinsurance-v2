@@ -46,6 +46,26 @@
   gap: 8px;
 }
 
+.previous-icon {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+  background-color: white;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.previous-icon:hover {
+  border-color: #467FCE;
+  color: #467FCE;
+}
+
 .close-icon {
   width: 24px;
   height: 24px;

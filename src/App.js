@@ -6,6 +6,9 @@ import StepContainer from './components/StepContainer';
 import Footer from './components/Footer';
 import SearchingScreen from './components/SearchingScreen';
 import ResultsScreen from './components/ResultsScreen';
+import ContactUsPage from './components/ContactUsPage';
+import PrivacyPolicyPage from './components/PrivacyPolicyPage';
+import TermsOfUsePage from './components/TermsOfUsePage';
 import { vehicleData } from './data/vehicleData';
 
 const STEPS = [
@@ -37,6 +40,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [showExitModal, setShowExitModal] = useState(false);
   const [submissionState, setSubmissionState] = useState('form'); // 'form', 'searching', 'results'
+  const [currentPage, setCurrentPage] = useState('form'); // 'form', 'contact', 'privacy', 'terms'
   const [formData, setFormData] = useState({
     zipcode: '',
     city: '',
@@ -186,6 +190,23 @@ function App() {
     alert('Showing all available rates...');
   };
 
+  // Navigation functions for footer links
+  const handleContactClick = () => {
+    setCurrentPage('contact');
+  };
+
+  const handlePrivacyClick = () => {
+    setCurrentPage('privacy');
+  };
+
+  const handleTermsClick = () => {
+    setCurrentPage('terms');
+  };
+
+  const handleBackToMainForm = () => {
+    setCurrentPage('form');
+  };
+
   const nextStep = () => {
     if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -290,6 +311,55 @@ function App() {
     }
   };
 
+  // Conditional rendering based on current page
+  if (currentPage === 'contact') {
+    return (
+      <div className="app">
+        <Header />
+        <main className="main-content">
+          <ContactUsPage onBack={handleBackToMainForm} />
+        </main>
+        <Footer 
+          onContactClick={handleContactClick}
+          onPrivacyClick={handlePrivacyClick}
+          onTermsClick={handleTermsClick}
+        />
+      </div>
+    );
+  }
+
+  if (currentPage === 'privacy') {
+    return (
+      <div className="app">
+        <Header />
+        <main className="main-content">
+          <PrivacyPolicyPage onBack={handleBackToMainForm} />
+        </main>
+        <Footer 
+          onContactClick={handleContactClick}
+          onPrivacyClick={handlePrivacyClick}
+          onTermsClick={handleTermsClick}
+        />
+      </div>
+    );
+  }
+
+  if (currentPage === 'terms') {
+    return (
+      <div className="app">
+        <Header />
+        <main className="main-content">
+          <TermsOfUsePage onBack={handleBackToMainForm} />
+        </main>
+        <Footer 
+          onContactClick={handleContactClick}
+          onPrivacyClick={handlePrivacyClick}
+          onTermsClick={handleTermsClick}
+        />
+      </div>
+    );
+  }
+
   // Conditional rendering based on submission state
   if (submissionState === 'searching') {
     return (
@@ -298,7 +368,11 @@ function App() {
         <main className="main-content">
           <SearchingScreen userName={formData.firstName || 'franco'} />
         </main>
-        <Footer />
+        <Footer 
+          onContactClick={handleContactClick}
+          onPrivacyClick={handlePrivacyClick}
+          onTermsClick={handleTermsClick}
+        />
       </div>
     );
   }
@@ -314,7 +388,11 @@ function App() {
             onViewAllRates={handleViewAllRates}
           />
         </main>
-        <Footer />
+        <Footer 
+          onContactClick={handleContactClick}
+          onPrivacyClick={handlePrivacyClick}
+          onTermsClick={handleTermsClick}
+        />
       </div>
     );
   }
@@ -326,6 +404,8 @@ function App() {
         progress={currentStepData?.progress || 0} 
         location="District of Columbia"
         onExitClick={handleExitClick}
+        onPrevious={previousStep}
+        canGoPrevious={currentStep > 0}
       />
       <main className="main-content">
         <StepContainer
@@ -340,7 +420,11 @@ function App() {
           vehicleData={vehicleData}
         />
       </main>
-      <Footer />
+      <Footer 
+        onContactClick={handleContactClick}
+        onPrivacyClick={handlePrivacyClick}
+        onTermsClick={handleTermsClick}
+      />
       
       {/* Exit Confirmation Modal */}
       {showExitModal && (

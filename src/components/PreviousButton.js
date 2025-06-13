@@ -10,7 +10,7 @@ const PreviousButton = ({ onPrevious, canGoPrevious }) => {
       className="previous-button"
       onClick={onPrevious}
     >
-      ← Previous
+      ←
     </button>
   );
 };

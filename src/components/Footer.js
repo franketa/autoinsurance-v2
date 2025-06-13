@@ -1,7 +1,7 @@
 import React from 'react';
 import './Footer.css';
 
-const Footer = () => {
+const Footer = ({ onContactClick, onPrivacyClick, onTermsClick }) => {
   return (
     <footer className="footer">
       <div className="footer-content">
@@ -22,13 +22,11 @@ const Footer = () => {
 
         <div className="footer-info">
           <p className="copyright">© 2025 TrueQuote</p>
-          {/* <div className="footer-links">
-            <a href="#" className="footer-link">Contact Us</a>
-            <a href="#" className="footer-link">Privacy Policy</a>
-            <a href="#" className="footer-link">Terms of Use</a>
-            <a href="#" className="footer-link">Online Tracking</a>
-            <a href="#" className="footer-link">Accessibility Statement</a>
-          </div> */}
+          <div className="footer-links">
+            <button className="footer-link" onClick={onContactClick}>Contact Us</button>
+            <button className="footer-link" onClick={onPrivacyClick}>Privacy Policy</button>
+            <button className="footer-link" onClick={onTermsClick}>Terms of Use</button>
+          </div>
         </div>
       </div>
     </footer>
