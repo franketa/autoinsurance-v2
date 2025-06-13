@@ -41,11 +41,87 @@ const IGNITE_CONFIG = {
 };
 
 // Helper Functions
+function validateQuoteWizardData(contact, drivers, vehicles, insuranceProfile) {
+  const errors = [];
+  
+  // Contact validation
+  if (!contact.FirstName || !contact.LastName) {
+    errors.push('Contact first name and last name are required');
+  }
+  if (!contact.EmailAddress || !contact.EmailAddress.includes('@')) {
+    errors.push('Valid email address is required');
+  }
+  if (!contact.Address1 || !contact.City || !contact.State || !contact.ZIPCode) {
+    errors.push('Complete address information is required');
+  }
+  if (!contact.PhoneNumbers?.PrimaryPhone) {
+    errors.push('Primary phone number is required');
+  }
+  
+  // Driver validation
+  if (!drivers || drivers.length === 0) {
+    errors.push('At least one driver is required');
+  }
+  drivers.forEach((driver, index) => {
+    if (!driver.FirstName || !driver.LastName || !driver.BirthDate) {
+      errors.push(`Driver ${index + 1}: Name and birth date are required`);
+    }
+    if (driver.State !== contact.State) {
+      errors.push(`Driver ${index + 1}: State must match contact state (${contact.State})`);
+    }
+  });
+  
+  // Vehicle validation
+  if (!vehicles || vehicles.length === 0) {
+    errors.push('At least one vehicle is required');
+  }
+  vehicles.forEach((vehicle, index) => {
+    if (!vehicle.Year || !vehicle.Make || !vehicle.Model) {
+      errors.push(`Vehicle ${index + 1}: Year, make, and model are required`);
+    }
+  });
+  
+  // Insurance profile validation
+  if (!insuranceProfile || insuranceProfile.length === 0) {
+    errors.push('Insurance profile is required');
+  }
+  
+  return errors;
+}
+
+function escapeXML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function transformPhoneNumber(phone) {
-  if (!phone) return '';
+  if (!phone) return '555-123-4567'; // Default fallback
+  
+  // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
-  const last10 = digits.slice(-10);
-  return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
+  
+  // Handle different phone number lengths
+  if (digits.length === 11 && digits.startsWith('1')) {
+    // US number with country code
+    const last10 = digits.slice(1);
+    return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
+  } else if (digits.length === 10) {
+    // Standard US number
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  } else if (digits.length > 10) {
+    // Take last 10 digits
+    const last10 = digits.slice(-10);
+    return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
+  } else {
+    // Invalid length, return padded number or default
+    const padded = digits.padStart(10, '0');
+    return `${padded.slice(0, 3)}-${padded.slice(3, 6)}-${padded.slice(6)}`;
+  }
 }
 
 function transformVehicles(vehicles) {
@@ -78,22 +154,22 @@ function getTodayDate(isFull = false) {
 
 function generateDriversXML(drivers) {
   return drivers.map(driver => `
-    <Driver Gender="${driver.Gender}" MaritalStatus="${driver.MaritalStatus}" RelationshipToApplicant="${driver.RelationshipToApplicant}">
-      <FirstName>${driver.FirstName}</FirstName>
-      <LastName>${driver.LastName}</LastName>
-      <BirthDate>${driver.BirthDate}</BirthDate>
-      <State>${driver.State}</State>
-      <AgeLicensed>${driver.AgeLicensed}</AgeLicensed>
-      <LicenseStatus>${driver.LicenseStatus}</LicenseStatus>
-      <LicenseEverSuspendedRevoked>${driver.LicenseEverSuspendedRevoked}</LicenseEverSuspendedRevoked>
-      <Occupation Name="${driver.Occupation.Name}">
-        <YearsInField>${driver.Occupation.YearsInField}</YearsInField>
+    <Driver Gender="${escapeXML(driver.Gender)}" MaritalStatus="${escapeXML(driver.MaritalStatus)}" RelationshipToApplicant="${escapeXML(driver.RelationshipToApplicant)}">
+      <FirstName>${escapeXML(driver.FirstName)}</FirstName>
+      <LastName>${escapeXML(driver.LastName)}</LastName>
+      <BirthDate>${escapeXML(driver.BirthDate)}</BirthDate>
+      <State>${escapeXML(driver.State)}</State>
+      <AgeLicensed>${escapeXML(driver.AgeLicensed)}</AgeLicensed>
+      <LicenseStatus>${escapeXML(driver.LicenseStatus)}</LicenseStatus>
+      <LicenseEverSuspendedRevoked>${escapeXML(driver.LicenseEverSuspendedRevoked)}</LicenseEverSuspendedRevoked>
+      <Occupation Name="${escapeXML(driver.Occupation.Name)}">
+        <YearsInField>${escapeXML(driver.Occupation.YearsInField)}</YearsInField>
       </Occupation>
       <HighestLevelOfEducation>
-        <Education AtHomeStudent="${driver.HighestLevelOfEducation.AtHomeStudent}" HighestDegree="${driver.HighestLevelOfEducation.HighestDegree}"/>
+        <Education AtHomeStudent="${escapeXML(driver.HighestLevelOfEducation.AtHomeStudent)}" HighestDegree="${escapeXML(driver.HighestLevelOfEducation.HighestDegree)}"/>
       </HighestLevelOfEducation>
-      <RequiresSR22Filing>${driver.RequiresSR22Filing}</RequiresSR22Filing>
-      <CreditRating Bankruptcy="${driver.CreditRating.Bankruptcy}" SelfRating="${driver.CreditRating.SelfRating}"/>
+      <RequiresSR22Filing>${escapeXML(driver.RequiresSR22Filing)}</RequiresSR22Filing>
+      <CreditRating Bankruptcy="${escapeXML(driver.CreditRating.Bankruptcy)}" SelfRating="${escapeXML(driver.CreditRating.SelfRating)}"/>
     </Driver>
   `).join('');
 }
@@ -101,9 +177,9 @@ function generateDriversXML(drivers) {
 function generateVehiclesXML(vehicles) {
   return vehicles.map(vehicle => {
     // Ensure we have valid values, not undefined
-    const year = vehicle.Year || '2020';
-    const make = vehicle.Make || 'Toyota';
-    const model = vehicle.Model || 'Camry';
+    const year = escapeXML(vehicle.Year || '2020');
+    const make = escapeXML(vehicle.Make || 'Toyota');
+    const model = escapeXML(vehicle.Model || 'Camry');
     
     console.log(`Generating XML for vehicle: Year=${year}, Make=${make}, Model=${model}`);
     
@@ -127,62 +203,109 @@ function generateInsuranceProfileXML(insuranceProfile) {
   return insuranceProfile.map(profile => `
     <InsuranceProfile>
       <RequestedPolicy>
-        <CoverageType>${profile.CoverageType}</CoverageType>
+        <CoverageType>${escapeXML(profile.CoverageType)}</CoverageType>
       </RequestedPolicy>
       <CurrentPolicy>
         <InsuranceCompany>
-          <CompanyName>${profile.CurrentPolicy.InsuranceCompany.CompanyName}</CompanyName>
+          <CompanyName>${escapeXML(profile.CurrentPolicy.InsuranceCompany.CompanyName)}</CompanyName>
         </InsuranceCompany>
-        <ExpirationDate>${profile.CurrentPolicy.ExpirationDate || ''}</ExpirationDate>
-        <StartDate>${profile.CurrentPolicy.StartDate || ''}</StartDate>
+        <ExpirationDate>${escapeXML(profile.CurrentPolicy.ExpirationDate || '2099-02-01')}</ExpirationDate>
+        <StartDate>${escapeXML(profile.CurrentPolicy.StartDate || '2016-01-01')}</StartDate>
       </CurrentPolicy>
+      <ContinuouslyInsuredSinceDate>2013-01-01</ContinuouslyInsuredSinceDate>
     </InsuranceProfile>
   `).join('');
 }
 
-function generateFullXML(formData, vendorData) {
+function generateFullXML(formData, vendorData, isPing = false) {
   const { drivers, vehicles, insuranceProfile, contact } = formData;
+  
+  // Use filler data for ping, real data for post as per QuoteWizard documentation
+  const contactData = isPing ? {
+    FirstName: 'xxx',
+    LastName: 'xxx',
+    Address1: '1111 XXX Dr',
+    City: 'SEATTLE',
+    State: 'WA',
+    ZIPCode: '11111',
+    EmailAddress: 'xxxx@yahoo.com',
+    PhoneNumbers: {
+      PrimaryPhone: '111-111-1111',
+      SecondaryPhone: '111-111-1111'
+    },
+    CurrentResidence: {
+      ResidenceStatus: 'Own',
+      OccupancyDate: '2012-02-08'
+    }
+  } : contact;
+  
+  // Use filler data for drivers in ping, real data in post
+  const driverData = isPing ? [{
+    Gender: 'Male',
+    MaritalStatus: 'Married',
+    RelationshipToApplicant: 'Self',
+    FirstName: 'XXX',
+    LastName: 'XXXX',
+    BirthDate: '1966-01-01',
+    State: contactData.State, // Must match contact state
+    AgeLicensed: '16',
+    LicenseStatus: 'Valid',
+    LicenseEverSuspendedRevoked: 'No',
+    Occupation: {
+      Name: 'OtherNonTechnical',
+      YearsInField: '3'
+    },
+    HighestLevelOfEducation: {
+      AtHomeStudent: 'No',
+      HighestDegree: 'AssociateDegree'
+    },
+    RequiresSR22Filing: 'No',
+    CreditRating: {
+      Bankruptcy: 'No',
+      SelfRating: 'Excellent'
+    }
+  }] : drivers.map(driver => ({ ...driver, State: contact.State }));
   
   return `<?xml version='1.0' encoding='UTF-8'?>
     <QuoteWizardData Version='1.0' xsi:noNamespaceSchemaLocation='QW.xsd'
         xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
-        <QuoteRequest DateTime='${vendorData.LeadBornOnDateTimeUTC}'>
+        <QuoteRequest DateTime='${escapeXML(vendorData.LeadBornOnDateTimeUTC)}'>
             <VendorData>
-                <LeadID>${vendorData.LeadID}</LeadID>
-                <SourceID>${vendorData.SourceID}</SourceID>
-                <SourceIPAddress>${vendorData.SourceIPAddress}</SourceIPAddress>
-                <SubmissionUrl>${vendorData.SubmissionUrl}</SubmissionUrl>
-                <UserAgent>${vendorData.UserAgent}</UserAgent>
-                <DateLeadReceived>${vendorData.DateLeadReceived}</DateLeadReceived>
-                <LeadBornOnDateTimeUTC>${vendorData.LeadBornOnDateTimeUTC}</LeadBornOnDateTimeUTC>
-                <JornayaLeadID>${vendorData.JornayaLeadID}</JornayaLeadID>
-                <TrustedFormCertificateUrl>${vendorData.TrustedFormCertificateUrl}</TrustedFormCertificateUrl>
-                <EverQuoteEQID>${vendorData.EverQuoteEQID}</EverQuoteEQID>
-                <TCPAOptIn>${vendorData.TCPAOptIn}</TCPAOptIn>
-                <TCPALanguage>${vendorData.TCPALanguage}</TCPALanguage>
+                <LeadID>${escapeXML(vendorData.LeadID)}</LeadID>
+                <SourceID>${escapeXML(vendorData.SourceID)}</SourceID>
+                <SourceIPAddress>${escapeXML(vendorData.SourceIPAddress)}</SourceIPAddress>
+                <SubmissionUrl>${escapeXML(vendorData.SubmissionUrl)}</SubmissionUrl>
+                <UserAgent>${escapeXML(vendorData.UserAgent)}</UserAgent>
+                <DateLeadReceived>${escapeXML(vendorData.DateLeadReceived)}</DateLeadReceived>
+                <LeadBornOnDateTimeUTC>${escapeXML(vendorData.LeadBornOnDateTimeUTC)}</LeadBornOnDateTimeUTC>
+                <JornayaLeadID>${escapeXML(vendorData.JornayaLeadID)}</JornayaLeadID>
+                <TrustedFormCertificateUrl>${escapeXML(vendorData.TrustedFormCertificateUrl)}</TrustedFormCertificateUrl>
+                <EverQuoteEQID>${escapeXML(vendorData.EverQuoteEQID)}</EverQuoteEQID>
+                <TCPAOptIn>${escapeXML(vendorData.TCPAOptIn)}</TCPAOptIn>
+                <TCPALanguage>${escapeXML(vendorData.TCPALanguage)}</TCPALanguage>
             </VendorData>
             <AutoInsurance>
                 <Contact>
-                    <FirstName>${contact.FirstName}</FirstName>
-                    <LastName>${contact.LastName}</LastName>
-                    <Address1>${contact.Address1}</Address1>
-                    <City>${contact.City}</City>
-                    <State>${contact.State}</State>
-                    <ZIPCode>${contact.ZIPCode}</ZIPCode>
-                    <EmailAddress>${contact.EmailAddress}</EmailAddress>
+                    <FirstName>${escapeXML(contactData.FirstName)}</FirstName>
+                    <LastName>${escapeXML(contactData.LastName)}</LastName>
+                    <Address1>${escapeXML(contactData.Address1)}</Address1>
+                    <City>${escapeXML(contactData.City)}</City>
+                    <State>${escapeXML(contactData.State)}</State>
+                    <ZIPCode>${escapeXML(contactData.ZIPCode)}</ZIPCode>
+                    <EmailAddress>${escapeXML(contactData.EmailAddress)}</EmailAddress>
                     <PhoneNumbers>
                         <PrimaryPhone>
-                            <PhoneNumberValue>${contact.PhoneNumbers.PrimaryPhone}</PhoneNumberValue>
+                            <PhoneNumberValue>${escapeXML(contactData.PhoneNumbers.PrimaryPhone)}</PhoneNumberValue>
                         </PrimaryPhone>
                         <SecondaryPhone>
-                            <PhoneNumberValue>${contact.PhoneNumbers.SecondaryPhone}</PhoneNumberValue>
+                            <PhoneNumberValue>${escapeXML(contactData.PhoneNumbers.SecondaryPhone)}</PhoneNumberValue>
                         </SecondaryPhone>
                     </PhoneNumbers>
-                    <CurrentResidence ResidenceStatus='${contact.CurrentResidence.ResidenceStatus}'>
-                        <OccupancyDate>${contact.CurrentResidence.OccupancyDate}</OccupancyDate>
+                    <CurrentResidence ResidenceStatus='${escapeXML(contactData.CurrentResidence.ResidenceStatus)}'>
+                        <OccupancyDate>${escapeXML(contactData.CurrentResidence.OccupancyDate)}</OccupancyDate>
                     </CurrentResidence>
                 </Contact>
-                <Drivers>${generateDriversXML(drivers)}</Drivers>
+                <Drivers>${generateDriversXML(driverData)}</Drivers>
                 <AutoInsuranceQuoteRequest>
                     <Vehicles>${generateVehiclesXML(vehicles)}</Vehicles>
                     ${generateInsuranceProfileXML(insuranceProfile)}
@@ -204,9 +327,8 @@ async function logToDatabase(action, data) {
 }
 
 async function sendQuoteWizardRequest(contractID, initialID, pass, quoteData) {
-  const url = process.env.NODE_ENV === 'production' 
-    ? QUOTE_WIZARD_CONFIG.production_url 
-    : QUOTE_WIZARD_CONFIG.production_url; // Use production for now
+  // HARDCODED STAGING URL FOR TESTING
+  const url = 'https://stage.quotewizard.com/LeadAPI/Services/SubmitVendorLead';
   
   const fields = {
     contractID,
@@ -218,44 +340,109 @@ async function sendQuoteWizardRequest(contractID, initialID, pass, quoteData) {
     fields.initialID = initialID;
   }
   
+  // DEBUG: Log the request details
+  console.log('🚀 QuoteWizard Request:', {
+    url,
+    environment: 'STAGING (HARDCODED)',
+    contractID,
+    initialID: initialID || 'N/A',
+    pass,
+    xmlLength: quoteData?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Log first 500 chars of XML for debugging
+  console.log('📄 XML Preview:', quoteData?.substring(0, 500) + '...');
+  
   try {
     const response = await axios.post(url, new URLSearchParams(fields), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
-      }
+      },
+      timeout: 30000 // 30 second timeout
     });
     
+    console.log('✅ QuoteWizard Response Status:', response.status);
+    console.log('📄 Full QuoteWizard Response:', response.data);
+    console.log('📊 Response Headers:', response.headers);
     return response.data;
   } catch (error) {
-    console.error('QuoteWizard API error:', error);
+    console.error('❌ QuoteWizard API Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      url: error.config?.url,
+      requestData: {
+        contractID,
+        pass,
+        initialID,
+        xmlLength: quoteData?.length
+      }
+    });
     throw error;
   }
 }
 
 function extractQuoteID(pingResponse) {
   try {
-    // Find the XML content within the response
-    const startTag = '<string';
-    const endTag = '</string>';
-    const start = pingResponse.indexOf(startTag) + startTag.length;
-    const end = pingResponse.indexOf(endTag);
+    console.log('🔍 Parsing QuoteWizard ping response...');
+    console.log('📄 Raw response type:', typeof pingResponse);
+    console.log('📄 Raw response length:', pingResponse?.length || 'N/A');
+    console.log('📄 Raw response (first 1000 chars):', typeof pingResponse === 'string' ? pingResponse.substring(0, 1000) : JSON.stringify(pingResponse).substring(0, 1000));
     
-    if (start === -1 || end === -1) {
-      throw new Error('Could not find XML content in response');
+    // First try to parse as direct XML
+    if (pingResponse.includes('<QWXMLResponse')) {
+      const quoteIdMatch = pingResponse.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
+      const statusMatch = pingResponse.match(/<Status>(.*?)<\/Status>/);
+      const reasonMatch = pingResponse.match(/<Reason>(.*?)<\/Reason>/);
+      
+      console.log('📊 Parsed response:', {
+        status: statusMatch?.[1],
+        quoteId: quoteIdMatch?.[1],
+        reason: reasonMatch?.[1]
+      });
+      
+      if (statusMatch?.[1] === 'Failure') {
+        throw new Error(`QuoteWizard ping failed: ${reasonMatch?.[1] || 'Unknown reason'}`);
+      }
+      
+      if (quoteIdMatch && quoteIdMatch[1]) {
+        console.log('✅ Quote ID extracted:', quoteIdMatch[1]);
+        return quoteIdMatch[1];
+      }
     }
     
-    const xmlContent = pingResponse.substring(start, end);
-    const decodedXml = xmlContent.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    // Try to find XML content within SOAP response
+    const startTag = '<string';
+    const endTag = '</string>';
+    const start = pingResponse.indexOf(startTag);
+    const end = pingResponse.indexOf(endTag);
     
-    // Extract Quote_ID using regex
-    const quoteIdMatch = decodedXml.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
-    if (quoteIdMatch && quoteIdMatch[1]) {
-      return quoteIdMatch[1];
+    if (start !== -1 && end !== -1) {
+      const xmlContent = pingResponse.substring(start + startTag.length, end);
+      const decodedXml = xmlContent.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+      
+      console.log('🔧 Decoded XML:', decodedXml.substring(0, 500));
+      
+      const quoteIdMatch = decodedXml.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
+      const statusMatch = decodedXml.match(/<Status>(.*?)<\/Status>/);
+      const reasonMatch = decodedXml.match(/<Reason>(.*?)<\/Reason>/);
+      
+      if (statusMatch?.[1] === 'Failure') {
+        throw new Error(`QuoteWizard ping failed: ${reasonMatch?.[1] || 'Unknown reason'}`);
+      }
+      
+      if (quoteIdMatch && quoteIdMatch[1]) {
+        console.log('✅ Quote ID extracted from SOAP:', quoteIdMatch[1]);
+        return quoteIdMatch[1];
+      }
     }
     
     throw new Error('Quote_ID not found in response');
   } catch (error) {
-    console.error('Error extracting Quote ID:', error);
+    console.error('❌ Error extracting Quote ID:', error.message);
+    console.error('📄 Full response:', pingResponse);
     throw error;
   }
 }
@@ -272,7 +459,8 @@ async function sendToIgnite(formData) {
         firstName: formData.firstName,
         lastName: formData.lastName,
         customField: {
-          sourceUrl: 'https://www.smartautoinsider.com',
+          sourceUrl: process.env.DOMAIN ? `https://${process.env.DOMAIN}` : 'https://localhost:3000',
+         // sourceUrl: 'https://www.smartautoinsider.com',
           ipAddress: formData.ipAddress || '',
           postalAddress: formData.streetAddress,
           city: formData.city,
@@ -348,7 +536,7 @@ app.post('/api/submit-quote', async (req, res) => {
     console.log('Original vehicles:', inputData.vehicles);
     console.log('Transformed vehicles:', vehicles);
     
-    // Build driver data
+    // Build driver data - ensure state matches contact state
     const drivers = [{
       Gender: gender,
       MaritalStatus: maritalStatus,
@@ -356,17 +544,17 @@ app.post('/api/submit-quote', async (req, res) => {
       FirstName: firstName,
       LastName: lastName,
       BirthDate: dob,
-      State: state,
+      State: state, // Must match contact state for QuoteWizard
       AgeLicensed: '16',
       LicenseStatus: license_status,
       LicenseEverSuspendedRevoked: 'No',
       Occupation: {
         Name: 'OtherNonTechnical',
-        YearsInField: '5'
+        YearsInField: '3'
       },
       HighestLevelOfEducation: {
         AtHomeStudent: 'No',
-        HighestDegree: 'BachelorsDegree'
+        HighestDegree: 'AssociateDegree'
       },
       RequiresSR22Filing: sr22,
       CreditRating: {
@@ -376,15 +564,15 @@ app.post('/api/submit-quote', async (req, res) => {
       Incidents: []
     }];
     
-    // Build insurance profile
+    // Build insurance profile with proper structure for QuoteWizard
     const insuranceProfile = [{
-      CoverageType: 'Standard',
+      CoverageType: 'Premium', // Changed from 'Standard' to match documentation
       CurrentPolicy: {
         InsuranceCompany: {
           CompanyName: current_insurance
         },
-        ExpirationDate: '',
-        StartDate: ''
+        ExpirationDate: '2099-02-01',
+        StartDate: '2016-01-01'
       }
     }];
     
@@ -412,7 +600,8 @@ app.post('/api/submit-quote', async (req, res) => {
       LeadID: '2897BDB4',
       SourceID: req.sessionID || '',
       SourceIPAddress: req.ip || req.connection.remoteAddress || '',
-      SubmissionUrl: 'https://www.smartautoinsider.com',
+      SubmissionUrl: process.env.DOMAIN ? `https://${process.env.DOMAIN}` : 'https://localhost:3000',
+      //SubmissionUrl: 'https://smartautoinsider.com',
       UserAgent: req.get('User-Agent') || '',
       DateLeadReceived: getTodayDate(),
       LeadBornOnDateTimeUTC: getTodayDate(true),
@@ -430,42 +619,45 @@ app.post('/api/submit-quote', async (req, res) => {
       contact
     };
     
+    // Validate data before sending to QuoteWizard
+    const validationErrors = validateQuoteWizardData(contact, drivers, vehicles, insuranceProfile);
+    if (validationErrors.length > 0) {
+      console.error('❌ Data validation failed:', validationErrors);
+      throw new Error(`Data validation failed: ${validationErrors.join(', ')}`);
+    }
+    
+    console.log('✅ Data validation passed');
+    
     // Validate we have vehicles
     if (!vehicles || vehicles.length === 0) {
       throw new Error('At least one vehicle is required');
     }
     
-    // Validate vehicle data
-    vehicles.forEach((vehicle, index) => {
-      if (!vehicle.Year || !vehicle.Make || !vehicle.Model) {
-        throw new Error(`Vehicle ${index + 1} is missing required data: Year=${vehicle.Year}, Make=${vehicle.Make}, Model=${vehicle.Model}`);
-      }
-    });
-    
     console.log('Final vehicle data for XML:', vehicles);
     
-    // Generate XML
-    const quoteXML = generateFullXML(formData, vendorData);
+    // Step 1: Send PING request with filler data (pass=1)
+    const pingXML = generateFullXML(formData, vendorData, true); // isPing = true for filler data
     
-    // Step 1: Send ping request
-    await logToDatabase('ping', quoteXML);
+    console.log('🏓 Sending PING request with filler data...');
+    await logToDatabase('ping', pingXML);
     const pingResponse = await sendQuoteWizardRequest(
       QUOTE_WIZARD_CONFIG.contractID,
-      null,
-      1,
-      quoteXML
+      null, // No initialID for ping
+      1, // pass=1 for ping
+      pingXML
     );
     await logToDatabase('ping_response', pingResponse);
     
-    // Step 2: Extract Quote ID and send post request
+    // Step 2: Extract Quote ID and send POST request with real data (pass=2)
     const initialID = extractQuoteID(pingResponse);
-    const postXML = generateFullXML(formData, vendorData);
+    const postXML = generateFullXML(formData, vendorData, false); // isPing = false for real data
     
+    console.log('📤 Sending POST request with real data and Quote ID:', initialID);
     await logToDatabase('post', postXML);
     const postResponse = await sendQuoteWizardRequest(
       QUOTE_WIZARD_CONFIG.contractID,
-      initialID,
-      2,
+      initialID, // Quote_ID from ping response
+      2, // pass=2 for post
       postXML
     );
     await logToDatabase('post_response', postResponse);
@@ -477,7 +669,7 @@ app.post('/api/submit-quote', async (req, res) => {
     res.json({
       success: true,
       ping: {
-        xml: quoteXML,
+        xml: pingXML,
         response: pingResponse
       },
       post: {
