@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/autoinsurance-v2/static/css/main.2970a07c.css",
+    "main.css": "/autoinsurance-v2/static/css/main.ea45e99d.css",
     "main.js": "/autoinsurance-v2/static/js/main.7d75508d.js",
     "index.html": "/autoinsurance-v2/index.html",
-    "main.2970a07c.css.map": "/autoinsurance-v2/static/css/main.2970a07c.css.map",
+    "main.ea45e99d.css.map": "/autoinsurance-v2/static/css/main.ea45e99d.css.map",
     "main.7d75508d.js.map": "/autoinsurance-v2/static/js/main.7d75508d.js.map"
   },
   "entrypoints": [
-    "static/css/main.2970a07c.css",
+    "static/css/main.ea45e99d.css",
     "static/js/main.7d75508d.js"
   ]
 }
