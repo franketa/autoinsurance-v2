@@ -46,7 +46,6 @@
   gap: 8px;
 }
 
-.help-icon,
 .close-icon {
   width: 24px;
   height: 24px;
@@ -62,7 +61,6 @@
   transition: all 0.2s ease;
 }
 
-.help-icon:hover,
 .close-icon:hover {
   border-color: #467FCE;
   color: #467FCE;
@@ -80,4 +78,4 @@
   .progress-content {
     padding: 0 40px;
   }
-} 
+}

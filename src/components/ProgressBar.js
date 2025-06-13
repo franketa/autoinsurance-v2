@@ -15,7 +15,6 @@ const ProgressBar = ({ progress, location, onExitClick }) => {
           <div className="progress-info">
             <span className="progress-text">{progress}% Complete</span>
             <div className="progress-icons">
-              <button className="help-icon" title="Help">?</button>
               <button className="close-icon" title="Close" onClick={onExitClick}>×</button>
             </div>
           </div>
