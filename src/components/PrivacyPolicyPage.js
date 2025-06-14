@@ -9,82 +9,284 @@ const PrivacyPolicyPage = ({ onBack }) => {
         
         <div className="legal-header">
           <h1 className="legal-title">Privacy Policy</h1>
-          <p className="legal-subtitle">Last updated: January 2025</p>
+          <p className="legal-subtitle">Our Privacy Policy was Last Updated on July 29th, 2024</p>
         </div>
 
         <div className="legal-body">
           <section className="legal-section">
-            <h2>Information We Collect</h2>
             <p>
-              We collect information you provide directly to us, such as when you create an account, 
-              request an insurance quote, or contact us for support. This may include:
+              Vision Media Group, its parent, subsidiary, and affiliated companies, and each of their respective officers, directors, members, owners, employees, agents, and representatives are expressly included in any reference to the "Site", "Us", "Our", and/or "We" herein. Vision Media Group Privacy Policy provides important information on the types of personal information it may collect, use, or process about you when you visit our website or interact with Vision Media Group. We value your privacy and are committed to safeguarding your information.
             </p>
-            <ul>
-              <li>Personal information (name, email address, phone number, date of birth)</li>
-              <li>Address and location information</li>
-              <li>Vehicle information (make, model, year, VIN)</li>
-              <li>Driving history and insurance history</li>
-              <li>Financial information (credit score, income)</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>How We Use Your Information</h2>
-            <p>We use the information we collect to:</p>
-            <ul>
-              <li>Provide you with insurance quotes and recommendations</li>
-              <li>Connect you with insurance providers</li>
-              <li>Improve our services and user experience</li>
-              <li>Communicate with you about our services</li>
-              <li>Comply with legal obligations</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>Information Sharing</h2>
             <p>
-              We may share your information with insurance companies and agents to provide you with 
-              quotes and coverage options. We do not sell your personal information to third parties 
-              for their marketing purposes.
+              Please read this Privacy Policy carefully. By visiting our Site and Application and using our Services, you agree that your information, including your personal information, will be handled as described in this Privacy Policy.
             </p>
           </section>
 
           <section className="legal-section">
-            <h2>Data Security</h2>
+            <h2>Applicability And Third-Party Websites And Services</h2>
             <p>
-              We implement appropriate technical and organizational measures to protect your personal 
-              information against unauthorized access, alteration, disclosure, or destruction.
+              This Privacy Policy is only applicable to this website: SmartAutoInsider.com. This statement is limited in nature to only be relevant and govern the material on this website. This Privacy Policy does not govern and is not applicable to any third party or any website that may be linked to PolicyGuardians.com. This Privacy Policy only governs the collection, processing, and storing of personal information supplied to this website; it does not govern the collection, processing, or storing of personal information by any third party.
             </p>
           </section>
 
           <section className="legal-section">
-            <h2>Your Rights</h2>
-            <p>You have the right to:</p>
+            <h2>Information We May Collect</h2>
+            <p>
+              Generally, we, as well as third-party vendors, networks, ISP(s), and supporting advertisers, use technologies such as cookies, web beacons, and javascript applications to collect a variety of types of information about you when you interact with us or use the Platform through. Examples of the categories of information that may be collected include personal information, demographic information, behavioral information, and indirect information. Sometimes we collect combinations of these types of information:
+            </p>
+            
+            <h3>Personal Information</h3>
+            <p>
+              Is information that can be used to identify you or any other individual to whom the information may relate. This is information which you are prompted to provide to us. Examples of Personal Information are your name, address, phone number(s) and email address, employment status or other unique information about you that you provide to us during the registration process or through the course of communicating with us. We may collect this same information about other persons when you provide it to us.
+            </p>
+            
+            <h3>Demographic Information</h3>
+            <p>
+              Is information that may or may not be unique to you in the sense that it refers to selected population characteristics. Examples of demographic information are your zip code, mobile phone carrier, age, gender, salary range, education, marital status, occupation, military service, industry of employment, personal and online interests.
+            </p>
+            
+            <h3>Behavioral Information</h3>
+            <p>
+              Is information which is automatically collected when you use the Platform. Examples of behavior information are the areas of the Platform that you visit, what services you access, information about your computer hardware and software, including your IP address, geographic location, browser preference, operating system type, domain names, times that you access the internet, and other websites you have visited.
+            </p>
+            
+            <h3>Third-Party Information</h3>
+            <p>
+              Is information we acquire from a third-party which may include personal, demographic, behavioral and indirect information. This may also include, but is not limited to, first party cookies, third-party cookies, anonymous cookies, persistent identifiers, email opt-in records and search engine keywords. We may also receive information third parties derive from government entities which publicly post your information. We have no access or control over these cookies and other tracking devices used by third parties, including advertisers and networks, internet service providers, data analytics providers, or social networks and platforms, and we have no responsibility or liability for the policies and practices of these parties.
+            </p>
+            
+            <h3>Correspondence and Communications</h3>
+            <p>
+              Including recordings of our email and phone conversations with you and any correspondence related to providing you with the Services.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>How we use your information</h2>
+            <p>We use the information we collect in various ways, including to:</p>
             <ul>
-              <li>Access and update your personal information</li>
-              <li>Request deletion of your personal information</li>
-              <li>Opt out of marketing communications</li>
-              <li>Request a copy of your data</li>
+              <li>Provide, operate, and maintain our website</li>
+              <li>Improve, personalize, and expand our website and services</li>
+              <li>To fulfill any other purpose which you provide it</li>
+              <li>Understand and analyze how you use our website</li>
+              <li>Develop new products, services, features, and functionality</li>
+              <li>Communicate with you, either directly or through one of our partners, including for customer service, to provide you with updates and other information relating to the website, and for marketing and promotional purposes</li>
+              <li>Send you emails regarding our first or third-party goods and services that may be of interest</li>
+              <li>To notify you of changes to the site or its features</li>
+              <li>To provide our services</li>
+              <li>To respond to inquiries</li>
+              <li>Maintain security and prevent fraud</li>
+              <li>Satisfying our legal obligations</li>
+              <li>Supporting our business operations and business transactions</li>
+              <li>For any other purpose, with your consent</li>
             </ul>
           </section>
 
           <section className="legal-section">
-            <h2>Cookies</h2>
+            <h2>Disclosure of Your Information</h2>
+            <p>We may disclose any information that does not identify an individual without any restriction.</p>
+            <p>Personal information collected as described in this privacy policy may be disclosed:</p>
+            <ul>
+              <li>To our partners, affiliates, and subsidiaries</li>
+              <li>To fulfill the purpose for which you provide it</li>
+              <li>For any purpose disclosed when the information was provided</li>
+              <li>To third parties to market their products or services if you have not opted out</li>
+              <li>To a buyer in the event of a merger, acquisition, restructure, dissolution, or other transfer of assets</li>
+              <li>To our contractors, service providers, and 3rd party partners to support our business and who will be held to our data privacy policies and confidentiality</li>
+              <li>With your consent</li>
+            </ul>
             <p>
-              We use cookies and similar technologies to improve your experience on our website, 
-              analyze usage patterns, and provide personalized content.
+              Your information may also be disclosed where required by law, legal process, or to comply with any government or regulatory requirement, enforce agreement terms, or protect the rights or safety of Vision Media Group, its customers, or the general public.
+            </p>
+            <p>
+              If you do not want us to share your Personally Identifiable Information (PII) with third parties for marketing purposes related to their products and/or services, you may submit here a request to opt-out to privacy@smartautoinsider.com or by writing to: 1041 N Dupont Hwy #1575, Dover, DE 19901.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Targeted Ads And Analytics Services</h2>
+            <p>
+              Third-party advertising and analytics services companies may place advertisements on our behalf onto other websites, perform tracking and reporting functions for those sites and our advertisements, and place third-party advertisements on our Website. These third parties may collect information about the websites you have viewed and advertisements with which you have interacted. Other information that may be collected include your IP address, date and time of interaction, your Internet Service Provider (ISP), and the browser you use to visit this Website. This information may be combined with PII, like your name or email address, and may be used to deliver advertising from us or from other companies, through email or through social media sites. This combined information may also be used to improve our understanding of your interactions with our Website and advertisements. For example, we use Google Analytics to better understand how users interact with the Digital Properties. For information on Google Analytics' information-handling practices and how you can control the use of information sent to Google, visit https://policies.google.com/technologies/partner-sites. If you wish to prevent your information from being used by Google Analytics, Google has developed the Google Analytics opt-out browser add-on available at https://tools.google.com/dlpage/gaoptout.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Cookies And Other Technology</h2>
+            <p>
+              Cookies and other technologies are used by Vision Media Group in its operation of SmartAutoInsider.com to improve the experience of our visitors, to provide personalized content, and to monitor marketing campaigns and other communications. Cookies are small data files that can be used to track and use information about our visitors. These cookies make it possible for your information to be stored for your convenience, helping us to remember you and your preferences during your visit and during future visits. While some cookies terminate when you close your browser, some may remain on your computer or device until deleted. You may be able to adjust your device or browser settings to limit certain tracking or to decline cookies. Refer to your device's settings or your browser's "Help" section for more information on how to delete cookies and/or disable your device or browser from receiving cookies or adjust your tracking preferences. Additional information about cookies, including how to manage them, can be found here: https://allaboutcookies.org/.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Your Choices Regarding Collection Of Your Information</h2>
+            <p>
+              You have several choices regarding how Vision Media Group collects and uses your information. First, you may choose not to provide us with any personal information when you visit SmartAutoInsider.com. Additionally, your browser may allow you to decline cookies from our website. Please note that some services provided by Vision Media Group may not work without this information.
+            </p>
+            
+            <h3>Marketing and Promotional Communications</h3>
+            <p>
+              You can opt out of receiving marketing and promotional communications from us by mailing privacy@smartautoinsider.com. You may be able to opt-out of receiving marketing and promotional communications from us by following the instructions included in any such communication that you receive from us. Note that even if you opt out of receiving marketing and promotional communications from us, you will still receive non-marketing or transactional messages from us, including messages about your account and responses to your inquiries/requests.
+            </p>
+            
+            <h3>Cookies</h3>
+            <p>
+              As noted above, we (and our third-party providers and partners) use cookies on the Digital Properties for various purposes, including for analytics and interest-based advertising purposes. You may be able to adjust your device or browser settings to limit certain tracking or to decline cookies. Refer to your device's settings or your browser's "Help" section for more information on how to delete cookies and/or disable your device or browser from receiving cookies or adjust your tracking preferences. Additional information about cookies, including how to manage and delete them, can be found here: https://allaboutcookies.org/.
+            </p>
+            
+            <h3>Interest-Based Advertising</h3>
+            <p>
+              We use services provided by Google, Meta, TikTok, and other companies that use tracking technologies to collect from you and across your devices information about your online activities, preferences, and interactions with websites. These services are used to serve targeted advertising to you and to measure performance of our advertising campaigns. For example, these services enable us to retarget you with advertisements based on what you have viewed or engaged with on our Digital Properties while you are using platforms provided by Google, Meta, or TikTok and to measure when you have clicked through to our Digital Properties after seeing an advertisement on those or other platforms. Some websites/platforms and mobile devices allow you to exercise certain choices with respect to interest-based advertising, as described below.
+            </p>
+            
+            <h3>Web browsers</h3>
+            <p>You may be able to opt out of receiving interest-based advertising using the browser opt-out tools and consumer choice mechanisms provided by interest-based advertising self-regulatory groups by following the links below:</p>
+            <p>▪ <strong>Digital Advertising Alliance (DAA):</strong> https://optout.aboutads.info/?c=2&lang=EN</p>
+            <p>▪ <strong>Network Advertising Alliance (NAI):</strong> https://optout.networkadvertising.org/?c=1</p>
+            <p>
+              Note that you will need to opt-out separately on all of your browsers and devices, as each opt-out will apply only to the specific browser or device from which you opt out. If you delete or reset your cookies, change browsers, or use a different device, any opt-out cookie may no longer work and you will have to opt out again.
+            </p>
+            
+            <h3>Mobile devices</h3>
+            <p>You have the ability to control whether you see interest-based advertisements on your mobile device in the following ways:</p>
+            <p>▪ <strong>Device Settings:</strong> Your device operating system may provide mechanisms that allow you to opt in or opt out of the use of information about your usage of mobile apps to deliver interest-based advertising to your mobile device. For more information, consult your device settings.</p>
+            <p>▪ <strong>AppChoices Tool:</strong> The DAA offers a tool for opting out of the collection of cross-app information on a mobile device for interest-based advertising. To exercise your choices with respect to participating companies, you may download the AppChoices tool available here: https://youradchoices.com/appchoices.</p>
+            
+            <h3>Other choices</h3>
+            <p>The advertising partners that we have listed below may provide you with additional choices with respect to interest-based advertising, including the ability to control your advertising preferences directly through their services. We encourage you to review the privacy policies of the third-party services you use for more information regarding your choices.</p>
+            <ul>
+              <li>Google: https://adssettings.google.com</li>
+              <li>Meta/Facebook: https://www.facebook.com/about/ads</li>
+              <li>TikTok: https://support.tiktok.com/en/account-and-privacy</li>
+              <li>Twitter: https://twitter.com/settings/account/personalization</li>
+            </ul>
+            
+            <h3>Access and Correct Personal Information</h3>
+            <p>
+              Depending on how you have engaged with us and the Services, as well as your state of residence, you can request access to and/or correction of certain personal information that we maintain relating to you. You may contact us at privacy@smartautoinsider.com to request access to or correction of certain personal information. Note that we will only respond to or take action in response to a request to access, correct, or delete personal information to the extent required by law.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>California Residents</h2>
+            <h3>1. Right to Know About Personal Information Collected, Disclosed, or Sold</h3>
+            <p>
+              (a) You have the right to request that we disclose to you what categories and specific pieces of personal information we have collected. Personal information does not include: (i) publicly available information from government records; (ii) de-identified or aggregated consumer information; (iii) information excluded from the scope of the California Consumer Privacy Act ("CCPA"); and (iv) personal Information covered by certain sector-specific privacy laws (b) You may submit a verifiable consumer request to obtain the specific personal information we have collected about you either by emailing us at privacy@smartautoinsider.com with "CCPA Request" in the subject line. (c) Upon receiving your verifiable consumer request, the CCPA requires that we verify that you are the same consumer with whom we have the information in our systems. We may require that you verify your identity by clicking on a link we will send to the email address we have for you in our system or by responding to an email we send you. (d) Personal information has been collected from the following categories of sources:
+            </p>
+            <ul>
+              <li>Information collected directly and indirectly from your activity on our Platform and your interactions or communications with us. This includes your Personal Information provided by you in connection with obtaining a certain product or service offered by us or one of our network providers or advertisers.</li>
+              <li>Information you provide us when you enter promotions or contests offered by us or our clients including networks and advertisers.</li>
+              <li>Information you provide us through surveys, customer service correspondence, and general feedback.</li>
+              <li>Analytics companies who provide demographic information such as gender, zip code, or any information that is not tied to your Personal Information. In addition, we may receive information about you from other online or offline sources, including third parties from whom we validate consumer self-reported information, and verify information we already have about you. This helps us to update, expand and analyze our records and provide products and services that may be of interest to you.</li>
+              <li>We also collect information provided by service providers and other third parties as set out herein, our advertisers, ad networks and third-party technology companies.</li>
+            </ul>
+            
+            <h3>2. (e) We disclose or share personal information for the following purposes:</h3>
+            <ul>
+              <li>To obtain the services or products you have registered for on our Platform.</li>
+              <li>To allow a third-party to market their products or services to you.</li>
+              <li>To provide you with information, products or services that you request from us or resolve consumer concerns or request to opt-out of marketing.</li>
+              <li>To provide you with notices concerning our products or services, or events or news, that may be of interest to you.</li>
+              <li>To improve our Platform, products and services, and present its contents to you including testing, research, analysis and product development.</li>
+              <li>To personalize your Platform experience and deliver content, product and service offerings relevant to your interests, including targeted offers and ads through our Platform, third-party sites, and via email or text message (with your consent, where required by law).</li>
+              <li>To maintain the safety, security, and integrity of our Platform as well as products and services, databases and other technology assets, and business.</li>
+              <li>To respond to government or law enforcement requests and as required by applicable law, court order, or governmental regulations.</li>
+              <li>To evaluate or conduct a corporate restructuring, reorganization, dissolution, or other sale or transfer of some or all of our business or assets.</li>
+              <li>As described to you when collecting your Personal Information or as otherwise set forth in CCPA.</li>
+            </ul>
+            
+            <h3>3. (f) We disclose Personal Information to our Service Providers and the following categories of third parties:</h3>
+            <ul>
+              <li>Our affiliated entities.</li>
+              <li>Data aggregators.</li>
+              <li>Advertisers.</li>
+              <li>Ad networks.</li>
+              <li>Third parties in connection with products or services we and/or third parties provide to you.</li>
+            </ul>
+            
+            <h3>4. Right to Request Deletion of Personal Information</h3>
+            <p>
+              (a) You have a right to request the deletion of your Personal Information if we have collected or maintained it in the past 12 months. (b) You may submit a verifiable consumer request to delete your information by sending an email to privacy@smartautoinsider.com with "CCPA Request" in the subject line. (c) Once we receive and confirm your verifiable consumer request, we will disclose to you the categories of Personal Information we collected about you and the categories of sources for the Personal Information we collected about you. (d) This policy has disclosed our business or commercial purpose for collecting or selling that Personal Information and the categories of third parties with whom we shared that Personal Information.
+            </p>
+            
+            <h3>5. Right to Opt-Out of the Sale of Personal Information</h3>
+            <p>
+              You have the right to opt-out of any sale of your Personal Information by us. If you are requesting a product or service, this is an exemption from this right, and we will process your request. However, you have the right to cease all further sale of your Personal Information.
+            </p>
+            
+            <h3>6. Right to Non-Discrimination for the Exercise of a Consumer's Privacy Rights</h3>
+            <p>
+              You have a right not to receive discriminatory treatment by us for the exercise of these privacy rights conferred by the CCPA. As such, we will not deny you goods or services, charge you different prices or rates for goods or services, or deny you discounts or other benefits; nor will we provide you a different level or quality of goods or services or recommend a different level or quality of goods or services.
+            </p>
+            
+            <h3>7. Authorized Agent</h3>
+            <p>
+              Only you or a person registered with the California Secretary of State that you authorize to act on your behalf, may make a verifiable consumer request related to your Personal Information.
+            </p>
+            
+            <h3>8. Limitations on Requests</h3>
+            <p>
+              You may only make a verifiable consumer request for access twice within a twelve (12) month period. The verifiable consumer request must: (a) provide sufficient information that allows us to reasonably verify you are the person about whom we collected Personal Information or your authorized agent; and (b) describe your request with sufficient detail that allows us to properly understand, evaluate, and respond to you. The CCPA does not allow us to provide you with Personal Information if we cannot verify your identity or authority to make the request and confirm that the Personal Information relates to you. Making a verifiable consumer request does not require you to create an account with us. We will only use Personal Information provided in a verifiable consumer request to verify the requestor's identity or authority to make the request.
+            </p>
+            
+            <h3>9. Response Time and Response Format</h3>
+            <p>
+              We make every effort to respond to a verifiable consumer request within forty-five (45) days of its receipt. If we require more time (up to 90 days), we will inform you of the reason and extension period in writing by email. We will deliver our written response by email. Any disclosures we provide will only cover the twelve (12) month period preceding the verifiable consumer request's receipt. The response we provide will also explain the reasons why we cannot comply with a request, if applicable. We will provide our response in a manner that is readily useable and should allow you to transmit the information from one entity to another entity without hindrance to you.
+            </p>
+            
+            <h3>10. Changes to California Resident Privacy Notice</h3>
+            <p>
+              We reserve the right to amend this privacy notice at our discretion and at any time. When we make changes to this privacy notice, we will enforce the terms of the new policy going forward. You will receive no other notice than an updated posting on this page. Please check back each time you use or visit our Platform.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Notice to Non-US Users</h2>
+            <p>
+              The Platform is published in the United States and intended only for US users. We attempt to protect the personally identifiable information of all users of our Platform and we attempt to comply with local data protection and consumer rights laws to the extent they may apply to the Platform, but our Platform is targeted to United States citizens and our policies are directed at compliance with those laws. If you are uncertain whether this Privacy Policy conflicts with the applicable local privacy laws where you are located, you should not utilize the Platform or provide any personal information.
+            </p>
+            <p>
+              If you are located outside the United States, you should be aware that your personally identifiable information will be transferred to the United States, the laws of which may be deemed by your country to have inadequate data protection. If you are located in a country outside the United States and voluntarily submit personally identifiable information to us, you thereby consent to the general use of such information as provided in this privacy policy and to the transfer of that information to, and/or storage of that information in, the United States.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Children's Privacy</h2>
+            <p>
+              You must be an adult of 18 years or older to use the Site. We do not target the Site to children. Vision Media Group does not knowingly collect information of children under the age of 13. Vision Media Group will remove any personal information on children younger than 13 when made aware of collecting any.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Updates To This Privacy Policy</h2>
+            <p>
+              We may update this Privacy Policy from time to time to reflect changes in our information handling and privacy practices and/or changes in applicable law. The "Last Updated" date at the top of this page indicates when this Privacy Policy was last revised. If we make changes, we will revise the date at the top of this page and, in the case of material changes, we will provide you with additional notice if required by applicable law. Unless otherwise stated, the current version of this Privacy Policy applies to all Digital Properties and all personal information under our control. We encourage you to review this Privacy Policy periodically to remain informed about our information handling and privacy practices. By visiting or using our Digital Properties, you agree that any changes to this Privacy Policy shall apply to any personal information we may maintain about you, whether collected before or after such changes.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>How We Protect Your Information</h2>
+            <p>
+              We take our responsibility to secure the information we collect and maintain seriously. We use reasonable security, including technical, physical and administrative controls, to secure the information we collect and maintain. However, we cannot guarantee that these practices will prevent every unauthorized attempt to access, use, or disclose information. You can help protect the privacy of your own information by using encryption and other techniques to prevent unauthorized interception of your personal information. You are responsible for the security of your information that you transmit to us or view, download, or otherwise access when using unencrypted, public or otherwise unsecured networks. For more information on things you can do to help protect the privacy of your own information, visit www.OnGuardOnline.gov.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>Information Retention</h2>
+            <p>
+              We will retain your personal information at least as long as necessary to fulfill the purposes outlined in this Privacy Policy, including to satisfy our legal or reporting requirements, unless a longer retention period is required or allowed under law. We reserve the right to retain your personal information to the extent allowed by applicable law. We also reserve the right to provide access to or delete personal information only to the extent required by applicable law
+            </p>
+            <p>
+              To determine the appropriate retention period for personal information, we consider the amount, nature, and sensitivity of personal information; the potential risk from deletion, unauthorized use, or disclosure of the personal information; the purpose(s) for which we use or may use the personal information; whether we can achieve the purpose(s) through other means; and the applicable legal requirements.
+            </p>
+            <p>
+              If we de-identify information, we will maintain and use the information in de-identified form and not attempt to re-identify the information except as required or permitted by law.
             </p>
           </section>
 
           <section className="legal-section">
             <h2>Contact Us</h2>
             <p>
-              If you have any questions about this Privacy Policy, please contact us at:
-            </p>
-            <p>
-              Email: privacy@truequote.com<br />
-              Phone: 1-800-TRUE-QUOTE<br />
-              Address: TrueQuote, Inc., 123 Insurance Ave, Suite 100, Insurance City, IC 12345
+              For more information about our privacy practices at Vision Media Group, please contact us at privacy@smartautoinsider.com or write to: 1041 N Dupont Hwy #1575, Dover, DE 19901.
             </p>
           </section>
         </div>

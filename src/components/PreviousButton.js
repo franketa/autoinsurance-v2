@@ -5,7 +5,7 @@ const PreviousButton = ({ onPrevious, canGoPrevious }) => {
   if (!canGoPrevious) return null;
 
   return (
-    <button 
+    <button
       type="button"
       className="previous-button"
       onClick={onPrevious}
