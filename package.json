@@ -2,7 +2,6 @@
   "name": "auto-insurance-quote",
   "version": "1.0.0",
   "description": "Multi-step car insurance quote application",
-  "homepage": "https://franketa.github.io/autoinsurance-v2",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
