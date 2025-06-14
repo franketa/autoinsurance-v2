@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const MilitaryStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const MilitaryStep = ({ value, onChange, onNext }) => {
   const options = ['Yes', 'No'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const MilitaryStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) =>
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">
         Are either you or your spouse an active member, or an honorably discharged veteran of the US military?
       </h2>

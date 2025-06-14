@@ -25,9 +25,7 @@ const StepContainer = ({
   updateFormData, 
   updateVehicleData, 
   updateLocationData,
-  onNext, 
-  onPrevious,
-  canGoPrevious,
+  onNext,
   vehicleData 
 }) => {
   if (!step) return null;
@@ -45,8 +43,6 @@ const StepContainer = ({
             onChange={(value) => updateFormData('zipcode', value)}
             onLocationUpdate={updateLocationData}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -56,8 +52,6 @@ const StepContainer = ({
             value={formData.vehicleCount}
             onChange={(value) => updateFormData('vehicleCount', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -67,8 +61,6 @@ const StepContainer = ({
             value={formData.addSecondVehicle}
             onChange={(value) => updateFormData('addSecondVehicle', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -80,8 +72,6 @@ const StepContainer = ({
             value={formData.vehicles[getVehicleIndex(step.id)]?.year || ''}
             onChange={(value) => updateVehicleData(getVehicleIndex(step.id), 'year', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
             vehicleData={vehicleData}
           />
         );
@@ -96,8 +86,6 @@ const StepContainer = ({
             value={formData.vehicles[vehicleIndex]?.make || ''}
             onChange={(value) => updateVehicleData(vehicleIndex, 'make', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
             vehicleData={vehicleData}
             selectedYear={selectedYear}
           />
@@ -114,8 +102,6 @@ const StepContainer = ({
             value={formData.vehicles[vIndex]?.model || ''}
             onChange={(value) => updateVehicleData(vIndex, 'model', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
             vehicleData={vehicleData}
             selectedYear={vYear}
             selectedMake={selectedMake}
@@ -128,8 +114,6 @@ const StepContainer = ({
             value={formData.driversLicense}
             onChange={(value) => updateFormData('driversLicense', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -139,8 +123,6 @@ const StepContainer = ({
             value={formData.sr22}
             onChange={(value) => updateFormData('sr22', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -150,8 +132,6 @@ const StepContainer = ({
             value={formData.insuranceHistory}
             onChange={(value) => updateFormData('insuranceHistory', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -161,8 +141,6 @@ const StepContainer = ({
             value={formData.currentAutoInsurance}
             onChange={(value) => updateFormData('currentAutoInsurance', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -172,8 +150,6 @@ const StepContainer = ({
             value={formData.insuranceDuration}
             onChange={(value) => updateFormData('insuranceDuration', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -183,8 +159,6 @@ const StepContainer = ({
             value={formData.coverageType}
             onChange={(value) => updateFormData('coverageType', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -194,8 +168,6 @@ const StepContainer = ({
             value={formData.gender}
             onChange={(value) => updateFormData('gender', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -205,8 +177,6 @@ const StepContainer = ({
             value={formData.maritalStatus}
             onChange={(value) => updateFormData('maritalStatus', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -216,8 +186,6 @@ const StepContainer = ({
             value={formData.creditScore}
             onChange={(value) => updateFormData('creditScore', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -227,8 +195,6 @@ const StepContainer = ({
             value={formData.homeowner}
             onChange={(value) => updateFormData('homeowner', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -238,8 +204,6 @@ const StepContainer = ({
             value={formData.military}
             onChange={(value) => updateFormData('military', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -249,8 +213,6 @@ const StepContainer = ({
             value={formData.birthdate}
             onChange={(value) => updateFormData('birthdate', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 
@@ -272,8 +234,6 @@ const StepContainer = ({
             onCityChange={(value) => updateFormData('city', value)}
             onStateChange={(value) => updateFormData('state', value)}
             onNext={onNext}
-            onPrevious={onPrevious}
-            canGoPrevious={canGoPrevious}
           />
         );
 

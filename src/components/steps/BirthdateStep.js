@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import PreviousButton from '../PreviousButton';
 
-const BirthdateStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const BirthdateStep = ({ value, onChange, onNext }) => {
   const [birthdate, setBirthdate] = useState(value || '');
 
   const handleSubmit = (e) => {
@@ -18,7 +17,6 @@ const BirthdateStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) =
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">What is your birthdate?</h2>
       <form onSubmit={handleSubmit}>
         <input

@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const HomeownerStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const HomeownerStep = ({ value, onChange, onNext }) => {
   const options = ['Own', 'Rent'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const HomeownerStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) =
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Homeowner?</h2>
       <div className="options-container">
         {options.map((option) => (

@@ -415,8 +415,6 @@ function App() {
           updateVehicleData={updateVehicleData}
           updateLocationData={updateLocationData}
           onNext={nextStep}
-          onPrevious={previousStep}
-          canGoPrevious={currentStep > 0}
           vehicleData={vehicleData}
         />
       </main>

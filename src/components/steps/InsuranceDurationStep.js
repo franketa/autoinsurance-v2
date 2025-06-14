@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const InsuranceDurationStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const InsuranceDurationStep = ({ value, onChange, onNext }) => {
   const options = [
     'Less than a year',
     '1 to 2 years',
@@ -19,7 +18,6 @@ const InsuranceDurationStep = ({ value, onChange, onNext, onPrevious, canGoPrevi
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">How long have you continuously had auto insurance?</h2>
       <div className="options-container">
         {options.map((option) => (

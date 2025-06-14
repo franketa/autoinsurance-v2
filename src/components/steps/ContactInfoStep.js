@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import PreviousButton from '../PreviousButton';
 import { validateContactInfo, formatPhoneNumber } from '../../utils/validations';
 
 const ContactInfoStep = ({ 
@@ -17,9 +16,7 @@ const ContactInfoStep = ({
   onStreetAddressChange,
   onCityChange,
   onStateChange,
-  onNext,
-  onPrevious,
-  canGoPrevious
+  onNext
 }) => {
   const [localFirstName, setLocalFirstName] = useState(firstName || '');
   const [localLastName, setLocalLastName] = useState(lastName || '');
@@ -109,7 +106,6 @@ const ContactInfoStep = ({
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Contact Information</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-section">

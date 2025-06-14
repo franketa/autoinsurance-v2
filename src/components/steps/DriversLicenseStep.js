@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const DriversLicenseStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const DriversLicenseStep = ({ value, onChange, onNext }) => {
   const options = ['Yes', 'No'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const DriversLicenseStep = ({ value, onChange, onNext, onPrevious, canGoPrevious
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Do you have a valid drivers license?</h2>
       <div className="options-container">
         {options.map((option) => (

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import PreviousButton from '../PreviousButton';
 
-const VehicleMakeStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious, vehicleData, selectedYear }) => {
+const VehicleMakeStep = ({ title, value, onChange, onNext, vehicleData, selectedYear }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   
   // Get makes available for the selected year
@@ -54,7 +53,6 @@ const VehicleMakeStep = ({ title, value, onChange, onNext, onPrevious, canGoPrev
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">{title}</h2>
       
       {/* Makes with images - show as buttons */}

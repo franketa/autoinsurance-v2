@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const AddSecondVehicleStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const AddSecondVehicleStep = ({ value, onChange, onNext }) => {
   const options = ['Yes', 'No'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const AddSecondVehicleStep = ({ value, onChange, onNext, onPrevious, canGoPrevio
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Add a 2nd Vehicle (save an additional 20%)</h2>
       <div className="options-container">
         {options.map((option) => (

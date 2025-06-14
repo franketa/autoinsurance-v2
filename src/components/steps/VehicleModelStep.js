@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const VehicleModelStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious, vehicleData, selectedYear, selectedMake }) => {
+const VehicleModelStep = ({ title, value, onChange, onNext, vehicleData, selectedYear, selectedMake }) => {
   // Get models available for the selected year and make
   const models = selectedYear && selectedMake && vehicleData[selectedYear] && vehicleData[selectedYear][selectedMake] 
     ? vehicleData[selectedYear][selectedMake].sort() 
@@ -17,7 +16,6 @@ const VehicleModelStep = ({ title, value, onChange, onNext, onPrevious, canGoPre
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">{title}</h2>
       <div className="options-container">
         {models.map((model) => (

@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const VehicleYearStep = ({ title, value, onChange, onNext, onPrevious, canGoPrevious, vehicleData }) => {
+const VehicleYearStep = ({ title, value, onChange, onNext, vehicleData }) => {
   // Get available years from vehicleData and sort them in descending order (newest first)
   const years = Object.keys(vehicleData).sort((a, b) => parseInt(b) - parseInt(a));
 
@@ -15,7 +14,6 @@ const VehicleYearStep = ({ title, value, onChange, onNext, onPrevious, canGoPrev
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">{title}</h2>
       <div className="options-container">
         {years.slice(0, 10).map((year) => (

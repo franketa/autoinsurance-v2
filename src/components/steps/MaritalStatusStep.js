@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const MaritalStatusStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const MaritalStatusStep = ({ value, onChange, onNext }) => {
   const options = ['Yes', 'No'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const MaritalStatusStep = ({ value, onChange, onNext, onPrevious, canGoPrevious 
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Are you married?</h2>
       <div className="options-container">
         {options.map((option) => (

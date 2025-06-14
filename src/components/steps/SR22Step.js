@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const SR22Step = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const SR22Step = ({ value, onChange, onNext }) => {
   const options = ['Yes', 'No / Not Sure'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const SR22Step = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Do you need an SR-22?</h2>
       <div className="options-container">
         {options.map((option) => (

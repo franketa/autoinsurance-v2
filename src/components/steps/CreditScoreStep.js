@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const CreditScoreStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const CreditScoreStep = ({ value, onChange, onNext }) => {
   const options = [
     'Excellent (720+)',
     'Good (680-719)',
@@ -20,7 +19,6 @@ const CreditScoreStep = ({ value, onChange, onNext, onPrevious, canGoPrevious })
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">What is your credit score?</h2>
       <div className="options-container">
         {options.map((option) => (

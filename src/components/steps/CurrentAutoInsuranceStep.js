@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const CurrentAutoInsuranceStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const CurrentAutoInsuranceStep = ({ value, onChange, onNext }) => {
   const options = [
     'AAA',
     'Allstate', 
@@ -26,7 +25,6 @@ const CurrentAutoInsuranceStep = ({ value, onChange, onNext, onPrevious, canGoPr
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Current Auto Insurance</h2>
       <div className="options-container">
         {options.map((option) => (

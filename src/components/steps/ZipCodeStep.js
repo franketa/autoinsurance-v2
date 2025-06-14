@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PreviousButton from '../PreviousButton';
 import { validateZipCode } from '../../utils/validations';
 
-const ZipCodeStep = ({ value, onChange, onNext, onPrevious, canGoPrevious, onLocationUpdate }) => {
+const ZipCodeStep = ({ value, onChange, onNext, onLocationUpdate }) => {
   const [zipcode, setZipcode] = useState(value || '');
   const [error, setError] = useState('');
   const hasAttemptedLocationFetch = useRef(false);
@@ -90,7 +89,6 @@ const ZipCodeStep = ({ value, onChange, onNext, onPrevious, canGoPrevious, onLoc
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Enter zip code</h2>
       <form onSubmit={handleSubmit}>
         <input

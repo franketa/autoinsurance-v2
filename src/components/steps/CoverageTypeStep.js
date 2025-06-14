@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const CoverageTypeStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const CoverageTypeStep = ({ value, onChange, onNext }) => {
   const options = ['Full Coverage', 'Liability Only'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const CoverageTypeStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">Which coverage type do you need?</h2>
       <div className="options-container">
         {options.map((option) => (

@@ -1,7 +1,6 @@
 import React from 'react';
-import PreviousButton from '../PreviousButton';
 
-const VehicleCountStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }) => {
+const VehicleCountStep = ({ value, onChange, onNext }) => {
   const options = ['1', '2', '3+'];
 
   const handleSelect = (selectedValue) => {
@@ -14,7 +13,6 @@ const VehicleCountStep = ({ value, onChange, onNext, onPrevious, canGoPrevious }
 
   return (
     <div>
-      <PreviousButton onPrevious={onPrevious} canGoPrevious={canGoPrevious} />
       <h2 className="step-title">How many vehicles will be on your policy?</h2>
       <div className="options-container">
         {options.map((option) => (
