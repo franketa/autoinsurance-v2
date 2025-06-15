@@ -21,7 +21,7 @@ const Footer = ({ onContactClick, onPrivacyClick, onTermsClick }) => {
         </div> */}
 
         <div className="footer-info">
-          <p className="copyright">© 2025 TrueQuote</p>
+          <p className="copyright">© 2025 SmartAutoInsider</p>
           <div className="footer-links">
             <button className="footer-link" onClick={onContactClick}>Contact Us</button>
             <button className="footer-link" onClick={onPrivacyClick}>Privacy Policy</button>
