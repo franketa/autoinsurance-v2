@@ -6,7 +6,13 @@ const Footer = ({ onContactClick, onPrivacyClick, onTermsClick }) => {
     <footer className="footer">
       <div className="footer-content">
         <div className="trust-message">
-          <div className="trust-icon">✓</div>
+          <div className="trust-icon">
+            <img 
+              src={`${process.env.PUBLIC_URL}/images/brands/badge.png`} 
+              alt="Trust Badge" 
+              className="trust-badge-image"
+            />
+          </div>
           <span>Free quotes, secure form, competitive offers.</span>
         </div>
 
