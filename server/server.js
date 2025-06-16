@@ -199,8 +199,8 @@ async function logToDatabase(action, data) {
 
 async function sendQuoteWizardRequest(contractID, initialID, pass, quoteData) {
   const url = process.env.NODE_ENV === 'production' 
-    ? QUOTE_WIZARD_CONFIG.production_url 
-    : QUOTE_WIZARD_CONFIG.production_url; // Use production for now
+    ? QUOTE_WIZARD_CONFIG.staging_url 
+    : QUOTE_WIZARD_CONFIG.staging_url; // Use production for now
   
   const fields = {
     contractID,
