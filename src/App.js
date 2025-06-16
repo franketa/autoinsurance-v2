@@ -173,11 +173,12 @@ function App() {
   const updateLocationData = (locationData) => {
     setFormData(prev => ({
       ...prev,
-      // Only update zipcode from auto-location, not city/state
-      zipcode: locationData.zipcode || prev.zipcode
+      zipcode: locationData.zipcode || prev.zipcode,
+      city: locationData.city || prev.city,
+      state: locationData.state || prev.state
     }));
     
-    console.log('Location data updated (zipcode only):', locationData);
+    console.log('Location data updated:', locationData);
   };
 
   const handleViewRate = () => {
@@ -315,7 +316,7 @@ function App() {
   if (currentPage === 'contact') {
     return (
       <div className="app">
-        <Header />
+        <Header state={formData.state} />
         <main className="main-content">
           <ContactUsPage onBack={handleBackToMainForm} />
         </main>
@@ -331,7 +332,7 @@ function App() {
   if (currentPage === 'privacy') {
     return (
       <div className="app">
-        <Header />
+        <Header state={formData.state} />
         <main className="main-content">
           <PrivacyPolicyPage onBack={handleBackToMainForm} />
         </main>
@@ -347,7 +348,7 @@ function App() {
   if (currentPage === 'terms') {
     return (
       <div className="app">
-        <Header />
+        <Header state={formData.state} />
         <main className="main-content">
           <TermsOfUsePage onBack={handleBackToMainForm} />
         </main>
@@ -364,7 +365,7 @@ function App() {
   if (submissionState === 'searching') {
     return (
       <div className="app">
-        <Header />
+        <Header state={formData.state} />
         <main className="main-content">
           <SearchingScreen userName={formData.firstName || 'franco'} />
         </main>
@@ -380,7 +381,7 @@ function App() {
   if (submissionState === 'results') {
     return (
       <div className="app">
-        <Header />
+        <Header state={formData.state} />
         <main className="main-content">
           <ResultsScreen 
             userName={formData.firstName || 'franco'} 
@@ -399,7 +400,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header state={formData.state} />
       <ProgressBar 
         progress={currentStepData?.progress || 0} 
         location="District of Columbia"

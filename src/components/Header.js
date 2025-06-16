@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import './Header.css';
+import { getFullStateName } from '../utils/stateMapping';
 
-const Header = () => {
+const Header = ({ state }) => {
   const [imageError, setImageError] = useState(false);
 
   const handleImageError = () => {
     setImageError(true);
+  };
+
+  // Create the tagline with state if available
+  const createTagline = () => {
+    if (state) {
+      const fullStateName = getFullStateName(state);
+      return `Get fast, cheap car insurance quotes in ${fullStateName} with one simple form`;
+    }
+    return 'Get fast, cheap car insurance quotes with one simple form';
   };
 
   return (
@@ -28,7 +38,7 @@ const Header = () => {
           </div>
         </div>
         <p className="tagline">
-          Get fast, cheap car insurance quotes with one simple form!.
+          {createTagline()}
         </p>
       </div>
     </header>

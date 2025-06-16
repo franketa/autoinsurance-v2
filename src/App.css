@@ -25,7 +25,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   text-align: center;
 }
 
@@ -85,7 +85,6 @@
 .step-container {
   width: 100%;
   max-width: 480px;
-  padding: 20px 20px;
   align-content: center;
 }
 
