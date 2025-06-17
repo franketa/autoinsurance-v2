@@ -25,6 +25,7 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
           value={birthdate}
           onChange={handleChange}
           max={new Date().toISOString().split('T')[0]}
+          placeholder="dd/mm/yyyy"
           autoFocus
         />
         <button 

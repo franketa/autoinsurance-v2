@@ -90,7 +90,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00d4aa 0%, #0066cc 100%);
+  background: #3ACE76;
   border-radius: 8px;
   transition: width 0.3s ease;
   position: relative;
@@ -103,7 +103,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  background: #3ACE76;
   animation: shimmer 1.5s infinite;
 }
 

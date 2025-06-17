@@ -63,7 +63,7 @@
 /* Input styles */
 .form-input {
   width: 100%;
-  padding: 22px;
+  padding: 24px;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 16px;
@@ -174,11 +174,51 @@
   background-color: white;
   color: #374151;
   margin-bottom: 16px;
+  /* Safari-specific fixes */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* Ensure consistent box-sizing */
+  box-sizing: border-box;
+  /* Fix for Safari date input */
+  line-height: 1.5;
+  min-height: 54px;
 }
 
 .date-input:focus {
   outline: none;
   border-color: #467FCE;
+}
+
+/* Safari-specific date input styling */
+.date-input::-webkit-calendar-picker-indicator {
+  background-color: #467FCE;
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Firefox date input styling */
+.date-input::-moz-focus-inner {
+  border: 0;
+}
+
+/* Ensure consistent text color across browsers */
+.date-input::-webkit-datetime-edit-text,
+.date-input::-webkit-datetime-edit-month-field,
+.date-input::-webkit-datetime-edit-day-field,
+.date-input::-webkit-datetime-edit-year-field {
+  color: #374151;
+}
+
+/* Safari placeholder styling */
+.date-input::-webkit-input-placeholder {
+  color: #9ca3af;
 }
 
 /* Exit Modal Styles */
