@@ -417,6 +417,8 @@ function App() {
           updateLocationData={updateLocationData}
           onNext={nextStep}
           vehicleData={vehicleData}
+          onPrivacyClick={handlePrivacyClick}
+          onTermsClick={handleTermsClick}
         />
       </main>
       <Footer 

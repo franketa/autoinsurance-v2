@@ -26,7 +26,9 @@ const StepContainer = ({
   updateVehicleData, 
   updateLocationData,
   onNext,
-  vehicleData 
+  vehicleData,
+  onPrivacyClick,
+  onTermsClick
 }) => {
   if (!step) return null;
 
@@ -234,6 +236,8 @@ const StepContainer = ({
             onCityChange={(value) => updateFormData('city', value)}
             onStateChange={(value) => updateFormData('state', value)}
             onNext={onNext}
+            onPrivacyClick={onPrivacyClick}
+            onTermsClick={onTermsClick}
           />
         );
 
