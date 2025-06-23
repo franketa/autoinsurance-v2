@@ -65,8 +65,10 @@ const mapInsuranceDuration = (duration) => {
 
 const mapCoverageType = (coverage) => {
   switch (coverage) {
-    case 'Liability Only': return "liability";
+    case 'Liability Only': return "state_minimum";
     case 'Full Coverage': return "typical";
+    case 'Minimum Coverage': return "lower_level";
+    case 'Premium Coverage': return "highest_level";
     default: return "typical";
   }
 };
@@ -158,13 +160,13 @@ function generatePingData(formData) {
       // Insurance status - ensure boolean strings
       "currently_insured": toBooleanString(formData.insuranceHistory === 'Yes'),
       "current_company": formData.currentAutoInsurance === 'Yes' ? (formData.currentAutoInsuranceCompany || "Allstate") : "", // PLACEHOLDER when insured
-      "continuous_coverage": formData.insuranceDuration || "48", // months
-      "current_policy_start": "2021-02-07", // PLACEHOLDER: Policy start date
-      "current_policy_expires": "2024-04-28", // PLACEHOLDER: Policy expiration date
+      "continuous_coverage": mapInsuranceDuration(formData.insuranceDuration) || "48", // months
+      "current_policy_start": "2024-04-28", // PLACEHOLDER: Policy start date
+      "current_policy_expires": "2026-04-28", // PLACEHOLDER: Policy expiration date
       
       // Personal details
       "military_affiliation": toBooleanString(formData.military === 'Yes'),
-      "auto_coverage_type": formData.coverageType || "typical",
+      "auto_coverage_type": mapCoverageType(formData.coverageType) || "typical",
       
       // Counts - ensure they're strings
       "driver_count": "1", // We only collect data for primary driver

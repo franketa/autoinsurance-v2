@@ -268,6 +268,27 @@ function App() {
     setCurrentPage('form');
   };
 
+  // Helper functions for API data mapping
+  const mapCoverageType = (coverage) => {
+    switch (coverage) {
+      case 'Liability Only': return "state_minimum";
+      case 'Full Coverage': return "typical";
+      case 'Minimum Coverage': return "lower_level";
+      case 'Premium Coverage': return "highest_level";
+      default: return "typical";
+    }
+  };
+
+  const mapInsuranceDuration = (duration) => {
+    switch (duration) {
+      case 'Less than 6 months': return "3";
+      case '6-12 months': return "9";
+      case '1-3 years': return "24";
+      case '3+ years': return "48";
+      default: return "24";
+    }
+  };
+
   const nextStep = () => {
     if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -320,13 +341,13 @@ function App() {
           // Insurance status - ensure boolean strings
           "currently_insured": formData.insuranceHistory === 'Yes' ? "true" : "false",
           "current_company": formData.insuranceHistory === 'Yes' ? (formData.currentAutoInsurance || "State Farm") : "", // PLACEHOLDER when insured
-          "continuous_coverage": formData.insuranceDuration || "48", // months
-          "current_policy_start": "2021-02-07", // PLACEHOLDER: Policy start date
-          "current_policy_expires": "2024-04-28", // PLACEHOLDER: Policy expiration date
+          "continuous_coverage": mapInsuranceDuration(formData.insuranceDuration) || "48", // months
+          "current_policy_start": "2024-04-28", // PLACEHOLDER: Policy start date
+          "current_policy_expires": "2026-04-28", // PLACEHOLDER: Policy expiration date
           
           // Personal details
           "military_affiliation": formData.military === 'Yes' ? "true" : "false",
-          "auto_coverage_type": formData.coverageType || "typical",
+          "auto_coverage_type": mapCoverageType(formData.coverageType) || "typical",
           
           // Counts - ensure they're strings
           "driver_count": "1", // We only collect data for primary driver
