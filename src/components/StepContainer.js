@@ -5,6 +5,9 @@ import AddSecondVehicleStep from './steps/AddSecondVehicleStep';
 import VehicleYearStep from './steps/VehicleYearStep';
 import VehicleMakeStep from './steps/VehicleMakeStep';
 import VehicleModelStep from './steps/VehicleModelStep';
+import VehiclePurposeStep from './steps/VehiclePurposeStep';
+import VehicleMileageStep from './steps/VehicleMileageStep';
+import VehicleOwnershipStep from './steps/VehicleOwnershipStep';
 import DriversLicenseStep from './steps/DriversLicenseStep';
 import SR22Step from './steps/SR22Step';
 import InsuranceHistoryStep from './steps/InsuranceHistoryStep';
@@ -16,6 +19,9 @@ import MaritalStatusStep from './steps/MaritalStatusStep';
 import CreditScoreStep from './steps/CreditScoreStep';
 import HomeownerStep from './steps/HomeownerStep';
 import MilitaryStep from './steps/MilitaryStep';
+import DriverRelationshipStep from './steps/DriverRelationshipStep';
+import DriverEducationStep from './steps/DriverEducationStep';
+import DriverOccupationStep from './steps/DriverOccupationStep';
 import BirthdateStep from './steps/BirthdateStep';
 import ContactInfoStep from './steps/ContactInfoStep';
 
@@ -164,6 +170,39 @@ const StepContainer = ({
           />
         );
 
+      case 'vehicle-purpose-1':
+      case 'vehicle-purpose-2':
+        return (
+          <VehiclePurposeStep
+            title={step.title}
+            value={formData.vehicles[getVehicleIndex(step.id)]?.purpose || ''}
+            onChange={(value) => updateVehicleData(getVehicleIndex(step.id), 'purpose', value)}
+            onNext={onNext}
+          />
+        );
+
+      case 'vehicle-mileage-1':
+      case 'vehicle-mileage-2':
+        return (
+          <VehicleMileageStep
+            title={step.title}
+            value={formData.vehicles[getVehicleIndex(step.id)]?.mileage || ''}
+            onChange={(value) => updateVehicleData(getVehicleIndex(step.id), 'mileage', value)}
+            onNext={onNext}
+          />
+        );
+
+      case 'vehicle-ownership-1':
+      case 'vehicle-ownership-2':
+        return (
+          <VehicleOwnershipStep
+            title={step.title}
+            value={formData.vehicles[getVehicleIndex(step.id)]?.ownership || ''}
+            onChange={(value) => updateVehicleData(getVehicleIndex(step.id), 'ownership', value)}
+            onNext={onNext}
+          />
+        );
+
       case 'gender':
         return (
           <GenderStep
@@ -205,6 +244,33 @@ const StepContainer = ({
           <MilitaryStep
             value={formData.military}
             onChange={(value) => updateFormData('military', value)}
+            onNext={onNext}
+          />
+        );
+
+      case 'driver-relationship':
+        return (
+          <DriverRelationshipStep
+            value={formData.driverRelationship}
+            onChange={(value) => updateFormData('driverRelationship', value)}
+            onNext={onNext}
+          />
+        );
+
+      case 'driver-education':
+        return (
+          <DriverEducationStep
+            value={formData.driverEducation}
+            onChange={(value) => updateFormData('driverEducation', value)}
+            onNext={onNext}
+          />
+        );
+
+      case 'driver-occupation':
+        return (
+          <DriverOccupationStep
+            value={formData.driverOccupation}
+            onChange={(value) => updateFormData('driverOccupation', value)}
             onNext={onNext}
           />
         );

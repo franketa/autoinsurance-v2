@@ -12,27 +12,36 @@ import TermsOfUsePage from './components/TermsOfUsePage';
 import { vehicleData } from './data/vehicleData';
 
 const STEPS = [
-  { id: 'zipcode', title: 'Enter zip code', progress: 7 },
-  { id: 'vehicle-count', title: 'How many vehicles will be on your policy?', progress: 12 },
-  { id: 'add-second-vehicle', title: 'Add a 2nd Vehicle (save an additional 20%)', progress: 15 },
-  { id: 'vehicle-year-1', title: 'First vehicle year', progress: 18 },
-  { id: 'vehicle-make-1', title: 'Select your vehicle make', progress: 24 },
-  { id: 'vehicle-model-1', title: 'Select your vehicle model', progress: 30 },
-  { id: 'vehicle-year-2', title: 'Second vehicle year', progress: 36 },
-  { id: 'vehicle-make-2', title: 'Second vehicle make', progress: 38 },
-  { id: 'vehicle-model-2', title: 'Second vehicle model', progress: 40 },
-  { id: 'drivers-license', title: 'Do you have a valid drivers license?', progress: 45 },
-  { id: 'sr22', title: 'Do you need an SR-22?', progress: 50 },
-  { id: 'insurance-history', title: 'Have you had auto insurance in the past 30 days?', progress: 55 },
-  { id: 'current-auto-insurance', title: 'Current Auto Insurance', progress: 58 },
-  { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?', progress: 62 },
-  { id: 'coverage-type', title: 'Which coverage type do you need?', progress: 65 },
-  { id: 'gender', title: 'Select your gender', progress: 69 },
-  { id: 'marital-status', title: 'Are you married?', progress: 74 },
-  { id: 'credit-score', title: 'What is your credit score?', progress: 78 },
-  { id: 'homeowner', title: 'Homeowner?', progress: 80 },
-  { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?', progress: 82 },
-  { id: 'birthdate', title: 'What is your birthdate?', progress: 89 },
+  { id: 'zipcode', title: 'Enter zip code', progress: 3 },
+  { id: 'vehicle-count', title: 'How many vehicles will be on your policy?', progress: 6 },
+  { id: 'add-second-vehicle', title: 'Add a 2nd Vehicle (save an additional 20%)', progress: 9 },
+  { id: 'vehicle-year-1', title: 'First vehicle year', progress: 12 },
+  { id: 'vehicle-make-1', title: 'Select your vehicle make', progress: 15 },
+  { id: 'vehicle-model-1', title: 'Select your vehicle model', progress: 18 },
+  { id: 'vehicle-year-2', title: 'Second vehicle year', progress: 21 },
+  { id: 'vehicle-make-2', title: 'Second vehicle make', progress: 24 },
+  { id: 'vehicle-model-2', title: 'Second vehicle model', progress: 27 },
+  { id: 'drivers-license', title: 'Do you have a valid drivers license?', progress: 30 },
+  { id: 'sr22', title: 'Do you need an SR-22?', progress: 33 },
+  { id: 'insurance-history', title: 'Have you had auto insurance in the past 30 days?', progress: 36 },
+  { id: 'current-auto-insurance', title: 'Current Auto Insurance', progress: 39 },
+  { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?', progress: 42 },
+  { id: 'coverage-type', title: 'Which coverage type do you need?', progress: 45 },
+  { id: 'vehicle-purpose-1', title: 'What is the primary use for your first vehicle?', progress: 48 },
+  { id: 'vehicle-mileage-1', title: 'What is the annual mileage for your first vehicle?', progress: 51 },
+  { id: 'vehicle-ownership-1', title: 'How do you own your first vehicle?', progress: 54 },
+  { id: 'vehicle-purpose-2', title: 'What is the primary use for your second vehicle?', progress: 57 },
+  { id: 'vehicle-mileage-2', title: 'What is the annual mileage for your second vehicle?', progress: 60 },
+  { id: 'vehicle-ownership-2', title: 'How do you own your second vehicle?', progress: 63 },
+  { id: 'gender', title: 'Select your gender', progress: 66 },
+  { id: 'marital-status', title: 'Are you married?', progress: 69 },
+  { id: 'credit-score', title: 'What is your credit score?', progress: 72 },
+  { id: 'homeowner', title: 'Homeowner?', progress: 75 },
+  { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?', progress: 78 },
+  { id: 'driver-relationship', title: 'What is your relationship to the primary driver?', progress: 81 },
+  { id: 'driver-education', title: 'What is your highest level of education?', progress: 84 },
+  { id: 'driver-occupation', title: 'What is your occupation?', progress: 87 },
+  { id: 'birthdate', title: 'What is your birthdate?', progress: 90 },
   { id: 'contact-info', title: 'Contact Information', progress: 97 }
 ];
 
@@ -48,8 +57,8 @@ function App() {
     vehicleCount: '',
     addSecondVehicle: '',
     vehicles: [
-      { year: '', make: '', model: '' },
-      { year: '', make: '', model: '' }
+      { year: '', make: '', model: '', purpose: '', mileage: '', ownership: '' },
+      { year: '', make: '', model: '', purpose: '', mileage: '', ownership: '' }
     ],
     driversLicense: '',
     sr22: '',
@@ -62,6 +71,9 @@ function App() {
     creditScore: '',
     homeowner: '',
     military: '',
+    driverRelationship: '',
+    driverEducation: '',
+    driverOccupation: '',
     birthdate: '',
     firstName: '',
     lastName: '',
@@ -103,21 +115,32 @@ function App() {
       finalVehicleCount = '2';
     }
     
-    // Add vehicle steps based on final count
+    // Add vehicle steps based on final count - with details for each vehicle
     if (finalVehicleCount === '1') {
       steps.push(
         STEPS.find(s => s.id === 'vehicle-year-1'),
         STEPS.find(s => s.id === 'vehicle-make-1'),
-        STEPS.find(s => s.id === 'vehicle-model-1')
+        STEPS.find(s => s.id === 'vehicle-model-1'),
+        STEPS.find(s => s.id === 'vehicle-purpose-1'),
+        STEPS.find(s => s.id === 'vehicle-mileage-1'),
+        STEPS.find(s => s.id === 'vehicle-ownership-1')
       );
     } else if (finalVehicleCount === '2' || finalVehicleCount === '3+') {
       steps.push(
+        // First vehicle complete flow
         STEPS.find(s => s.id === 'vehicle-year-1'),
         STEPS.find(s => s.id === 'vehicle-make-1'),
         STEPS.find(s => s.id === 'vehicle-model-1'),
+        STEPS.find(s => s.id === 'vehicle-purpose-1'),
+        STEPS.find(s => s.id === 'vehicle-mileage-1'),
+        STEPS.find(s => s.id === 'vehicle-ownership-1'),
+        // Second vehicle complete flow
         STEPS.find(s => s.id === 'vehicle-year-2'),
         STEPS.find(s => s.id === 'vehicle-make-2'),
-        STEPS.find(s => s.id === 'vehicle-model-2')
+        STEPS.find(s => s.id === 'vehicle-model-2'),
+        STEPS.find(s => s.id === 'vehicle-purpose-2'),
+        STEPS.find(s => s.id === 'vehicle-mileage-2'),
+        STEPS.find(s => s.id === 'vehicle-ownership-2')
       );
     }
     
@@ -134,19 +157,30 @@ function App() {
       steps.push(STEPS.find(s => s.id === 'insurance-duration'));
     }
     
-    // Add remaining steps (non-vehicle, non-license, non-insurance steps)
-    const remainingSteps = STEPS.filter(step => 
-      !step.id.includes('vehicle-') && 
-      step.id !== 'zipcode' &&
-      step.id !== 'add-second-vehicle' &&
-      step.id !== 'drivers-license' &&
-      step.id !== 'sr22' &&
-      step.id !== 'insurance-history' &&
-      step.id !== 'current-auto-insurance' &&
-      step.id !== 'insurance-duration'
+    // Add coverage type step
+    steps.push(STEPS.find(s => s.id === 'coverage-type'));
+    
+    // Add personal information steps
+    steps.push(
+      STEPS.find(s => s.id === 'gender'),
+      STEPS.find(s => s.id === 'marital-status'),
+      STEPS.find(s => s.id === 'credit-score'),
+      STEPS.find(s => s.id === 'homeowner'),
+      STEPS.find(s => s.id === 'military')
     );
     
-    steps.push(...remainingSteps);
+    // Add driver information steps
+    steps.push(
+      STEPS.find(s => s.id === 'driver-relationship'),
+      STEPS.find(s => s.id === 'driver-education'),
+      STEPS.find(s => s.id === 'driver-occupation')
+    );
+    
+    // Add final steps
+    steps.push(
+      STEPS.find(s => s.id === 'birthdate'),
+      STEPS.find(s => s.id === 'contact-info')
+    );
     
     return steps.filter(Boolean); // Remove any undefined steps
   };
@@ -228,7 +262,7 @@ function App() {
       // Start the searching phase
       setSubmissionState('searching');
       
-      // Filter out empty vehicles
+      // Filter out empty vehicles and include all vehicle data
       const activeVehicles = formData.vehicles.filter(v => v.year && v.make && v.model);
       
       // Map form data to match the expected format
@@ -255,6 +289,11 @@ function App() {
         coverageType: formData.coverageType,
         military: formData.military,
         
+        // Driver Information
+        driverRelationship: formData.driverRelationship,
+        driverEducation: formData.driverEducation,
+        driverOccupation: formData.driverOccupation,
+        
         // Vehicle Information
         vehicles: activeVehicles,
         vehicleCount: formData.vehicleCount,
@@ -270,7 +309,24 @@ function App() {
 
       console.log('Submitting form data:', submissionData);
       
-      // Debug: Check if contact info is present
+      // Debug: Check if all new fields are present
+      console.log('Vehicle Details Check:', {
+        vehicles: activeVehicles.map(v => ({
+          year: v.year,
+          make: v.make,
+          model: v.model,
+          purpose: v.purpose,
+          mileage: v.mileage,
+          ownership: v.ownership
+        }))
+      });
+      
+      console.log('Driver Info Check:', {
+        driverRelationship: formData.driverRelationship,
+        driverEducation: formData.driverEducation,
+        driverOccupation: formData.driverOccupation
+      });
+      
       console.log('Contact Info Check:', {
         firstName: formData.firstName,
         lastName: formData.lastName,
