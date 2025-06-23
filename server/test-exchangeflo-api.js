@@ -99,63 +99,115 @@ const mapHomeowner = (homeowner) => {
 
 // Generate ping data from form data
 function generatePingData(formData) {
+  // Filter out empty vehicles
   const activeVehicles = formData.vehicles.filter(v => v.year && v.make && v.model);
   
+  // Ensure birthdate is in correct format (YYYY-MM-DD)
+  const formatBirthdate = (dateStr) => {
+    if (!dateStr) return '1985-06-15'; // Default fallback
+    
+    // If it's already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // Try to parse and reformat
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    
+    return '1985-06-15'; // Fallback
+  };
+  
+  // Helper to ensure boolean values are strings
+  const toBooleanString = (value) => {
+    if (typeof value === 'boolean') return value.toString();
+    if (typeof value === 'string') {
+      if (value.toLowerCase() === 'yes' || value.toLowerCase() === 'true') return 'true';
+      if (value.toLowerCase() === 'no' || value.toLowerCase() === 'false') return 'false';
+    }
+    return 'false'; // Default fallback
+  };
+  
   return {
+    // Static source configuration
     "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
     "response_type": "detail",
     "lead_type": "mixed",
-    "tracking_id": `test_track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    "sub_id_1": "smartautoinsider_test",
-    "jornaya_leadid": "01234567-89AB-CDEF-0123-456789ABCDEF",
-    "trusted_form_cert_url": "https://cert.trustedform.com/0123456789abcdef0123456789abcdef01234567",
-    "ip_address": "127.0.0.1",
-    "landing_url": "smartautoinsider.com",
-    "privacy_url": "smartautoinsider.com/privacy",
-    "tcpa": "Test TCPA agreement text",
-    "user_agent": "Node.js Test Script/1.0",
+    
+    // Tracking and validation IDs - ensure they're strings
+    "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    "sub_id_1": "smartauto_test", // PLACEHOLDER: Sub ID 1
+    "jornaya_leadid": "01234567-89AB-CDEF-0123-456789ABCDEF", // PLACEHOLDER: Jornaya Lead ID
+    "trusted_form_cert_url": "https://cert.trustedform.com/0123456789abcdef0123456789abcdef01234567", // PLACEHOLDER
+    
+    // Request metadata
+    "ip_address": "127.0.0.1", // PLACEHOLDER: Client IP
+    "landing_url": "smartauto.com", // PLACEHOLDER: Landing page URL
+    "privacy_url": "smartauto.com/privacy", // PLACEHOLDER: Privacy policy URL
+    "tcpa": "I agree to receive marketing communications", // PLACEHOLDER: TCPA consent text
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", // PLACEHOLDER
+    
     "profile": {
-      "zip": formData.zipcode,
-      "address_2": "",
-      "currently_insured": formData.insuranceHistory === 'Yes' ? "true" : "false",
-      "current_company": formData.currentAutoInsurance || "Unknown",
-      "continuous_coverage": mapInsuranceDuration(formData.insuranceDuration),
-      "current_policy_start": "2021-02-07",
-      "current_policy_expires": "2024-04-28",
-      "military_affiliation": formData.military === 'Yes' ? "true" : "false",
-      "auto_coverage_type": mapCoverageType(formData.coverageType),
-      "driver_count": "1",
+      // Basic info
+      "zip": formData.zipcode || "12345",
+      "address_2": "", // PLACEHOLDER: Apartment/unit number
+      
+      // Insurance status - ensure boolean strings
+      "currently_insured": toBooleanString(formData.insuranceHistory === 'Yes'),
+      "current_company": formData.currentAutoInsurance === 'Yes' ? (formData.currentAutoInsuranceCompany || "Allstate") : "", // PLACEHOLDER when insured
+      "continuous_coverage": formData.insuranceDuration || "48", // months
+      "current_policy_start": "2021-02-07", // PLACEHOLDER: Policy start date
+      "current_policy_expires": "2024-04-28", // PLACEHOLDER: Policy expiration date
+      
+      // Personal details
+      "military_affiliation": toBooleanString(formData.military === 'Yes'),
+      "auto_coverage_type": formData.coverageType || "typical",
+      
+      // Counts - ensure they're strings
+      "driver_count": "1", // We only collect data for primary driver
       "vehicle_count": activeVehicles.length.toString(),
+      
       "drivers": [
         {
           "relationship": formData.driverRelationship || "self",
-          "gender": formData.gender?.toLowerCase() || "male",
-          "birth_date": formData.birthdate,
-          "at_fault_accidents": "0",
-          "license_suspended": "false",
-          "tickets": "0",
-          "dui_sr22": formData.sr22 === 'Yes' ? "true" : "false",
+          "gender": (formData.gender || "male").toLowerCase(),
+          "birth_date": formatBirthdate(formData.birthdate),
+          
+          // Risk factors - PLACEHOLDER values
+          "at_fault_accidents": "0", // PLACEHOLDER: Number of at-fault accidents
+          "license_suspended": toBooleanString(formData.sr22 === 'Yes'), // Using SR22 as indicator
+          "tickets": "0", // PLACEHOLDER: Number of tickets
+          "dui_sr22": toBooleanString(formData.sr22 === 'Yes'),
+          
+          // Personal details
           "education": formData.driverEducation || "some_college",
-          "credit": mapCreditScore(formData.creditScore),
-          "occupation": formData.driverOccupation || "other_non_technical",
-          "marital_status": mapMaritalStatus(formData.maritalStatus),
-          "license_state": formData.state || "CA",
-          "licensed_age": "16",
+          "credit": formData.creditScore || "good",
+          "occupation": formData.driverOccupation || "professional",
+          "marital_status": (formData.maritalStatus || "single").toLowerCase(),
+          
+          // License info
+          "license_state": formData.state || "MA", // Derived from zip or address
+          "licensed_age": "16", // PLACEHOLDER: Age when first licensed
           "license_status": formData.driversLicense === 'Yes' ? "active" : "inactive",
-          "residence_type": mapHomeowner(formData.homeowner),
-          "residence_length": "24"
+          
+          // Residence info
+          "residence_type": formData.homeowner === 'Own' ? "own" : (formData.homeowner === 'Rent' ? "rent" : "own"),
+          "residence_length": "48" // PLACEHOLDER: Months at current residence
         }
       ],
+      
       "vehicles": activeVehicles.map(vehicle => ({
-        "year": vehicle.year,
+        "year": vehicle.year.toString(),
         "make": vehicle.make,
         "model": vehicle.model,
-        "submodel": "Base",
-        "primary_purpose": vehicle.purpose || "pleasure",
+        "submodel": vehicle.model, // Use model if submodel not available
+        "primary_purpose": vehicle.purpose || "commute",
         "annual_mileage": vehicle.mileage || "10000-15000",
         "ownership": vehicle.ownership || "owned",
-        "garage": "no_cover",
-        "vin": "1HGBH41J*YM******"
+        "garage": "no_cover", // PLACEHOLDER: Garage/parking situation
+        "vin": "JM3TB38A*80******" // PLACEHOLDER: Partial VIN
       }))
     }
   };
@@ -190,6 +242,10 @@ async function testPingRequest(formData) {
   console.log('=====================================');
   
   const pingData = generatePingData(formData);
+  
+  // Log the full ping data for debugging
+  console.log('\n📋 Ping Data Being Sent:');
+  console.log(JSON.stringify(pingData, null, 2));
   
   try {
     const startTime = Date.now();
@@ -237,7 +293,21 @@ async function testPingRequest(formData) {
     console.error('❌ Ping request failed:');
     if (error.response) {
       console.error(`  Status: ${error.response.status}`);
-      console.error(`  Response:`, error.response.data);
+      console.error(`  Response:`, JSON.stringify(error.response.data, null, 2));
+      
+      // If there are validation errors, show them in detail
+      if (error.response.data && error.response.data.errors) {
+        console.error('\n🔍 Detailed Validation Errors:');
+        const errors = error.response.data.errors;
+        
+        if (Array.isArray(errors)) {
+          errors.forEach((errorGroup, index) => {
+            console.error(`  Error Group ${index + 1}:`, JSON.stringify(errorGroup, null, 4));
+          });
+        } else {
+          console.error('  Errors:', JSON.stringify(errors, null, 4));
+        }
+      }
     } else {
       console.error(`  Error: ${error.message}`);
     }

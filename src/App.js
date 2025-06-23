@@ -293,69 +293,83 @@ function App() {
       
       // Map form data to the new ping API format
       const pingData = {
-        // PLACEHOLDER: Static source configuration
-        "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5", // PLACEHOLDER
+        // Static source configuration
+        "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
         "response_type": "detail",
         "lead_type": "mixed",
         
-        // PLACEHOLDER: Tracking and validation IDs
+        // Tracking and validation IDs
         "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // PLACEHOLDER: Generated tracking ID
-        "sub_id_1": "smartautoinsider", // PLACEHOLDER
-        "jornaya_leadid": "01234567-89AB-CDEF-0123-456789ABCDEF", // PLACEHOLDER
+        "sub_id_1": "smartauto_prod", // PLACEHOLDER: Sub ID 1
+        "jornaya_leadid": "01234567-89AB-CDEF-0123-456789ABCDEF", // PLACEHOLDER: Jornaya Lead ID
         "trusted_form_cert_url": "https://cert.trustedform.com/0123456789abcdef0123456789abcdef01234567", // PLACEHOLDER
         
-        // PLACEHOLDER: Request metadata
-        "ip_address": "127.0.0.1", // PLACEHOLDER: Should get actual IP
-        "landing_url": "smartautoinsider.com", // PLACEHOLDER
-        "privacy_url": "smartautoinsider.com/privacy", // PLACEHOLDER
-        "tcpa": "By clicking 'Get My Auto Quotes', you agree to our Terms and Conditions and Privacy Policy, and consent to receive important notices and other communications electronically.", // PLACEHOLDER: TCPA language
-        "user_agent": navigator.userAgent,
+        // Request metadata
+        "ip_address": "127.0.0.1", // PLACEHOLDER: Client IP
+        "landing_url": window.location.origin, // Current site URL
+        "privacy_url": `${window.location.origin}/privacy`, // Privacy policy URL
+        "tcpa": "I agree to receive marketing communications", // PLACEHOLDER: TCPA consent text
+        "user_agent": navigator.userAgent, // Browser user agent
         
         "profile": {
-          // Location and insurance info
+          // Basic info
           "zip": formData.zipcode,
-          "address_2": "", // PLACEHOLDER: We don't collect apartment/unit
+          "address_2": "", // PLACEHOLDER: Apartment/unit number
+          
+          // Insurance status - ensure boolean strings
           "currently_insured": formData.insuranceHistory === 'Yes' ? "true" : "false",
-          "current_company": formData.currentAutoInsurance || "Unknown", // PLACEHOLDER if not provided
-          "continuous_coverage": mapInsuranceDuration(formData.insuranceDuration),
-          "current_policy_start": "2021-02-07", // PLACEHOLDER: We don't collect this
-          "current_policy_expires": "2024-04-28", // PLACEHOLDER: We don't collect this
+          "current_company": formData.insuranceHistory === 'Yes' ? (formData.currentAutoInsurance || "State Farm") : "", // PLACEHOLDER when insured
+          "continuous_coverage": formData.insuranceDuration || "48", // months
+          "current_policy_start": "2021-02-07", // PLACEHOLDER: Policy start date
+          "current_policy_expires": "2024-04-28", // PLACEHOLDER: Policy expiration date
+          
+          // Personal details
           "military_affiliation": formData.military === 'Yes' ? "true" : "false",
-          "auto_coverage_type": mapCoverageType(formData.coverageType),
-          "driver_count": "1", // PLACEHOLDER: We assume 1 driver for now
+          "auto_coverage_type": formData.coverageType || "typical",
+          
+          // Counts - ensure they're strings
+          "driver_count": "1", // We only collect data for primary driver
           "vehicle_count": activeVehicles.length.toString(),
           
           "drivers": [
             {
-              "relationship": mapDriverRelationship(formData.driverRelationship),
-              "gender": formData.gender?.toLowerCase() || "male", // PLACEHOLDER default
-              "birth_date": formData.birthdate,
-              "at_fault_accidents": "0", // PLACEHOLDER: We don't collect this
-              "license_suspended": "false", // PLACEHOLDER: We don't collect this
-              "tickets": "0", // PLACEHOLDER: We don't collect this
+              "relationship": formData.driverRelationship || "self",
+              "gender": (formData.gender || "male").toLowerCase(),
+              "birth_date": formData.birthdate || "1985-06-15", // Ensure YYYY-MM-DD format
+              
+              // Risk factors - PLACEHOLDER values
+              "at_fault_accidents": "0", // PLACEHOLDER: Number of at-fault accidents
+              "license_suspended": formData.sr22 === 'Yes' ? "true" : "false",
+              "tickets": "0", // PLACEHOLDER: Number of tickets
               "dui_sr22": formData.sr22 === 'Yes' ? "true" : "false",
-              "education": mapEducation(formData.driverEducation),
-              "credit": mapCreditScore(formData.creditScore),
-              "occupation": formData.driverOccupation || "other_non_technical", // PLACEHOLDER default
-              "marital_status": mapMaritalStatus(formData.maritalStatus),
-              "license_state": formData.state || "CA", // PLACEHOLDER: Use form state or default
-              "licensed_age": "16", // PLACEHOLDER: We don't collect this
+              
+              // Personal details
+              "education": formData.driverEducation || "some_college",
+              "credit": formData.creditScore ? formData.creditScore.toLowerCase() : "good",
+              "occupation": formData.driverOccupation || "professional",
+              "marital_status": formData.maritalStatus ? formData.maritalStatus.toLowerCase() : "single",
+              
+              // License info
+              "license_state": formData.state || "MA", // Derived from zip or address
+              "licensed_age": "16", // PLACEHOLDER: Age when first licensed
               "license_status": formData.driversLicense === 'Yes' ? "active" : "inactive",
-              "residence_type": mapHomeowner(formData.homeowner),
-              "residence_length": "24" // PLACEHOLDER: We don't collect this
+              
+              // Residence info
+              "residence_type": formData.homeowner === 'Own' ? "own" : (formData.homeowner === 'Rent' ? "rent" : "own"),
+              "residence_length": "48" // PLACEHOLDER: Months at current residence
             }
           ],
           
           "vehicles": activeVehicles.map(vehicle => ({
-            "year": vehicle.year,
+            "year": vehicle.year ? vehicle.year.toString() : "2020",
             "make": vehicle.make,
             "model": vehicle.model,
-            "submodel": "Base", // PLACEHOLDER: We don't collect submodel
-            "primary_purpose": vehicle.purpose || "pleasure", // PLACEHOLDER default
-            "annual_mileage": vehicle.mileage || "10000-15000", // PLACEHOLDER default
-            "ownership": vehicle.ownership || "owned", // PLACEHOLDER default
-            "garage": "no_cover", // PLACEHOLDER: We don't collect garage info
-            "vin": "1HGBH41J*YM******" // PLACEHOLDER: We don't collect VIN
+            "submodel": vehicle.submodel || vehicle.model, // Use model if submodel not available
+            "primary_purpose": vehicle.purpose || "commute",
+            "annual_mileage": vehicle.mileage || "10000-15000",
+            "ownership": vehicle.ownership || "owned",
+            "garage": "no_cover", // PLACEHOLDER: Garage/parking situation
+            "vin": "1HGBH41J*YM******" // PLACEHOLDER: Partial VIN
           }))
         }
       };
@@ -512,61 +526,6 @@ function App() {
       // For demo purposes, still show results even on error
       setSubmissionState('results');
       console.warn('Continuing to results screen for demo purposes');
-    }
-  };
-
-  // Helper functions to map form values to API expected values
-  const mapInsuranceDuration = (duration) => {
-    switch (duration) {
-      case 'Less than 6 months': return "3";
-      case '6-12 months': return "9";
-      case '1-3 years': return "24";
-      case '3+ years': return "48";
-      default: return "24"; // PLACEHOLDER default
-    }
-  };
-
-  const mapCoverageType = (coverage) => {
-    switch (coverage) {
-      case 'Liability Only': return "liability";
-      case 'Full Coverage': return "typical";
-      default: return "typical"; // PLACEHOLDER default
-    }
-  };
-
-  const mapDriverRelationship = (relationship) => {
-    // API expects: self, spouse, parent, sibling, child, grandparent, grandchild, other
-    return relationship || "self"; // PLACEHOLDER default
-  };
-
-  const mapEducation = (education) => {
-    // API expects format like: some_college, high_school, etc.
-    return education || "some_college"; // PLACEHOLDER default
-  };
-
-  const mapCreditScore = (score) => {
-    switch (score) {
-      case 'Excellent': return "excellent";
-      case 'Good': return "good";
-      case 'Fair': return "fair";
-      case 'Poor': return "poor";
-      default: return "good"; // PLACEHOLDER default
-    }
-  };
-
-  const mapMaritalStatus = (status) => {
-    switch (status) {
-      case 'Yes': return "married";
-      case 'No': return "single";
-      default: return "single"; // PLACEHOLDER default
-    }
-  };
-
-  const mapHomeowner = (homeowner) => {
-    switch (homeowner) {
-      case 'Own': return "own";
-      case 'Rent': return "rent";
-      default: return "rent"; // PLACEHOLDER default
     }
   };
 
