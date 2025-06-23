@@ -297,10 +297,11 @@ function App() {
         "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
         "response_type": "detail",
         "lead_type": "mixed",
+        "test": process.env.NODE_ENV !== 'production', // Set to true in development/test mode
         
         // Tracking and validation IDs
         "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // PLACEHOLDER: Generated tracking ID
-        "sub_id_1": "smartauto_prod", // PLACEHOLDER: Sub ID 1
+        "sub_id_1": process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test", // Different sub_id for test vs prod
         "jornaya_leadid": "01234567-89AB-CDEF-0123-456789ABCDEF", // PLACEHOLDER: Jornaya Lead ID
         "trusted_form_cert_url": "https://cert.trustedform.com/0123456789abcdef0123456789abcdef01234567", // PLACEHOLDER
         

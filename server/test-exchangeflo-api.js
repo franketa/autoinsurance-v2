@@ -135,6 +135,7 @@ function generatePingData(formData) {
     "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
     "response_type": "detail",
     "lead_type": "mixed",
+    "test": true, // Required for test mode
     
     // Tracking and validation IDs - ensure they're strings
     "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
