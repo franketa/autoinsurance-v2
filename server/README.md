@@ -1,13 +1,14 @@
-# Auto Insurance Quote - QuoteWizard Integration
+# Auto Insurance Quote - ExchangeFlo Integration
 
-This server implements the QuoteWizard API integration to submit auto insurance leads, replicating the functionality from the original PHP implementation.
+This server implements the ExchangeFlo API integration to submit auto insurance leads with a comprehensive ping and post flow.
 
 ## Features
 
-- **Two-step QuoteWizard API integration**: Ping → Get Quote ID → Post with Quote ID
-- **Ignite API integration**: Sends lead data to Ignite for additional processing
+- **Two-step ExchangeFlo API integration**: Ping → Get Available Buyers → Post Contact Info
 - **Database logging**: All API requests and responses are logged for debugging and analytics
-- **Data transformation**: Converts form data to QuoteWizard XML format
+- **Data transformation**: Converts form data to ExchangeFlo JSON format
+- **Analytics**: View ping/post analytics and success rates
+- **Testing suite**: Complete test coverage for API integration
 - **Error handling**: Comprehensive error handling and logging
 
 ## Setup
@@ -107,11 +108,43 @@ npm run build
 npm run server
 ```
 
+### Testing the ExchangeFlo Integration
+
+Run the comprehensive test suite:
+
+```bash
+# Start the server first
+npm run server
+
+# In another terminal, run the tests
+node server/test-exchangeflo-api.js
+```
+
+The test will:
+- ✅ Check server health
+- ✅ Test ping request with sample data
+- ✅ Validate ping response structure
+- ✅ Test post request with contact info
+- ✅ Verify database logging
+- ✅ Provide detailed analytics
+
 ## API Endpoints
 
 ### POST /api/submit-quote
 
-Submits a quote request to QuoteWizard and Ignite APIs.
+Submits a quote request to ExchangeFlo APIs using the ping and post flow.
+
+### POST /api/log/ping
+
+Logs ping requests to the database for analytics.
+
+### POST /api/log/post
+
+Logs post requests to the database for analytics.
+
+### GET /api/analytics/exchangeflo
+
+Returns analytics data for ping and post requests.
 
 **Request Body:**
 ```json

@@ -164,6 +164,14 @@
   margin-bottom: 8px;
 }
 
+/* Options grid for button-based selections */
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
 /* Date input styling */
 .date-input {
   width: 100%;

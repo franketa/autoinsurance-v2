@@ -186,14 +186,69 @@ function generateFullXML(formData, vendorData) {
     </QuoteWizardData>`;
 }
 
-async function logToDatabase(action, data) {
+// Helper function to log data to PostgreSQL
+async function logToDatabase(table, data) {
+  const client = await pool.connect();
   try {
-    const connection = mysql.createConnection(dbConfig);
-    const query = 'INSERT INTO insurance_ping (action, data) VALUES (?, ?)';
-    await connection.promise().execute(query, [action, JSON.stringify(data)]);
-    connection.end();
-  } catch (error) {
-    console.error('Database logging error:', error);
+    let query, values;
+    
+    if (table === 'exchangeflo_ping_request') {
+      query = `
+        INSERT INTO exchangeflo_ping_requests 
+        (timestamp, submission_id, status, ping_count, request_data, response_data)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+      `;
+      values = [
+        data.timestamp,
+        data.submission_id,
+        data.status,
+        data.ping_count,
+        JSON.stringify(data.request_data),
+        JSON.stringify(data.response_data)
+      ];
+    } else if (table === 'exchangeflo_post_request') {
+      query = `
+        INSERT INTO exchangeflo_post_requests 
+        (timestamp, submission_id, status, total_value, ping_count, successful_posts, request_data, response_data)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id
+      `;
+      values = [
+        data.timestamp,
+        data.submission_id,
+        data.status,
+        data.total_value,
+        data.ping_count,
+        data.successful_posts,
+        JSON.stringify(data.request_data),
+        JSON.stringify(data.response_data)
+      ];
+    } else {
+      // Fallback for original insurance_ping table
+      query = `
+        INSERT INTO insurance_ping 
+        (zip_code, firstName, lastName, phoneNumber, email, streetAddress, city, state, birthdate, 
+         gender, maritalStatus, creditScore, homeowner, driversLicense, sr22, insuranceHistory, 
+         currentAutoInsurance, insuranceDuration, coverageType, military, vehicles, 
+         created_at, additional_data)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+        RETURNING id
+      `;
+      values = [
+        data.zipcode, data.firstName, data.lastName, data.phoneNumber, data.email,
+        data.streetAddress, data.city, data.state, data.birthdate, data.gender,
+        data.maritalStatus, data.creditScore, data.homeowner, data.driversLicense,
+        data.sr22, data.insuranceHistory, data.currentAutoInsurance, data.insuranceDuration,
+        data.coverageType, data.military, JSON.stringify(data.vehicles),
+        new Date().toISOString(), JSON.stringify(data.additionalData || {})
+      ];
+    }
+    
+    const result = await client.query(query, values);
+    return result.rows[0];
+  } finally {
+    client.release();
   }
 }
 
@@ -506,7 +561,92 @@ app.get('/api/location', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    services: {
+      server: 'running',
+      database: 'connected' // You could add actual DB health check here
+    }
+  });
+});
+
+// Database logging endpoint for ping requests
+app.post('/api/log/ping', async (req, res) => {
+  try {
+    const { request, response, timestamp } = req.body;
+    
+    // Extract data for database storage
+    const logData = {
+      timestamp: timestamp || new Date().toISOString(),
+      submission_id: response?.submission_id || null,
+      status: response?.status || 'unknown',
+      ping_count: response?.pings?.length || 0,
+      request_data: request,
+      response_data: response
+    };
+    
+    await logToDatabase('exchangeflo_ping_request', logData);
+    
+    res.json({ success: true, message: 'Ping logged successfully' });
+  } catch (error) {
+    console.error('Ping logging error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Database logging endpoint for post requests
+app.post('/api/log/post', async (req, res) => {
+  try {
+    const { request, response, timestamp } = req.body;
+    
+    // Calculate successful posts
+    const successfulPosts = response?.results?.filter(r => r.result === 'success').length || 0;
+    
+    // Extract data for database storage
+    const logData = {
+      timestamp: timestamp || new Date().toISOString(),
+      submission_id: response?.submission_id || request?.submission_id || null,
+      status: response?.status || 'unknown',
+      total_value: response?.value || 0,
+      ping_count: request?.ping_ids?.length || 0,
+      successful_posts: successfulPosts,
+      request_data: request,
+      response_data: response
+    };
+    
+    await logToDatabase('exchangeflo_post_request', logData);
+    
+    res.json({ success: true, message: 'Post logged successfully' });
+  } catch (error) {
+    console.error('Post logging error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Analytics endpoint to view ping/post data
+app.get('/api/analytics/exchangeflo', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    
+    const result = await client.query(`
+      SELECT * FROM exchangeflo_analytics 
+      ORDER BY ping_timestamp DESC 
+      LIMIT 50
+    `);
+    
+    client.release();
+    
+    res.json({
+      success: true,
+      data: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.listen(PORT, () => {
