@@ -20,7 +20,7 @@ const testFormData = {
   firstName: 'John',
   lastName: 'Doe',
   email: 'john.doe@test.com',
-  phoneNumber: '555-123-4567',
+  phoneNumber: '6035551234',
   streetAddress: '123 Main Street',
   zipcode: '12345',
   city: 'Boston',
