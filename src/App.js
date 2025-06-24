@@ -367,6 +367,27 @@ function App() {
     return "https://cert.trustedform.com/0123456789abcdef0123456789abcdef01234567";
   };
 
+  // Validate and normalize insurance company names
+  const normalizeInsuranceCompany = (company) => {
+    if (!company) return "";
+    
+    // Map common variations to standardized names
+    const companyMap = {
+      'AAA': 'AAA',
+      'State Farm': 'State Farm',
+      'Geico': 'GEICO', 
+      'Progressive': 'Progressive',
+      'Allstate': 'Allstate',
+      'USAA': 'USAA',
+      'Farmers': 'Farmers',
+      'Liberty Mutual': 'Liberty Mutual',
+      'Nationwide': 'Nationwide',
+      'American Family': 'American Family'
+    };
+    
+    return companyMap[company] || ""; // Return empty string if not found
+  };
+
   const nextStep = () => {
     if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -418,13 +439,13 @@ function App() {
           
           // Insurance status - ensure boolean strings
           "currently_insured": toBooleanString(formData.insuranceHistory === 'Yes'),
-          "current_company": formData.insuranceHistory === 'Yes' ? (formData.currentAutoInsurance || "") : "", // PLACEHOLDER when insured
+          "current_company": formData.insuranceHistory === 'Yes' ? normalizeInsuranceCompany(formData.currentAutoInsurance) : "", // Normalized company name
           "continuous_coverage": mapInsuranceDuration(formData.insuranceDuration) || "48", // months
           "current_policy_start": "2024-04-28", // PLACEHOLDER: Policy start date
           "current_policy_expires": "2026-04-28", // PLACEHOLDER: Policy expiration date
           
-          // Personal details
-          "military_affiliation": toBooleanString(formData.military === 'Yes'),
+          // Personal details - force military to false for debugging
+          "military_affiliation": "false", // toBooleanString(formData.military === 'Yes'),
           "auto_coverage_type": mapCoverageType(formData.coverageType) || "typical",
           
           // Counts - ensure they're strings
@@ -474,14 +495,20 @@ function App() {
         }
       };
 
-      console.log('Sending ping request:', pingData);
+      console.log('📋 Ping Data Being Sent:');
+      console.log(JSON.stringify(pingData, null, 2));
       
-      // Debug: Check mapped data
-      console.log('Ping Data Check:', {
-        profile: pingData.profile,
-        drivers: pingData.profile.drivers,
-        vehicles: pingData.profile.vehicles
-      });
+      // Debug: Check critical fields that often cause 422 errors
+      console.log('🔍 Critical Field Validation:');
+      console.log('  test:', pingData.test);
+      console.log('  currently_insured:', pingData.profile.currently_insured);
+      console.log('  military_affiliation:', pingData.profile.military_affiliation);
+      console.log('  current_company:', pingData.profile.current_company);
+      console.log('  auto_coverage_type:', pingData.profile.auto_coverage_type);
+      console.log('  continuous_coverage:', pingData.profile.continuous_coverage);
+      console.log('  driver birth_date:', pingData.profile.drivers[0]?.birth_date);
+      console.log('  driver gender:', pingData.profile.drivers[0]?.gender);
+      console.log('  vehicle year:', pingData.profile.vehicles[0]?.year);
       
       // Simulate searching time (3 seconds)
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -500,6 +527,24 @@ function App() {
       const pingResult = await pingResponse.json();
       
       if (!pingResponse.ok) {
+        console.error('❌ Ping request failed:');
+        console.error(`  Status: ${pingResponse.status}`);
+        console.error(`  Response:`, JSON.stringify(pingResult, null, 2));
+        
+        // If there are validation errors, show them in detail
+        if (pingResult && pingResult.errors) {
+          console.error('🔍 Detailed Ping Validation Errors:');
+          const errors = pingResult.errors;
+          
+          if (Array.isArray(errors)) {
+            errors.forEach((errorGroup, index) => {
+              console.error(`  Error Group ${index + 1}:`, JSON.stringify(errorGroup, null, 4));
+            });
+          } else {
+            console.error('  Errors:', JSON.stringify(errors, null, 4));
+          }
+        }
+        
         throw new Error(pingResult.error || `Ping API error: ${pingResponse.status}`);
       }
 

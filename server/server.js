@@ -22,6 +22,16 @@ const dbConfig = {
   charset: 'utf8'
 };
 
+// Create MySQL connection pool
+const pool = mysql.createPool({
+  ...dbConfig,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+const promisePool = pool.promise();
+
 // QuoteWizard configuration
 const QUOTE_WIZARD_CONFIG = {
   contractID: process.env.QW_CONTRACT_ID || 'E29908C1-CA19-4D3D-9F59-703CD5C12649',
@@ -186,9 +196,8 @@ function generateFullXML(formData, vendorData) {
     </QuoteWizardData>`;
 }
 
-// Helper function to log data to PostgreSQL
+// Helper function to log data to MySQL
 async function logToDatabase(table, data) {
-  const client = await pool.connect();
   try {
     let query, values;
     
@@ -196,8 +205,7 @@ async function logToDatabase(table, data) {
       query = `
         INSERT INTO exchangeflo_ping_requests 
         (timestamp, submission_id, status, ping_count, request_data, response_data)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
+        VALUES (?, ?, ?, ?, ?, ?)
       `;
       values = [
         data.timestamp,
@@ -211,8 +219,7 @@ async function logToDatabase(table, data) {
       query = `
         INSERT INTO exchangeflo_post_requests 
         (timestamp, submission_id, status, total_value, ping_count, successful_posts, request_data, response_data)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
       values = [
         data.timestamp,
@@ -232,8 +239,7 @@ async function logToDatabase(table, data) {
          gender, maritalStatus, creditScore, homeowner, driversLicense, sr22, insuranceHistory, 
          currentAutoInsurance, insuranceDuration, coverageType, military, vehicles, 
          created_at, additional_data)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
-        RETURNING id
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       values = [
         data.zipcode, data.firstName, data.lastName, data.phoneNumber, data.email,
@@ -245,10 +251,11 @@ async function logToDatabase(table, data) {
       ];
     }
     
-    const result = await client.query(query, values);
-    return result.rows[0];
-  } finally {
-    client.release();
+    const [result] = await promisePool.execute(query, values);
+    return { id: result.insertId };
+  } catch (error) {
+    console.error('Database logging error:', error);
+    throw error;
   }
 }
 
@@ -628,25 +635,301 @@ app.post('/api/log/post', async (req, res) => {
 // Analytics endpoint to view ping/post data
 app.get('/api/analytics/exchangeflo', async (req, res) => {
   try {
-    const client = await pool.connect();
+    const limit = parseInt(req.query.limit) || 50;
     
-    const result = await client.query(`
-      SELECT * FROM exchangeflo_analytics 
-      ORDER BY ping_timestamp DESC 
-      LIMIT 50
-    `);
+    // Get recent ping requests with details
+    const pingQuery = `
+      SELECT 
+        id,
+        timestamp,
+        submission_id,
+        status,
+        ping_count,
+        JSON_EXTRACT(request_data, '$.profile.zip') as zip_code,
+        JSON_EXTRACT(request_data, '$.profile.auto_coverage_type') as coverage_type,
+        JSON_EXTRACT(response_data, '$.pings') as pings_data,
+        JSON_EXTRACT(response_data, '$.status') as response_status
+      FROM exchangeflo_ping_requests 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `;
     
-    client.release();
+    const postQuery = `
+      SELECT 
+        id,
+        timestamp,
+        submission_id,
+        status,
+        total_value,
+        ping_count,
+        successful_posts,
+        JSON_EXTRACT(request_data, '$.profile.first_name') as first_name,
+        JSON_EXTRACT(request_data, '$.profile.last_name') as last_name,
+        JSON_EXTRACT(response_data, '$.results') as results_data
+      FROM exchangeflo_post_requests 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `;
+    
+    const [pingResult] = await promisePool.execute(pingQuery, [limit]);
+    const [postResult] = await promisePool.execute(postQuery, [limit]);
     
     res.json({
       success: true,
-      data: result.rows,
-      total: result.rows.length
+      ping_requests: pingResult,
+      post_requests: postResult,
+      totals: {
+        ping_count: pingResult.length,
+        post_count: postResult.length
+      }
     });
   } catch (error) {
     console.error('Analytics error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Detailed ping results endpoint
+app.get('/api/analytics/pings', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    
+    const query = `
+      SELECT 
+        id,
+        timestamp,
+        submission_id,
+        status,
+        ping_count,
+        request_data,
+        response_data,
+        CASE 
+          WHEN JSON_EXTRACT(response_data, '$.status') = 'success' THEN 'SUCCESS'
+          ELSE 'FAILED'
+        END as ping_status,
+        COALESCE(
+          JSON_EXTRACT(response_data, '$.pings'),
+          JSON_ARRAY()
+        ) as pings
+      FROM exchangeflo_ping_requests 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `;
+    
+    const [rows] = await promisePool.execute(query, [limit]);
+    
+    // Process and enhance the data
+    const processedData = rows.map(row => {
+      let pings = [];
+      try {
+        pings = typeof row.pings === 'string' ? JSON.parse(row.pings) : (Array.isArray(row.pings) ? row.pings : []);
+      } catch (e) {
+        pings = [];
+      }
+      
+      let requestData = {};
+      try {
+        requestData = typeof row.request_data === 'string' ? JSON.parse(row.request_data) : row.request_data;
+      } catch (e) {
+        requestData = {};
+      }
+      
+      const totalValue = pings.reduce((sum, ping) => sum + (ping.value || 0), 0);
+      
+      return {
+        ...row,
+        total_ping_value: totalValue,
+        exclusive_pings: pings.filter(p => p.type === 'exclusive').length,
+        shared_pings: pings.filter(p => p.type === 'shared').length,
+        highest_bid: pings.length > 0 ? Math.max(...pings.map(p => p.value || 0)) : 0,
+        profile_summary: {
+          zip: requestData?.profile?.zip,
+          coverage_type: requestData?.profile?.auto_coverage_type,
+          vehicle_count: requestData?.profile?.vehicle_count,
+          driver_count: requestData?.profile?.driver_count
+        }
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: processedData,
+      summary: {
+        total_requests: processedData.length,
+        successful_requests: processedData.filter(p => p.ping_status === 'SUCCESS').length,
+        failed_requests: processedData.filter(p => p.ping_status === 'FAILED').length,
+        total_value_generated: processedData.reduce((sum, p) => sum + p.total_ping_value, 0)
+      }
+    });
+  } catch (error) {
+    console.error('Ping analytics error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Statistics dashboard endpoint
+app.get('/api/analytics/dashboard', async (req, res) => {
+  try {
+    // Get ping statistics for the last 7 days
+    const pingStatsQuery = `
+      SELECT 
+        COUNT(*) as total_pings,
+        SUM(CASE WHEN JSON_EXTRACT(response_data, '$.status') = 'success' THEN 1 ELSE 0 END) as successful_pings,
+        AVG(ping_count) as avg_ping_count,
+        DATE(timestamp) as day
+      FROM exchangeflo_ping_requests 
+      WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      GROUP BY DATE(timestamp)
+      ORDER BY day DESC
+    `;
+    
+    const postStatsQuery = `
+      SELECT 
+        COUNT(*) as total_posts,
+        SUM(successful_posts) as total_successful_posts,
+        AVG(total_value) as avg_post_value
+      FROM exchangeflo_post_requests 
+      WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    `;
+    
+    const [pingStats] = await promisePool.execute(pingStatsQuery);
+    const [postStats] = await promisePool.execute(postStatsQuery);
+    
+    res.json({
+      success: true,
+      dashboard: {
+        daily_stats: pingStats,
+        post_summary: postStats[0] || {},
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Dashboard analytics error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Simple HTML dashboard for viewing results
+app.get('/admin/ping-results', (req, res) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>ExchangeFlo Ping Results Dashboard</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+            .stat-card { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; }
+            .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
+            .stat-label { color: #666; margin-top: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f8f9fa; }
+            .status-success { color: #28a745; font-weight: bold; }
+            .status-failed { color: #dc3545; font-weight: bold; }
+            .ping-value { color: #007bff; font-weight: bold; }
+            .refresh-btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+            .refresh-btn:hover { background: #0056b3; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>ExchangeFlo Ping Results Dashboard</h1>
+            <button class="refresh-btn" onclick="location.reload()">Refresh Data</button>
+        </div>
+        
+        <div id="stats-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-pings">Loading...</div>
+                    <div class="stat-label">Total Pings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="successful-pings">Loading...</div>
+                    <div class="stat-label">Successful Pings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-value">Loading...</div>
+                    <div class="stat-label">Total Value ($)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="success-rate">Loading...</div>
+                    <div class="stat-label">Success Rate (%)</div>
+                </div>
+            </div>
+        </div>
+        
+        <table id="results-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Submission ID</th>
+                    <th>Status</th>
+                    <th>Ping Count</th>
+                    <th>Total Value</th>
+                    <th>Coverage Type</th>
+                    <th>Zip Code</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+                <tr><td colspan="7">Loading data...</td></tr>
+            </tbody>
+        </table>
+        
+        <script>
+            async function loadData() {
+                try {
+                    const response = await fetch('/api/analytics/pings');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Update statistics
+                        document.getElementById('total-pings').textContent = data.summary.total_requests;
+                        document.getElementById('successful-pings').textContent = data.summary.successful_requests;
+                        document.getElementById('total-value').textContent = '$' + data.summary.total_value_generated.toFixed(2);
+                        const successRate = data.summary.total_requests > 0 ? 
+                            ((data.summary.successful_requests / data.summary.total_requests) * 100).toFixed(1) : 0;
+                        document.getElementById('success-rate').textContent = successRate + '%';
+                        
+                        // Update table
+                        const tbody = document.getElementById('results-body');
+                        tbody.innerHTML = '';
+                        
+                        data.data.forEach(ping => {
+                            const row = document.createElement('tr');
+                            const statusClass = ping.ping_status === 'SUCCESS' ? 'status-success' : 'status-failed';
+                            
+                            row.innerHTML = \`
+                                <td>\${new Date(ping.timestamp).toLocaleString()}</td>
+                                <td>\${ping.submission_id || 'N/A'}</td>
+                                <td class="\${statusClass}">\${ping.ping_status}</td>
+                                <td>\${ping.ping_count}</td>
+                                <td class="ping-value">$\${ping.total_ping_value.toFixed(2)}</td>
+                                <td>\${ping.profile_summary?.coverage_type || 'N/A'}</td>
+                                <td>\${ping.profile_summary?.zip || 'N/A'}</td>
+                            \`;
+                            tbody.appendChild(row);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    document.getElementById('results-body').innerHTML = 
+                        '<tr><td colspan="7">Error loading data. Please refresh the page.</td></tr>';
+                }
+            }
+            
+            // Load data on page load
+            loadData();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(loadData, 30000);
+        </script>
+    </body>
+    </html>
+  `;
+  
+  res.send(html);
 });
 
 app.listen(PORT, () => {
