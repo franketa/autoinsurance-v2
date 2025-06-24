@@ -20,7 +20,7 @@ const testFormData = {
   firstName: 'John',
   lastName: 'Doe',
   email: 'john.doe@test.com',
-  phoneNumber: '6035551234',
+  phoneNumber: '6032011234', // Changed exchange from 555 to 201 (valid exchange)
   streetAddress: '123 Main Street',
   zipcode: '12345',
   city: 'Boston',
