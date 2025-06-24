@@ -3,7 +3,7 @@ const cors = require('cors');
 const mysql = require('mysql2');
 const axios = require('axios');
 const xml2js = require('xml2js');
-const { getLocationFromIP } = require('./location');
+const { getLocationFromIP, getLocationFromZip } = require('./location');
 require('dotenv').config();
 
 const app = express();
@@ -545,21 +545,30 @@ app.post('/api/submit-quote', async (req, res) => {
 // Location lookup endpoint
 app.get('/api/location', async (req, res) => {
   try {
-    const ip = req.query.ip || req.ip || req.connection.remoteAddress || '';
+    const zipCode = req.query.zip;
     
-    // Clean the IP address (remove ::ffff: prefix if present)
-    const cleanIP = ip.replace(/^::ffff:/, '');
-    
-    console.log('Looking up location for IP:', cleanIP);
-    
-    const locationData = await getLocationFromIP(cleanIP);
-    
-    res.json(locationData);
+    if (zipCode) {
+      // Zip code lookup
+      console.log('Looking up location for zip code:', zipCode);
+      const locationData = await getLocationFromZip(zipCode);
+      res.json(locationData);
+    } else {
+      // IP-based lookup (original functionality)
+      const ip = req.query.ip || req.ip || req.connection.remoteAddress || '';
+      
+      // Clean the IP address (remove ::ffff: prefix if present)
+      const cleanIP = ip.replace(/^::ffff:/, '');
+      
+      console.log('Looking up location for IP:', cleanIP);
+      
+      const locationData = await getLocationFromIP(cleanIP);
+      res.json(locationData);
+    }
   } catch (error) {
     console.error('Location lookup error:', error);
     res.status(500).json({
       error: 'Failed to lookup location',
-      zip: '98101',
+      zip: req.query.zip || '98101',
       region: 'WA',
       city: 'Seattle'
     });

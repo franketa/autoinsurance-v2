@@ -33,4 +33,37 @@ async function getLocationFromIP(ip) {
   }
 }
 
-module.exports = { getLocationFromIP }; 
+async function getLocationFromZip(zipCode) {
+  try {
+    // Use zippopotam.us for US zip code lookups
+    const response = await axios.get(`http://api.zippopotam.us/us/${zipCode}`);
+    const data = response.data;
+    
+    if (data && data.places && data.places.length > 0) {
+      const place = data.places[0];
+      return {
+        zip: zipCode,
+        region: place['state abbreviation'] || '',
+        city: place['place name'] || '',
+        country: data.country || 'US',
+        lat: place.latitude || '',
+        lon: place.longitude || ''
+      };
+    } else {
+      throw new Error('Zip code not found');
+    }
+  } catch (error) {
+    console.error('Error fetching location from zip:', error);
+    // Return the zip code with empty city/state if lookup fails
+    return {
+      zip: zipCode,
+      region: '',
+      city: '',
+      country: 'US',
+      lat: '',
+      lon: ''
+    };
+  }
+}
+
+module.exports = { getLocationFromIP, getLocationFromZip }; 
