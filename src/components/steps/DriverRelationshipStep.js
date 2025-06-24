@@ -23,11 +23,11 @@ const DriverRelationshipStep = ({ value, onChange, onNext }) => {
     <div className="step-container">
       <h2 className="step-title">What is your relationship to the primary driver?</h2>
       
-      <div className="button-grid">
+      <div className="options-grid">
         {options.map((option) => (
           <button
             key={option.value}
-            className={`choice-button ${value === option.value ? 'selected' : ''}`}
+            className={`option-button ${value === option.value ? 'selected' : ''}`}
             onClick={() => handleSelect(option.value)}
           >
             {option.label}
