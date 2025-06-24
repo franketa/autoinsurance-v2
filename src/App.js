@@ -417,7 +417,7 @@ function App() {
         "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
         "response_type": "detail",
         "lead_type": "mixed",
-        "test": process.env.NODE_ENV !== 'production', // Set to true in development/test mode
+        "test": true, // Always true for testing domains - ExchangeFlo detects test mode automatically
         
         // Tracking and validation IDs
         "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generated tracking ID
@@ -444,8 +444,8 @@ function App() {
           "current_policy_start": "2024-04-28", // PLACEHOLDER: Policy start date
           "current_policy_expires": "2026-04-28", // PLACEHOLDER: Policy expiration date
           
-          // Personal details - force military to false for debugging
-          "military_affiliation": "false", // toBooleanString(formData.military === 'Yes'),
+          // Personal details
+          "military_affiliation": toBooleanString(formData.military === 'Yes'),
           "auto_coverage_type": mapCoverageType(formData.coverageType) || "typical",
           
           // Counts - ensure they're strings
