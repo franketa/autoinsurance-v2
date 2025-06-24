@@ -218,6 +218,9 @@ function generatePingData(formData) {
 
 // Generate post data from ping response and form data
 function generatePostData(submission_id, ping_ids, formData) {
+  // Format phone number to digits only (remove any formatting)
+  const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
+  
   return {
     submission_id,
     ping_ids,
@@ -225,10 +228,11 @@ function generatePostData(submission_id, ping_ids, formData) {
       first_name: formData.firstName,
       last_name: formData.lastName,
       email: formData.email,
-      phone: formData.phoneNumber,
+      phone: cleanPhone, // Use digits-only format
       address: formData.streetAddress,
       city: formData.city,
       state: formData.state,
+      zip: formData.zipcode, // Add zip code
       drivers: [
         {
           first_name: formData.firstName,
@@ -337,7 +341,10 @@ async function testPostRequest(pingResult, formData) {
   }
   
   const postData = generatePostData(submission_id, ping_ids, formData);
-  console.log(`Posting to ${ping_ids.length} ping(s)...`);
+  
+  console.log(`\n📋 Post Data Being Sent:`);
+  console.log(JSON.stringify(postData, null, 2));
+  console.log(`\nPosting to ${ping_ids.length} ping(s)...`);
   
   try {
     const startTime = Date.now();
@@ -376,7 +383,21 @@ async function testPostRequest(pingResult, formData) {
     console.error('❌ Post request failed:');
     if (error.response) {
       console.error(`  Status: ${error.response.status}`);
-      console.error(`  Response:`, error.response.data);
+      console.error(`  Response:`, JSON.stringify(error.response.data, null, 2));
+      
+      // If there are validation errors, show them in detail
+      if (error.response.data && error.response.data.errors) {
+        console.error('\n🔍 Detailed Validation Errors:');
+        const errors = error.response.data.errors;
+        
+        if (Array.isArray(errors)) {
+          errors.forEach((errorGroup, index) => {
+            console.error(`  Error Group ${index + 1}:`, JSON.stringify(errorGroup, null, 4));
+          });
+        } else {
+          console.error('  Errors:', JSON.stringify(errors, null, 4));
+        }
+      }
     } else {
       console.error(`  Error: ${error.message}`);
     }

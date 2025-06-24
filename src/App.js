@@ -474,6 +474,9 @@ function App() {
         return;
       }
       
+      // Format phone number to digits only (remove any formatting)
+      const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
+      
       const postData = {
         submission_id,
         ping_ids,
@@ -481,10 +484,11 @@ function App() {
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
-          phone: formData.phoneNumber,
+          phone: cleanPhone, // Use digits-only format
           address: formData.streetAddress,
           city: formData.city,
           state: formData.state,
+          zip: formData.zipcode, // Add zip code
           drivers: [
             {
               first_name: formData.firstName,
@@ -509,7 +513,21 @@ function App() {
       const postResult = await postResponse.json();
       
       if (!postResponse.ok) {
-        console.error('Post request failed:', postResult);
+        console.error('Post request failed:', JSON.stringify(postResult, null, 2));
+        
+        // If there are validation errors, show them in detail
+        if (postResult && postResult.errors) {
+          console.error('🔍 Detailed Post Validation Errors:');
+          const errors = postResult.errors;
+          
+          if (Array.isArray(errors)) {
+            errors.forEach((errorGroup, index) => {
+              console.error(`  Error Group ${index + 1}:`, JSON.stringify(errorGroup, null, 4));
+            });
+          } else {
+            console.error('  Errors:', JSON.stringify(errors, null, 4));
+          }
+        }
         // Don't throw here - we can still show results even if post fails
       } else {
         console.log('Post request successful:', postResult);
