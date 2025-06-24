@@ -29,6 +29,32 @@ const ContactInfoStep = ({
   const [localState, setLocalState] = useState(state || '');
   const [errors, setErrors] = useState({});
 
+  // Load TrustedForm script when component mounts
+  useEffect(() => {
+    const loadTrustedForm = () => {
+      // Only load if script hasn't been loaded already
+      if (!document.querySelector('script[src*="trustedform.js"]')) {
+        const tf = document.createElement("script");
+        tf.type = "text/javascript";
+        tf.async = true;
+        tf.src = "https://api.trustedform.com/trustedform.js?field=xxTrustedFormCertUrl&l=" +
+          new Date().getTime() + Math.random();
+        
+        const firstScript = document.getElementsByTagName("script")[0];
+        firstScript.parentNode.insertBefore(tf, firstScript);
+        
+        // Add noscript fallback
+        const noscript = document.createElement("noscript");
+        const img = document.createElement("img");
+        img.src = "https://api.trustedform.com/ns.gif";
+        noscript.appendChild(img);
+        document.head.appendChild(noscript);
+      }
+    };
+
+    loadTrustedForm();
+  }, []);
+
   // Update parent state immediately when local state changes
   useEffect(() => {
     if (localFirstName) onFirstNameChange(localFirstName);
