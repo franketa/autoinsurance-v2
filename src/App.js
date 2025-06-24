@@ -473,7 +473,7 @@ function App() {
               // License info
               "license_state": formData.state || "MA", // Derived from zip or address
               "licensed_age": "16", // PLACEHOLDER: Age when first licensed
-              "license_status": toBooleanString(formData.driversLicense === 'Yes' ? "active" : "inactive") === "true" ? "active" : "inactive",
+              "license_status": formData.driversLicense === 'Yes' ? "active" : "suspended", // Valid values: active, suspended, probation, restricted, learner, temporary, international
               
               // Residence info - use mapping function
               "residence_type": mapHomeowner(formData.homeowner) || "own",
