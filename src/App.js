@@ -391,6 +391,8 @@ function App() {
   const nextStep = () => {
     if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(currentStep + 1);
+      // Scroll to top of page for better UX
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       // Final step - submit data
       submitFormData();
