@@ -4,7 +4,6 @@ const CurrentAutoInsuranceStep = ({ value, onChange, onNext }) => {
   const options = [
     'AAA',
     'Allstate', 
-    'Currently Uninsured',
     'Farmers',
     'Geico',
     'Liberty',
