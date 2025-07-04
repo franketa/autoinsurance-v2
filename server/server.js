@@ -603,7 +603,7 @@ app.post('/api/log/ping', async (req, res) => {
       response_data: response
     };
     
-    await logToDatabase('exchangeflo_ping_request', logData);
+    await logToDatabase('exchangeflo_ping_requests', logData);
     
     res.json({ success: true, message: 'Ping logged successfully' });
   } catch (error) {
@@ -632,7 +632,7 @@ app.post('/api/log/post', async (req, res) => {
       response_data: response
     };
     
-    await logToDatabase('exchangeflo_post_request', logData);
+    await logToDatabase('exchangeflo_post_requests', logData);
     
     res.json({ success: true, message: 'Post logged successfully' });
   } catch (error) {
