@@ -55,6 +55,14 @@ else
     print_info "No dependency changes detected"
 fi
 
+# Update database schema
+print_info "🗄️ Updating database schema..."
+if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db < server/database/init.sql; then
+    print_success "Database schema updated successfully"
+else
+    print_warning "Database schema update failed (this might be normal if tables already exist)"
+fi
+
 # Build the React app
 print_info "🔨 Building React application..."
 if npm run build; then
