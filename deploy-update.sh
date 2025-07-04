@@ -55,12 +55,25 @@ else
     print_info "No dependency changes detected"
 fi
 
+# Setup database and user (if needed)
+print_info "🗄️ Setting up database and user..."
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || true
+sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY 'SecurePassword123!';" 2>/dev/null || true
+sudo mysql -e "GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost';" 2>/dev/null || true
+sudo mysql -e "FLUSH PRIVILEGES;" 2>/dev/null || true
+
 # Update database schema
-print_info "🗄️ Updating database schema..."
-if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db < server/database/init.sql; then
+print_info "🔄 Updating database schema..."
+if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db < server/database/init.sql 2>/dev/null; then
     print_success "Database schema updated successfully"
 else
-    print_warning "Database schema update failed (this might be normal if tables already exist)"
+    print_warning "Database schema update failed - trying with root access..."
+    if sudo mysql smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+        print_success "Database schema updated with root access"
+    else
+        print_error "Failed to update database schema"
+        exit 1
+    fi
 fi
 
 # Build the React app
