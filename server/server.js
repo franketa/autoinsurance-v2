@@ -201,7 +201,7 @@ async function logToDatabase(table, data) {
   try {
     let query, values;
     
-    if (table === 'exchangeflo_ping_request') {
+    if (table === 'exchangeflo_ping_requests') {
       query = `
         INSERT INTO exchangeflo_ping_requests 
         (timestamp, submission_id, status, ping_count, request_data, response_data)
@@ -215,7 +215,7 @@ async function logToDatabase(table, data) {
         JSON.stringify(data.request_data),
         JSON.stringify(data.response_data)
       ];
-    } else if (table === 'exchangeflo_post_request') {
+    } else if (table === 'exchangeflo_post_requests') {
       query = `
         INSERT INTO exchangeflo_post_requests 
         (timestamp, submission_id, status, total_value, ping_count, successful_posts, request_data, response_data)
