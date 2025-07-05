@@ -8,10 +8,7 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || 'SecurePassword123!',
   database: process.env.DB_NAME || 'smartautoinsider_db',
   charset: 'utf8mb4',
-  timezone: '+00:00',
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true
+  timezone: '+00:00'
 };
 
 // Create connection pool
@@ -19,9 +16,7 @@ const pool = mysql.createPool({
   ...dbConfig,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  acquireTimeout: 60000,
-  timeout: 60000
+  queueLimit: 0
 });
 
 // Database service class
@@ -48,6 +43,19 @@ class DatabaseService {
     }
   }
 
+  // Helper function to convert ISO datetime to MySQL format
+  formatMySQLDateTime(isoString) {
+    if (!isoString) return new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
+    try {
+      const date = new Date(isoString);
+      return date.toISOString().slice(0, 19).replace('T', ' ');
+    } catch (error) {
+      console.warn('⚠️ Invalid date format, using current time:', isoString);
+      return new Date().toISOString().slice(0, 19).replace('T', ' ');
+    }
+  }
+
   // Log ping request
   async logPingRequest(data) {
     try {
@@ -58,7 +66,7 @@ class DatabaseService {
       `;
       
       // Extract values from data
-      const timestamp = data.timestamp || new Date().toISOString();
+      const timestamp = this.formatMySQLDateTime(data.timestamp);
       const submissionId = data.submission_id || 
                           (data.response_data && data.response_data.submission_id) || 
                           null;
@@ -111,7 +119,7 @@ class DatabaseService {
       `;
       
       // Extract values from data
-      const timestamp = data.timestamp || new Date().toISOString();
+      const timestamp = this.formatMySQLDateTime(data.timestamp);
       const submissionId = data.submission_id || 
                           (data.request_data && data.request_data.submission_id) ||
                           (data.request && data.request.submission_id) ||

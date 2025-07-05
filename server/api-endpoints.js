@@ -48,20 +48,20 @@ router.post('/log/ping', async (req, res) => {
         success: false,
         error: 'Request body is required',
         expected_format: {
-          request_data: 'object',
-          response_data: 'object',
+          request_data: 'object (or request)',
+          response_data: 'object (or response)',
           timestamp: 'string (optional)'
         }
       });
     }
 
-    // Extract data from request body
+    // Extract data from request body - handle both old and new formats
     const logData = {
       timestamp: req.body.timestamp || new Date().toISOString(),
       request_data: req.body.request_data || req.body.request || {},
       response_data: req.body.response_data || req.body.response || {},
       
-      // Extract common fields
+      // Extract common fields from various possible locations
       submission_id: req.body.submission_id || 
                     (req.body.response_data && req.body.response_data.submission_id) ||
                     (req.body.response && req.body.response.submission_id),
@@ -73,14 +73,17 @@ router.post('/log/ping', async (req, res) => {
                  (req.body.response && req.body.response.pings && req.body.response.pings.length),
       total_value: req.body.total_value ||
                   (req.body.response_data && req.body.response_data.pings ? 
-                   req.body.response_data.pings.reduce((sum, ping) => sum + (ping.value || 0), 0) : 0)
+                   req.body.response_data.pings.reduce((sum, ping) => sum + (ping.value || 0), 0) : 0) ||
+                  (req.body.response && req.body.response.pings ? 
+                   req.body.response.pings.reduce((sum, ping) => sum + (ping.value || 0), 0) : 0)
     };
 
     console.log('📋 Processed ping data:', {
       submission_id: logData.submission_id,
       status: logData.status,
       ping_count: logData.ping_count,
-      total_value: logData.total_value
+      total_value: logData.total_value,
+      timestamp: logData.timestamp
     });
 
     // Log to database
@@ -120,20 +123,20 @@ router.post('/log/post', async (req, res) => {
         success: false,
         error: 'Request body is required',
         expected_format: {
-          request_data: 'object',
-          response_data: 'object',
+          request_data: 'object (or request)',
+          response_data: 'object (or response)',
           timestamp: 'string (optional)'
         }
       });
     }
 
-    // Extract data from request body
+    // Extract data from request body - handle both old and new formats
     const logData = {
       timestamp: req.body.timestamp || new Date().toISOString(),
       request_data: req.body.request_data || req.body.request || {},
       response_data: req.body.response_data || req.body.response || {},
       
-      // Extract common fields
+      // Extract common fields from various possible locations
       submission_id: req.body.submission_id || 
                     (req.body.request_data && req.body.request_data.submission_id) ||
                     (req.body.request && req.body.request.submission_id) ||
@@ -150,7 +153,9 @@ router.post('/log/post', async (req, res) => {
                  (req.body.request && req.body.request.ping_ids && req.body.request.ping_ids.length),
       successful_posts: req.body.successful_posts ||
                        (req.body.response_data && req.body.response_data.results ? 
-                        req.body.response_data.results.filter(r => r.result === 'success').length : 0)
+                        req.body.response_data.results.filter(r => r.result === 'success').length : 0) ||
+                       (req.body.response && req.body.response.results ? 
+                        req.body.response.results.filter(r => r.result === 'success').length : 0)
     };
 
     console.log('📋 Processed post data:', {
@@ -158,7 +163,8 @@ router.post('/log/post', async (req, res) => {
       status: logData.status,
       total_value: logData.total_value,
       ping_count: logData.ping_count,
-      successful_posts: logData.successful_posts
+      successful_posts: logData.successful_posts,
+      timestamp: logData.timestamp
     });
 
     // Log to database
