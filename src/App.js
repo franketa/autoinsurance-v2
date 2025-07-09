@@ -38,7 +38,6 @@ const STEPS = [
   { id: 'credit-score', title: 'What is your credit score?' },
   { id: 'homeowner', title: 'Homeowner?' },
   { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?' },
-  { id: 'driver-relationship', title: 'What is your relationship to the primary driver?' },
   { id: 'driver-education', title: 'What is your highest level of education?' },
   { id: 'driver-occupation', title: 'What is your occupation?' },
   { id: 'birthdate', title: 'What is your birthdate?' },
@@ -71,7 +70,6 @@ function App() {
     creditScore: '',
     homeowner: '',
     military: '',
-    driverRelationship: '',
     driverEducation: '',
     driverOccupation: '',
     birthdate: '',
@@ -169,9 +167,8 @@ function App() {
       STEPS.find(s => s.id === 'military')
     );
     
-    // Add driver information steps
+    // Add driver information steps (remove driver-relationship)
     steps.push(
-      STEPS.find(s => s.id === 'driver-relationship'),
       STEPS.find(s => s.id === 'driver-education'),
       STEPS.find(s => s.id === 'driver-occupation')
     );
@@ -456,7 +453,7 @@ function App() {
           
           "drivers": [
             {
-              "relationship": formData.driverRelationship || "self",
+              "relationship": "self", // Hardcoded to "self"
               "gender": (formData.gender || "male").toLowerCase(),
               "birth_date": formatBirthdate(formData.birthdate), // Ensure YYYY-MM-DD format
               
