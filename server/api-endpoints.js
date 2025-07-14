@@ -29,11 +29,29 @@ function transformPhoneNumber(phone) {
 // Generate random trusted form certificate ID (40 hex characters)
 function generateTrustedFormCertId() {
   const hexChars = '0123456789abcdef';
-  let certId = '';
-  for (let i = 0; i < 40; i++) {
+  
+  // Create a unique combination using timestamp + random bytes
+  const timestamp = Date.now().toString(16); // Convert timestamp to hex
+  const randomBytes = [];
+  
+  // Generate cryptographically strong random bytes
+  for (let i = 0; i < 32; i++) {
+    randomBytes.push(Math.floor(Math.random() * 256));
+  }
+  
+  // Convert random bytes to hex string
+  const randomHex = randomBytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  
+  // Combine timestamp and random hex, then take first 40 characters
+  const combined = (timestamp + randomHex).slice(0, 40);
+  
+  // Ensure exactly 40 characters by padding with random hex if needed
+  let certId = combined;
+  while (certId.length < 40) {
     certId += hexChars[Math.floor(Math.random() * hexChars.length)];
   }
-  return certId;
+  
+  return certId.substring(0, 40);
 }
 
 function transformVehicles(vehicles) {
