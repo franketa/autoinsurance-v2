@@ -265,6 +265,37 @@ class DatabaseService {
     }
   }
 
+  // Log ping comparison results
+  async logPingComparison(data) {
+    try {
+      const query = `
+        INSERT INTO ping_comparison 
+        (timestamp, quotewizard_success, quotewizard_value, quotewizard_error, 
+         exchangeflo_success, exchangeflo_value, exchangeflo_error, winner, request_data)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const values = [
+        data.timestamp,
+        data.quotewizard_success,
+        data.quotewizard_value,
+        data.quotewizard_error,
+        data.exchangeflo_success,
+        data.exchangeflo_value,
+        data.exchangeflo_error,
+        data.winner,
+        JSON.stringify(data.request_data)
+      ];
+      
+      const [result] = await this.pool.execute(query, values);
+      console.log('✅ Ping comparison logged successfully:', result.insertId);
+      return { success: true, insertId: result.insertId };
+    } catch (error) {
+      console.error('❌ Error logging ping comparison:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Close connection pool
   async close() {
     try {

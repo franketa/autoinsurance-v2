@@ -407,283 +407,129 @@ function App() {
       // Start the searching phase
       setSubmissionState('searching');
       
-      // Filter out empty vehicles and include all vehicle data
-      const activeVehicles = formData.vehicles.filter(v => v.year && v.make && v.model);
-      
-      // Map form data to the new ping API format
-      const pingData = {
-        // Static source configuration
-        "source_id": "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
-        "response_type": "detail",
-        "lead_type": "mixed",
-        "test": true, // Always true for testing domains - ExchangeFlo detects test mode automatically
+      // Prepare form data for both services
+      const submissionData = {
+        // Basic contact info
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        streetAddress: formData.streetAddress,
+        city: formData.city,
+        state: formData.state,
+        zipcode: formData.zipcode,
         
-        // Tracking and validation IDs
-        "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generated tracking ID
-        "sub_id_1": process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test", // Different sub_id for test vs prod
-        // "jornaya_leadid": "01234567-89AB-CDEF-0123-456789ABCDEF", // PLACEHOLDER: Jornaya Lead ID - commented out for now
-        "trusted_form_cert_url": getTrustedFormCertUrl(), // Dynamic TrustedForm certificate URL
+        // Personal details
+        birthdate: formData.birthdate,
+        gender: formData.gender,
+        maritalStatus: formData.maritalStatus,
+        creditScore: formData.creditScore,
+        homeowner: formData.homeowner,
+        military: formData.military,
+        driverEducation: formData.driverEducation,
+        driverOccupation: formData.driverOccupation,
         
-        // Request metadata
-        "ip_address": "127.0.0.1", // PLACEHOLDER: Client IP
-        "landing_url": window.location.origin, // Current site URL
-        "privacy_url": `${window.location.origin}/privacy`, // Privacy policy URL
-        "tcpa": "I agree to receive marketing communications", // PLACEHOLDER: TCPA consent text
-        "user_agent": navigator.userAgent, // Browser user agent
+        // Insurance info
+        driversLicense: formData.driversLicense,
+        sr22: formData.sr22,
+        insuranceHistory: formData.insuranceHistory,
+        currentAutoInsurance: formData.currentAutoInsurance,
+        insuranceDuration: formData.insuranceDuration,
+        coverageType: formData.coverageType,
         
-        "profile": {
-          // Basic info
-          "zip": String(formData.zipcode || ""),
-          "address_2": "", // PLACEHOLDER: Apartment/unit number
-          
-          // Insurance status - ensure boolean strings
-          "currently_insured": toBooleanString(formData.insuranceHistory === 'Yes'),
-          "current_company": formData.insuranceHistory === 'Yes' ? normalizeInsuranceCompany(formData.currentAutoInsurance) : "", // Normalized company name
-          "continuous_coverage": mapInsuranceDuration(formData.insuranceDuration) || "48", // months
-          "current_policy_start": "2024-04-28", // PLACEHOLDER: Policy start date
-          "current_policy_expires": "2026-04-28", // PLACEHOLDER: Policy expiration date
-          
-          // Personal details
-          "military_affiliation": toBooleanString(formData.military === 'Yes'),
-          "auto_coverage_type": mapCoverageType(formData.coverageType) || "typical",
-          
-          // Counts - ensure they're strings
-          "driver_count": "1", // We only collect data for primary driver
-          "vehicle_count": String(activeVehicles.length || 1),
-          
-          "drivers": [
-            {
-              "relationship": "self", // Hardcoded to "self"
-              "gender": (formData.gender || "male").toLowerCase(),
-              "birth_date": formatBirthdate(formData.birthdate), // Ensure YYYY-MM-DD format
-              
-              // Risk factors - ensure string values
-              "at_fault_accidents": "0", // PLACEHOLDER: Number of at-fault accidents
-              "license_suspended": "false",
-              "tickets": "0", // PLACEHOLDER: Number of tickets
-              "dui_sr22": toBooleanString(formData.sr22 === 'Yes'),
-              
-              // Personal details - use mapping functions
-              "education": formData.driverEducation || "bachelors_degree",
-              "credit": mapCreditScore(formData.creditScore) || "good",
-              "occupation": formData.driverOccupation || "engineer",
-              "marital_status": mapMaritalStatus(formData.maritalStatus) || "single",
-              
-              // License info
-              "license_state": formData.state || "MA", // Derived from zip or address
-              "licensed_age": "16", // PLACEHOLDER: Age when first licensed
-              "license_status": formData.driversLicense === 'Yes' ? "active" : "suspended", // Valid values: active, suspended, probation, restricted, learner, temporary, international
-              
-              // Residence info - use mapping function
-              "residence_type": mapHomeowner(formData.homeowner) || "own",
-              "residence_length": "48" // PLACEHOLDER: Months at current residence
-            }
-          ],
-          
-          "vehicles": activeVehicles.map(vehicle => ({
-            "year": String(vehicle.year || "2020"),
-            "make": String(vehicle.make || "Toyota"),
-            "model": String(vehicle.model || "Camry"),
-            "submodel": String(vehicle.submodel || vehicle.model || "Camry"), // Use model if submodel not available
-            "primary_purpose": String(vehicle.purpose || "commute"),
-            "annual_mileage": String(vehicle.mileage || "10000-15000"),
-            "ownership": String(vehicle.ownership || "owned"),
-            "garage": "no_cover", // PLACEHOLDER: Garage/parking situation
-            "vin": "JM3TB38A*80******" // PLACEHOLDER: Partial VIN (consistent with test)
-          }))
-        }
+        // Vehicle data
+        vehicles: formData.vehicles.filter(v => v.year && v.make && v.model),
+        
+        // Tracking data
+        trusted_form_cert_id: getTrustedFormCertUrl().split('/').pop()
       };
 
-      console.log('📋 Ping Data Being Sent:');
-      console.log(JSON.stringify(pingData, null, 2));
-      
-      // Debug: Check critical fields that often cause 422 errors
-      console.log('🔍 Critical Field Validation:');
-      console.log('  test:', pingData.test);
-      console.log('  currently_insured:', pingData.profile.currently_insured);
-      console.log('  military_affiliation:', pingData.profile.military_affiliation);
-      console.log('  current_company:', pingData.profile.current_company);
-      console.log('  auto_coverage_type:', pingData.profile.auto_coverage_type);
-      console.log('  continuous_coverage:', pingData.profile.continuous_coverage);
-      console.log('  driver birth_date:', pingData.profile.drivers[0]?.birth_date);
-      console.log('  driver gender:', pingData.profile.drivers[0]?.gender);
-      console.log('  vehicle year:', pingData.profile.vehicles[0]?.year);
+      console.log('📋 Submission Data Being Sent:');
+      console.log(JSON.stringify(submissionData, null, 2));
       
       // Simulate searching time (3 seconds)
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // STEP 1: PING REQUEST
-      const pingResponse = await fetch('https://pub.exchangeflo.io/api/leads/ping', {
+      // STEP 1: PING BOTH SERVICES
+      console.log('🔍 Pinging both QuoteWizard and ExchangeFlo...');
+      
+      const pingResponse = await fetch('/api/ping-both', {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(pingData)
+        body: JSON.stringify(submissionData)
       });
       
       const pingResult = await pingResponse.json();
       
       if (!pingResponse.ok) {
-        console.error('❌ Ping request failed:');
+        console.error('❌ Ping comparison failed:');
         console.error(`  Status: ${pingResponse.status}`);
         console.error(`  Response:`, JSON.stringify(pingResult, null, 2));
-        
-        // If there are validation errors, show them in detail
-        if (pingResult && pingResult.errors) {
-          console.error('🔍 Detailed Ping Validation Errors:');
-          const errors = pingResult.errors;
-          
-          if (Array.isArray(errors)) {
-            errors.forEach((errorGroup, index) => {
-              console.error(`  Error Group ${index + 1}:`, JSON.stringify(errorGroup, null, 4));
-            });
-          } else {
-            console.error('  Errors:', JSON.stringify(errors, null, 4));
-          }
-        }
-        
-        throw new Error(pingResult.error || `Ping API error: ${pingResponse.status}`);
+        throw new Error(pingResult.error || `Ping comparison error: ${pingResponse.status}`);
       }
 
-      console.log('Ping request successful:', pingResult);
+      console.log('✅ Ping comparison successful:', pingResult);
       
-      // Log ping request to database
-      try {
-        await fetch('/api/log/ping', {
+      const { winner, comparison, winnerData } = pingResult;
+      
+      // Log the comparison results
+      console.log('🏆 Ping Comparison Results:');
+      console.log(`  QuoteWizard: ${comparison.quotewizard.success ? 'Success' : 'Failed'} - $${comparison.quotewizard.value}`);
+      console.log(`  ExchangeFlo: ${comparison.exchangeflo.success ? 'Success' : 'Failed'} - $${comparison.exchangeflo.value}`);
+      console.log(`  Winner: ${winner || 'None'}`);
+      
+      if (comparison.quotewizard.error) {
+        console.log(`  QuoteWizard Error: ${comparison.quotewizard.error}`);
+      }
+      if (comparison.exchangeflo.error) {
+        console.log(`  ExchangeFlo Error: ${comparison.exchangeflo.error}`);
+      }
+      
+      // If we have a winner, post to that service
+      if (winner && winnerData) {
+        console.log(`🎯 Posting lead to ${winner}...`);
+        
+        const postResponse = await fetch('/api/post-winner', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
-            request: pingData,
-            response: pingResult,
-            timestamp: new Date().toISOString()
+            winner: winner,
+            winnerData: winnerData,
+            formData: submissionData
           })
         });
-      } catch (logError) {
-        console.warn('Failed to log ping to database:', logError);
-      }
-      
-      // Validate ping response structure
-      const { submission_id, status, pings } = pingResult;
-      
-      if (status !== 'success') {
-        throw new Error(`Ping failed with status: ${status}`);
-      }
-      
-      if (!submission_id) {
-        throw new Error('Invalid ping response: missing submission_id');
-      }
-      
-      if (!pings || !Array.isArray(pings) || pings.length === 0) {
-        console.warn('No pings returned, skipping post request');
-        setSubmissionState('results');
-        return;
-      }
-
-      // STEP 2: POST REQUEST
-      // Extract ping_ids (exclusive pings first, as per API documentation)
-      const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
-      const sharedPings = pings.filter(ping => ping.type === 'shared');
-      
-      // Use exclusive pings for the post request (they have higher priority)
-      const pingsToPost = exclusivePings.length > 0 ? exclusivePings : sharedPings;
-      const ping_ids = pingsToPost.map(ping => ping.ping_id);
-      
-      if (ping_ids.length === 0) {
-        console.warn('No valid ping_ids found, skipping post request');
-        setSubmissionState('results');
-        return;
-      }
-      
-      // Format phone number to digits only (remove any formatting)
-      const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
-      
-      // Validate phone number
-      if (!validatePhoneNumber(formData.phoneNumber)) {
-        console.warn('Invalid phone number detected, using fallback');
-        // In production, you might want to handle this differently
-      }
-      
-      const postData = {
-        submission_id,
-        ping_ids,
-        profile: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: cleanPhone, // Use digits-only format
-          address: formData.streetAddress,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zipcode, // Add zip code
-          drivers: [
-            {
-              first_name: formData.firstName,
-              last_name: formData.lastName
-            }
-          ]
-        }
-      };
-
-      console.log('Sending post request:', postData);
-
-      const postResponse = await fetch('https://pub.exchangeflo.io/api/leads/post', {
-        method: 'POST',
-        headers: { 
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
-        },
-        body: JSON.stringify(postData)
-      });
-      
-      const postResult = await postResponse.json();
-      
-      if (!postResponse.ok) {
-        console.error('Post request failed:', JSON.stringify(postResult, null, 2));
         
-        // If there are validation errors, show them in detail
-        if (postResult && postResult.errors) {
-          console.error('🔍 Detailed Post Validation Errors:');
-          const errors = postResult.errors;
+        const postResult = await postResponse.json();
+        
+        if (!postResponse.ok) {
+          console.error('❌ Post to winner failed:', JSON.stringify(postResult, null, 2));
+          // Don't throw here - we can still show results even if post fails
+        } else {
+          console.log('✅ Post to winner successful:', postResult);
           
-          if (Array.isArray(errors)) {
-            errors.forEach((errorGroup, index) => {
-              console.error(`  Error Group ${index + 1}:`, JSON.stringify(errorGroup, null, 4));
-            });
-          } else {
-            console.error('  Errors:', JSON.stringify(errors, null, 4));
+          // Fire conversion tracking if there's revenue
+          const winnerValue = comparison[winner].value;
+          if (winnerValue > 0) {
+            // Load and fire Everflow conversion
+            const script = document.createElement('script');
+            script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
+            script.onload = () => {
+              window.EF.conversion({
+                aid: 118,
+                amount: winnerValue,
+              });
+            };
+            document.head.appendChild(script);
           }
         }
-        // Don't throw here - we can still show results even if post fails
       } else {
-        console.log('Post request successful:', postResult);
-        
-        // Log post request to database
-        try {
-          await fetch('/api/log/post', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              request: postData,
-              response: postResult,
-              timestamp: new Date().toISOString()
-            })
-          });
-        } catch (logError) {
-          console.warn('Failed to log post to database:', logError);
-        }
-        
-        // Log the results for debugging
-        if (postResult.results) {
-          postResult.results.forEach(result => {
-            console.log(`Ping ${result.ping_id}: ${result.result} (${result.type}, value: ${result.value})`);
-            if (result.error) {
-              console.log(`  Error: ${result.error}`);
-            }
-          });
-        }
+        console.warn('⚠️ No winner found - both services may have failed');
       }
       
       // Always show results screen after completion

@@ -4,6 +4,7 @@ const mysql = require('mysql2');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const { getLocationFromIP, getLocationFromZip } = require('./location');
+const databaseService = require('./database/service');
 require('dotenv').config();
 
 const app = express();
@@ -641,305 +642,470 @@ app.post('/api/log/post', async (req, res) => {
   }
 });
 
-// Analytics endpoint to view ping/post data
-app.get('/api/analytics/exchangeflo', async (req, res) => {
+// New endpoint to ping both services and return the highest bidder
+app.post('/api/ping-both', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 50;
+    const inputData = req.body;
+    console.log('Received ping-both request:', inputData);
     
-    // Get recent ping requests with details
-    const pingQuery = `
-      SELECT 
-        id,
-        timestamp,
-        submission_id,
-        status,
-        ping_count,
-        JSON_EXTRACT(request_data, '$.profile.zip') as zip_code,
-        JSON_EXTRACT(request_data, '$.profile.auto_coverage_type') as coverage_type,
-        JSON_EXTRACT(response_data, '$.pings') as pings_data,
-        JSON_EXTRACT(response_data, '$.status') as response_status
-      FROM exchangeflo_ping_requests 
-      ORDER BY timestamp DESC 
-      LIMIT ?
-    `;
+    // Prepare data for both services
+    const quotewizardData = await prepareQuoteWizardData(inputData, req);
+    const exchangefloData = await prepareExchangeFloData(inputData);
     
-    const postQuery = `
-      SELECT 
-        id,
-        timestamp,
-        submission_id,
-        status,
-        total_value,
-        ping_count,
-        successful_posts,
-        JSON_EXTRACT(request_data, '$.profile.first_name') as first_name,
-        JSON_EXTRACT(request_data, '$.profile.last_name') as last_name,
-        JSON_EXTRACT(response_data, '$.results') as results_data
-      FROM exchangeflo_post_requests 
-      ORDER BY timestamp DESC 
-      LIMIT ?
-    `;
+    // Ping both services simultaneously
+    const [quotewizardResult, exchangefloResult] = await Promise.allSettled([
+      pingQuoteWizard(quotewizardData),
+      pingExchangeFlo(exchangefloData)
+    ]);
     
-    const [pingResult] = await promisePool.execute(pingQuery, [limit]);
-    const [postResult] = await promisePool.execute(postQuery, [limit]);
+    console.log('QuoteWizard ping result:', quotewizardResult);
+    console.log('ExchangeFlo ping result:', exchangefloResult);
     
-    res.json({
-      success: true,
-      ping_requests: pingResult,
-      post_requests: postResult,
-      totals: {
-        ping_count: pingResult.length,
-        post_count: postResult.length
+    // Analyze results and determine winner
+    const comparison = {
+      quotewizard: {
+        success: quotewizardResult.status === 'fulfilled',
+        value: 0,
+        error: quotewizardResult.status === 'rejected' ? quotewizardResult.reason?.message : null,
+        data: quotewizardResult.status === 'fulfilled' ? quotewizardResult.value : null
+      },
+      exchangeflo: {
+        success: exchangefloResult.status === 'fulfilled',
+        value: 0,
+        error: exchangefloResult.status === 'rejected' ? exchangefloResult.reason?.message : null,
+        data: exchangefloResult.status === 'fulfilled' ? exchangefloResult.value : null
       }
-    });
-  } catch (error) {
-    console.error('Analytics error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Detailed ping results endpoint
-app.get('/api/analytics/pings', async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 20;
+    };
     
-    const query = `
-      SELECT 
-        id,
-        timestamp,
-        submission_id,
-        status,
-        ping_count,
-        request_data,
-        response_data,
-        CASE 
-          WHEN JSON_EXTRACT(response_data, '$.status') = 'success' THEN 'SUCCESS'
-          ELSE 'FAILED'
-        END as ping_status,
-        COALESCE(
-          JSON_EXTRACT(response_data, '$.pings'),
-          JSON_ARRAY()
-        ) as pings
-      FROM exchangeflo_ping_requests 
-      ORDER BY timestamp DESC 
-      LIMIT ?
-    `;
+    // Calculate values from successful pings
+    if (comparison.quotewizard.success && comparison.quotewizard.data) {
+      // For QuoteWizard, we need to parse the XML response to get potential value
+      comparison.quotewizard.value = extractQuoteWizardValue(comparison.quotewizard.data);
+    }
     
-    const [rows] = await promisePool.execute(query, [limit]);
+    if (comparison.exchangeflo.success && comparison.exchangeflo.data) {
+      // For ExchangeFlo, sum up all ping values
+      const pings = comparison.exchangeflo.data.pings || [];
+      comparison.exchangeflo.value = pings.reduce((sum, ping) => sum + (parseFloat(ping.value) || 0), 0);
+    }
     
-    // Process and enhance the data
-    const processedData = rows.map(row => {
-      let pings = [];
-      try {
-        pings = typeof row.pings === 'string' ? JSON.parse(row.pings) : (Array.isArray(row.pings) ? row.pings : []);
-      } catch (e) {
-        pings = [];
-      }
-      
-      let requestData = {};
-      try {
-        requestData = typeof row.request_data === 'string' ? JSON.parse(row.request_data) : row.request_data;
-      } catch (e) {
-        requestData = {};
-      }
-      
-      const totalValue = pings.reduce((sum, ping) => sum + (ping.value || 0), 0);
-      
-      return {
-        ...row,
-        total_ping_value: totalValue,
-        exclusive_pings: pings.filter(p => p.type === 'exclusive').length,
-        shared_pings: pings.filter(p => p.type === 'shared').length,
-        highest_bid: pings.length > 0 ? Math.max(...pings.map(p => p.value || 0)) : 0,
-        profile_summary: {
-          zip: requestData?.profile?.zip,
-          coverage_type: requestData?.profile?.auto_coverage_type,
-          vehicle_count: requestData?.profile?.vehicle_count,
-          driver_count: requestData?.profile?.driver_count
-        }
-      };
+    // Determine winner based on highest value
+    let winner = null;
+    if (comparison.quotewizard.value > comparison.exchangeflo.value) {
+      winner = 'quotewizard';
+    } else if (comparison.exchangeflo.value > comparison.quotewizard.value) {
+      winner = 'exchangeflo';
+    } else if (comparison.quotewizard.success && !comparison.exchangeflo.success) {
+      winner = 'quotewizard';
+    } else if (comparison.exchangeflo.success && !comparison.quotewizard.success) {
+      winner = 'exchangeflo';
+    }
+    
+    // Log to database using database service
+    await databaseService.logPingComparison({
+      timestamp: new Date().toISOString(),
+      quotewizard_success: comparison.quotewizard.success,
+      quotewizard_value: comparison.quotewizard.value,
+      quotewizard_error: comparison.quotewizard.error,
+      exchangeflo_success: comparison.exchangeflo.success,
+      exchangeflo_value: comparison.exchangeflo.value,
+      exchangeflo_error: comparison.exchangeflo.error,
+      winner: winner,
+      request_data: inputData
     });
     
     res.json({
       success: true,
-      data: processedData,
-      summary: {
-        total_requests: processedData.length,
-        successful_requests: processedData.filter(p => p.ping_status === 'SUCCESS').length,
-        failed_requests: processedData.filter(p => p.ping_status === 'FAILED').length,
-        total_value_generated: processedData.reduce((sum, p) => sum + p.total_ping_value, 0)
-      }
+      winner: winner,
+      comparison: comparison,
+      winnerData: winner ? comparison[winner].data : null,
+      message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed'
     });
+    
   } catch (error) {
-    console.error('Ping analytics error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Ping comparison error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      winner: null
+    });
   }
 });
 
-// Statistics dashboard endpoint
-app.get('/api/analytics/dashboard', async (req, res) => {
-  try {
-    // Get ping statistics for the last 7 days
-    const pingStatsQuery = `
-      SELECT 
-        COUNT(*) as total_pings,
-        SUM(CASE WHEN JSON_EXTRACT(response_data, '$.status') = 'success' THEN 1 ELSE 0 END) as successful_pings,
-        AVG(ping_count) as avg_ping_count,
-        DATE(timestamp) as day
-      FROM exchangeflo_ping_requests 
-      WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-      GROUP BY DATE(timestamp)
-      ORDER BY day DESC
-    `;
-    
-    const postStatsQuery = `
-      SELECT 
-        COUNT(*) as total_posts,
-        SUM(successful_posts) as total_successful_posts,
-        AVG(total_value) as avg_post_value
-      FROM exchangeflo_post_requests 
-      WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-    `;
-    
-    const [pingStats] = await promisePool.execute(pingStatsQuery);
-    const [postStats] = await promisePool.execute(postStatsQuery);
-    
-    res.json({
-      success: true,
-      dashboard: {
-        daily_stats: pingStats,
-        post_summary: postStats[0] || {},
-        generated_at: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Dashboard analytics error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Simple HTML dashboard for viewing results
-app.get('/admin/ping-results', (req, res) => {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>ExchangeFlo Ping Results Dashboard</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-            .stat-card { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; }
-            .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
-            .stat-label { color: #666; margin-top: 5px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background-color: #f8f9fa; }
-            .status-success { color: #28a745; font-weight: bold; }
-            .status-failed { color: #dc3545; font-weight: bold; }
-            .ping-value { color: #007bff; font-weight: bold; }
-            .refresh-btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-            .refresh-btn:hover { background: #0056b3; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>ExchangeFlo Ping Results Dashboard</h1>
-            <button class="refresh-btn" onclick="location.reload()">Refresh Data</button>
-        </div>
-        
-        <div id="stats-container">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="total-pings">Loading...</div>
-                    <div class="stat-label">Total Pings</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="successful-pings">Loading...</div>
-                    <div class="stat-label">Successful Pings</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="total-value">Loading...</div>
-                    <div class="stat-label">Total Value ($)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="success-rate">Loading...</div>
-                    <div class="stat-label">Success Rate (%)</div>
-                </div>
-            </div>
-        </div>
-        
-        <table id="results-table">
-            <thead>
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Submission ID</th>
-                    <th>Status</th>
-                    <th>Ping Count</th>
-                    <th>Total Value</th>
-                    <th>Coverage Type</th>
-                    <th>Zip Code</th>
-                </tr>
-            </thead>
-            <tbody id="results-body">
-                <tr><td colspan="7">Loading data...</td></tr>
-            </tbody>
-        </table>
-        
-        <script>
-            async function loadData() {
-                try {
-                    const response = await fetch('/api/analytics/pings');
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        // Update statistics
-                        document.getElementById('total-pings').textContent = data.summary.total_requests;
-                        document.getElementById('successful-pings').textContent = data.summary.successful_requests;
-                        document.getElementById('total-value').textContent = '$' + data.summary.total_value_generated.toFixed(2);
-                        const successRate = data.summary.total_requests > 0 ? 
-                            ((data.summary.successful_requests / data.summary.total_requests) * 100).toFixed(1) : 0;
-                        document.getElementById('success-rate').textContent = successRate + '%';
-                        
-                        // Update table
-                        const tbody = document.getElementById('results-body');
-                        tbody.innerHTML = '';
-                        
-                        data.data.forEach(ping => {
-                            const row = document.createElement('tr');
-                            const statusClass = ping.ping_status === 'SUCCESS' ? 'status-success' : 'status-failed';
-                            
-                            row.innerHTML = \`
-                                <td>\${new Date(ping.timestamp).toLocaleString()}</td>
-                                <td>\${ping.submission_id || 'N/A'}</td>
-                                <td class="\${statusClass}">\${ping.ping_status}</td>
-                                <td>\${ping.ping_count}</td>
-                                <td class="ping-value">$\${ping.total_ping_value.toFixed(2)}</td>
-                                <td>\${ping.profile_summary?.coverage_type || 'N/A'}</td>
-                                <td>\${ping.profile_summary?.zip || 'N/A'}</td>
-                            \`;
-                            tbody.appendChild(row);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error loading data:', error);
-                    document.getElementById('results-body').innerHTML = 
-                        '<tr><td colspan="7">Error loading data. Please refresh the page.</td></tr>';
-                }
-            }
-            
-            // Load data on page load
-            loadData();
-            
-            // Auto-refresh every 30 seconds
-            setInterval(loadData, 30000);
-        </script>
-    </body>
-    </html>
-  `;
+// Helper function to prepare QuoteWizard data
+async function prepareQuoteWizardData(inputData, req) {
+  const firstName = inputData.firstName || 'John';
+  const lastName = inputData.lastName || 'Doe';
+  const phone = transformPhoneNumber(inputData.phoneNumber);
+  const email = inputData.email || 'john@example.com';
+  const address = inputData.streetAddress || '123 Main St';
+  const zipCode = inputData.zipcode || '98101';
+  const dob = inputData.birthdate || '1985-01-01';
+  const city = inputData.city || 'Seattle';
+  const state = inputData.state || 'WA';
+  const maritalStatus = inputData.maritalStatus || 'Single';
+  const gender = inputData.gender || 'Male';
+  const sr22 = inputData.sr22 || 'No';
+  const license_status = inputData.driversLicense === 'Yes' ? 'Valid' : 'Invalid';
+  const credit_rating = inputData.creditScore || 'Good';
+  const current_insurance = inputData.currentAutoInsurance || 'Geico';
+  const homeowner = inputData.homeowner || 'Own';
   
-  res.send(html);
+  const vehicles = transformVehicles(inputData.vehicles || []);
+  
+  const drivers = [{
+    Gender: gender,
+    MaritalStatus: maritalStatus,
+    RelationshipToApplicant: 'Self',
+    FirstName: firstName,
+    LastName: lastName,
+    BirthDate: dob,
+    State: state,
+    AgeLicensed: '16',
+    LicenseStatus: license_status,
+    LicenseEverSuspendedRevoked: 'No',
+    Occupation: {
+      Name: 'OtherNonTechnical',
+      YearsInField: '5'
+    },
+    HighestLevelOfEducation: {
+      AtHomeStudent: 'No',
+      HighestDegree: 'BachelorsDegree'
+    },
+    RequiresSR22Filing: sr22,
+    CreditRating: {
+      Bankruptcy: 'No',
+      SelfRating: credit_rating
+    },
+    Incidents: []
+  }];
+  
+  const insuranceProfile = [{
+    CoverageType: 'Standard',
+    CurrentPolicy: {
+      InsuranceCompany: {
+        CompanyName: current_insurance
+      },
+      ExpirationDate: '',
+      StartDate: ''
+    }
+  }];
+  
+  const contact = {
+    FirstName: firstName,
+    LastName: lastName,
+    Address1: address,
+    City: city,
+    State: state,
+    ZIPCode: zipCode,
+    EmailAddress: email,
+    PhoneNumbers: {
+      PrimaryPhone: phone,
+      SecondaryPhone: phone
+    },
+    CurrentResidence: {
+      ResidenceStatus: homeowner,
+      OccupancyDate: '2012-02-08'
+    }
+  };
+  
+  const vendorData = {
+    LeadID: '2897BDB4',
+    SourceID: req.sessionID || '',
+    SourceIPAddress: req.ip || req.connection.remoteAddress || '',
+    SubmissionUrl: 'https://smartautoinsider.com',
+    UserAgent: req.get('User-Agent') || '',
+    DateLeadReceived: getTodayDate(),
+    LeadBornOnDateTimeUTC: getTodayDate(true),
+    JornayaLeadID: '',
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'placeholder'}`,
+    EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
+    TCPAOptIn: 'Yes',
+    TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
+  };
+  
+  return {
+    drivers,
+    vehicles,
+    insuranceProfile,
+    contact,
+    vendorData
+  };
+}
+
+// Helper function to prepare ExchangeFlo data
+async function prepareExchangeFloData(inputData) {
+  const activeVehicles = inputData.vehicles ? inputData.vehicles.filter(v => v.year && v.make && v.model) : [];
+  
+  const toBooleanString = (value) => {
+    if (typeof value === 'boolean') return value.toString();
+    if (typeof value === 'string') {
+      if (value.toLowerCase() === 'yes' || value.toLowerCase() === 'true') return 'true';
+      if (value.toLowerCase() === 'no' || value.toLowerCase() === 'false') return 'false';
+    }
+    return 'false';
+  };
+  
+  const formatBirthdate = (dateStr) => {
+    if (!dateStr) return '1985-06-15';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+    return '1985-06-15';
+  };
+  
+  const mapCoverageType = (coverage) => {
+    switch (coverage) {
+      case 'Liability Only': return "state_minimum";
+      case 'Full Coverage': return "typical";
+      case 'Minimum Coverage': return "lower_level";
+      case 'Premium Coverage': return "highest_level";
+      default: return "typical";
+    }
+  };
+  
+  const mapInsuranceDuration = (duration) => {
+    switch (duration) {
+      case 'Less than 6 months': return "3";
+      case '6-12 months': return "9";
+      case '1-3 years': return "24";
+      case '3+ years': return "48";
+      default: return "24";
+    }
+  };
+  
+  const mapCreditScore = (score) => {
+    switch (score) {
+      case 'Excellent': return "excellent";
+      case 'Good': return "good";
+      case 'Fair': return "fair";
+      case 'Poor': return "poor";
+      default: return "good";
+    }
+  };
+  
+  const mapMaritalStatus = (status) => {
+    switch (status) {
+      case 'Married': return "married";
+      case 'Single': return "single";
+      case 'Divorced': return "divorced";
+      case 'Widowed': return "widowed";
+      default: return "single";
+    }
+  };
+  
+  const mapHomeowner = (homeowner) => {
+    switch (homeowner) {
+      case 'Own': return "own";
+      case 'Rent': return "rent";
+      default: return "rent";
+    }
+  };
+  
+  return {
+    source_id: "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
+    response_type: "detail",
+    lead_type: "mixed",
+    test: true,
+    tracking_id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    sub_id_1: process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test",
+    trusted_form_cert_url: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'placeholder'}`,
+    ip_address: "127.0.0.1",
+    landing_url: "https://smartautoinsider.com",
+    privacy_url: "https://smartautoinsider.com/privacy",
+    tcpa: "I agree to receive marketing communications",
+    user_agent: "Mozilla/5.0 (compatible; SmartAutoInsider/1.0)",
+    
+    profile: {
+      zip: String(inputData.zipcode || ""),
+      address_2: "",
+      currently_insured: toBooleanString(inputData.insuranceHistory === 'Yes'),
+      current_company: inputData.insuranceHistory === 'Yes' ? (inputData.currentAutoInsurance || "") : "",
+      continuous_coverage: mapInsuranceDuration(inputData.insuranceDuration) || "48",
+      current_policy_start: "2024-04-28",
+      current_policy_expires: "2026-04-28",
+      military_affiliation: toBooleanString(inputData.military === 'Yes'),
+      auto_coverage_type: mapCoverageType(inputData.coverageType) || "typical",
+      driver_count: "1",
+      vehicle_count: String(activeVehicles.length || 1),
+      
+      drivers: [
+        {
+          relationship: "self",
+          gender: (inputData.gender || "male").toLowerCase(),
+          birth_date: formatBirthdate(inputData.birthdate),
+          at_fault_accidents: "0",
+          license_suspended: "false",
+          tickets: "0",
+          dui_sr22: toBooleanString(inputData.sr22 === 'Yes'),
+          education: inputData.driverEducation || "bachelors_degree",
+          credit: mapCreditScore(inputData.creditScore) || "good",
+          occupation: inputData.driverOccupation || "engineer",
+          marital_status: mapMaritalStatus(inputData.maritalStatus) || "single",
+          license_state: inputData.state || "MA",
+          licensed_age: "16",
+          license_status: inputData.driversLicense === 'Yes' ? "active" : "suspended",
+          residence_type: mapHomeowner(inputData.homeowner) || "own",
+          residence_length: "48"
+        }
+      ],
+      
+      vehicles: activeVehicles.map(vehicle => ({
+        year: String(vehicle.year || "2020"),
+        make: String(vehicle.make || "Toyota"),
+        model: String(vehicle.model || "Camry"),
+        submodel: String(vehicle.submodel || vehicle.model || "Camry"),
+        primary_purpose: String(vehicle.purpose || "commute"),
+        annual_mileage: String(vehicle.mileage || "10000-15000"),
+        ownership: String(vehicle.ownership || "owned"),
+        garage: "no_cover",
+        vin: "JM3TB38A*80******"
+      }))
+    }
+  };
+}
+
+// Helper function to ping QuoteWizard
+async function pingQuoteWizard(data) {
+  const quoteXML = generateFullXML(data, data.vendorData);
+  
+  const response = await sendQuoteWizardRequest(
+    QUOTE_WIZARD_CONFIG.contractID,
+    null,
+    1,
+    quoteXML
+  );
+  
+  return {
+    xml: quoteXML,
+    response: response
+  };
+}
+
+// Helper function to ping ExchangeFlo
+async function pingExchangeFlo(data) {
+  const axios = require('axios');
+  
+  const response = await axios.post('https://pub.exchangeflo.io/api/leads/ping', data, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
+    }
+  });
+  
+  return response.data;
+}
+
+// Helper function to extract value from QuoteWizard XML response
+function extractQuoteWizardValue(response) {
+  try {
+    // QuoteWizard typically returns XML with lead acceptance info
+    // For now, we'll assign a fixed value if the response indicates success
+    // You might want to parse the XML more thoroughly to get actual bid values
+    if (response && response.includes && response.includes('Quote_ID')) {
+      return 15.0; // Default value for QuoteWizard - you can adjust this
+    }
+    return 0;
+  } catch (error) {
+    console.error('Error extracting QuoteWizard value:', error);
+    return 0;
+  }
+}
+
+// New endpoint to handle posting to the winner
+app.post('/api/post-winner', async (req, res) => {
+  try {
+    const { winner, winnerData, formData } = req.body;
+    
+    let result;
+    
+    if (winner === 'quotewizard') {
+      result = await postToQuoteWizard(winnerData, formData);
+    } else if (winner === 'exchangeflo') {
+      result = await postToExchangeFlo(winnerData, formData);
+    } else {
+      throw new Error('Invalid winner specified');
+    }
+    
+    res.json({
+      success: true,
+      winner: winner,
+      result: result
+    });
+    
+  } catch (error) {
+    console.error('Post winner error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
+
+// Helper function to post to QuoteWizard
+async function postToQuoteWizard(pingData, formData) {
+  const initialID = extractQuoteID(pingData.response);
+  const postXML = generateFullXML(pingData, pingData.vendorData);
+  
+  const response = await sendQuoteWizardRequest(
+    QUOTE_WIZARD_CONFIG.contractID,
+    initialID,
+    2,
+    postXML
+  );
+  
+  return {
+    xml: postXML,
+    response: response,
+    initialID: initialID
+  };
+}
+
+// Helper function to post to ExchangeFlo
+async function postToExchangeFlo(pingData, formData) {
+  const axios = require('axios');
+  
+  const { submission_id, pings } = pingData;
+  
+  const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
+  const sharedPings = pings.filter(ping => ping.type === 'shared');
+  const pingsToPost = exclusivePings.length > 0 ? exclusivePings : sharedPings;
+  const ping_ids = pingsToPost.map(ping => ping.ping_id);
+  
+  const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
+  
+  const postData = {
+    submission_id,
+    ping_ids,
+    profile: {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      phone: cleanPhone,
+      address: formData.streetAddress,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zipcode,
+      drivers: [
+        {
+          first_name: formData.firstName,
+          last_name: formData.lastName
+        }
+      ]
+    }
+  };
+  
+  const response = await axios.post('https://pub.exchangeflo.io/api/leads/post', postData, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
+    }
+  });
+  
+  return response.data;
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

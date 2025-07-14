@@ -57,6 +57,25 @@ CREATE TABLE IF NOT EXISTS exchangeflo_post_requests (
     INDEX idx_post_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Add ping comparison table for tracking QuoteWizard vs ExchangeFlo results
+CREATE TABLE IF NOT EXISTS ping_comparison (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    quotewizard_success BOOLEAN DEFAULT FALSE,
+    quotewizard_value DECIMAL(10,2) DEFAULT 0,
+    quotewizard_error TEXT,
+    exchangeflo_success BOOLEAN DEFAULT FALSE,
+    exchangeflo_value DECIMAL(10,2) DEFAULT 0,
+    exchangeflo_error TEXT,
+    winner VARCHAR(50),
+    total_comparison_value DECIMAL(10,2) GENERATED ALWAYS AS (quotewizard_value + exchangeflo_value) STORED,
+    request_data JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_comparison_timestamp (timestamp),
+    INDEX idx_comparison_winner (winner),
+    INDEX idx_comparison_total_value (total_comparison_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create a view for combined ping/post analysis
 CREATE OR REPLACE VIEW exchangeflo_analytics AS
 SELECT 
