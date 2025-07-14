@@ -471,38 +471,77 @@ async function prepareExchangeFloData(inputData) {
 
 // Helper function to ping QuoteWizard
 async function pingQuoteWizard(data) {
-  const quoteXML = generateFullXML(data, data.vendorData);
-  
-  const response = await sendQuoteWizardRequest(
-    QUOTE_WIZARD_CONFIG.contractID,
-    null,
-    1,
-    quoteXML
-  );
-  
-  return {
-    xml: quoteXML,
-    response: response
-  };
+  try {
+    const quoteXML = generateFullXML(data, data.vendorData);
+    
+    console.log('📤 QUOTEWIZARD XML BEING SENT:');
+    console.log(quoteXML);
+    
+    const response = await sendQuoteWizardRequest(
+      QUOTE_WIZARD_CONFIG.contractID,
+      null,
+      1,
+      quoteXML
+    );
+    
+    console.log('📨 QUOTEWIZARD RESPONSE RECEIVED:');
+    console.log(response);
+    
+    return {
+      xml: quoteXML,
+      response: response
+    };
+  } catch (error) {
+    console.error('❌ QUOTEWIZARD ERROR DETAILS:');
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
+    console.error('Request Data:', JSON.stringify(data, null, 2));
+    throw error;
+  }
 }
 
 // Helper function to ping ExchangeFlo
 async function pingExchangeFlo(data) {
-  const response = await axios.post('https://pub.exchangeflo.io/api/leads/ping', data, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
-    }
-  });
-  
-  return response.data;
+  try {
+    console.log('📤 EXCHANGEFLO JSON BEING SENT:');
+    console.log(JSON.stringify(data, null, 2));
+    
+    const response = await axios.post('https://pub.exchangeflo.io/api/leads/ping', data, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
+      }
+    });
+    
+    console.log('📨 EXCHANGEFLO RESPONSE RECEIVED:');
+    console.log(JSON.stringify(response.data, null, 2));
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ EXCHANGEFLO ERROR DETAILS:');
+    console.error('Status:', error.response?.status);
+    console.error('Status Text:', error.response?.statusText);
+    console.error('Response Data:', JSON.stringify(error.response?.data, null, 2));
+    console.error('Request Data:', JSON.stringify(data, null, 2));
+    throw error;
+  }
 }
 
 // Helper function to post to QuoteWizard
 async function postToQuoteWizard(pingData, formData) {
+  console.log('📤 POST TO QUOTEWIZARD - PING DATA:');
+  console.log(JSON.stringify(pingData, null, 2));
+  
+  console.log('📤 POST TO QUOTEWIZARD - FORM DATA:');
+  console.log(JSON.stringify(formData, null, 2));
+  
   const initialID = extractQuoteID(pingData.response);
+  console.log('📤 POST TO QUOTEWIZARD - EXTRACTED INITIAL ID:', initialID);
+  
   const postXML = generateFullXML(pingData, pingData.vendorData);
+  console.log('📤 POST TO QUOTEWIZARD - XML BEING SENT:');
+  console.log(postXML);
   
   const response = await sendQuoteWizardRequest(
     QUOTE_WIZARD_CONFIG.contractID,
@@ -510,6 +549,9 @@ async function postToQuoteWizard(pingData, formData) {
     2,
     postXML
   );
+  
+  console.log('📨 POST TO QUOTEWIZARD - RESPONSE RECEIVED:');
+  console.log(response);
   
   return {
     xml: postXML,
@@ -662,11 +704,17 @@ router.post('/log/post', async (req, res) => {
 router.post('/ping-both', async (req, res) => {
   try {
     const inputData = req.body;
-    console.log('Received ping-both request:', inputData);
+    console.log('📥 Received ping-both request:', JSON.stringify(inputData, null, 2));
     
     // Prepare data for both services
     const quotewizardData = await prepareQuoteWizardData(inputData, req);
     const exchangefloData = await prepareExchangeFloData(inputData);
+    
+    console.log('🔍 QUOTEWIZARD DATA BEING SENT:');
+    console.log(JSON.stringify(quotewizardData, null, 2));
+    
+    console.log('🔍 EXCHANGEFLO DATA BEING SENT:');
+    console.log(JSON.stringify(exchangefloData, null, 2));
     
     // Ping both services simultaneously
     const [quotewizardResult, exchangefloResult] = await Promise.allSettled([
