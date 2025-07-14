@@ -441,6 +441,12 @@ async function prepareExchangeFloData(inputData) {
     }
   };
   
+  const mapLicenseState = (state) => {
+    // Ensure state is uppercase and valid
+    if (!state || typeof state !== 'string') return "WA";
+    return state.toUpperCase();
+  };
+  
   return {
     source_id: "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
     response_type: "detail",
@@ -456,7 +462,10 @@ async function prepareExchangeFloData(inputData) {
     user_agent: "Mozilla/5.0 (compatible; SmartAutoInsider/1.0)",
     
     profile: {
-      zip: String(inputData.zipcode || ""),
+      zip: String(inputData.zipcode || "").padStart(5, '0'), // Ensure 5-digit zip
+      address: String(inputData.streetAddress || ""),
+      city: String(inputData.city || ""),
+      state: mapLicenseState(inputData.state),
       address_2: "",
       currently_insured: toBooleanString(inputData.insuranceHistory === 'Yes'),
       current_company: inputData.insuranceHistory === 'Yes' ? (inputData.currentAutoInsurance || "") : "",
@@ -470,6 +479,10 @@ async function prepareExchangeFloData(inputData) {
       
       drivers: [
         {
+          first_name: String(inputData.firstName || ""),
+          last_name: String(inputData.lastName || ""),
+          email: String(inputData.email || ""),
+          phone: String(inputData.phoneNumber || "").replace(/\D/g, ''),
           relationship: "self",
           gender: (inputData.gender || "male").toLowerCase(),
           birth_date: formatBirthdate(inputData.birthdate),
@@ -481,7 +494,7 @@ async function prepareExchangeFloData(inputData) {
           credit: mapCreditScore(inputData.creditScore) || "good",
           occupation: mapOccupation(inputData.driverOccupation),
           marital_status: mapMaritalStatus(inputData.maritalStatus) || "single",
-          license_state: inputData.state || "WA",
+          license_state: mapLicenseState(inputData.state),
           licensed_age: "16",
           license_status: inputData.driversLicense === 'Yes' ? "active" : "suspended",
           residence_type: mapHomeowner(inputData.homeowner) || "own",
@@ -522,9 +535,16 @@ async function pingQuoteWizard(data) {
     console.log('📨 QUOTEWIZARD RESPONSE RECEIVED:');
     console.log(response);
     
+    // Check if the response indicates business success
+    const isBusinessSuccess = response && response.includes && 
+      (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>'));
+    
+    console.log('📊 QUOTEWIZARD BUSINESS SUCCESS:', isBusinessSuccess);
+    
     return {
       xml: quoteXML,
-      response: response
+      response: response,
+      businessSuccess: isBusinessSuccess
     };
   } catch (error) {
     console.error('❌ QUOTEWIZARD ERROR DETAILS:');
@@ -558,7 +578,22 @@ async function pingExchangeFlo(data) {
     console.error('Status:', error.response?.status);
     console.error('Status Text:', error.response?.statusText);
     console.error('Response Data:', JSON.stringify(error.response?.data, null, 2));
-    console.error('Request Data:', JSON.stringify(data, null, 2));
+    console.error('Request Data Preview:', JSON.stringify({
+      source_id: data.source_id,
+      profile: {
+        zip: data.profile?.zip,
+        state: data.profile?.state,
+        drivers: data.profile?.drivers?.map(d => ({
+          first_name: d.first_name,
+          last_name: d.last_name,
+          email: d.email,
+          phone: d.phone,
+          license_state: d.license_state,
+          education: d.education,
+          occupation: d.occupation
+        }))
+      }
+    }, null, 2));
     throw error;
   }
 }
@@ -837,7 +872,7 @@ router.post('/ping-both', async (req, res) => {
     // Analyze results and determine winner
     const comparison = {
       quotewizard: {
-        success: quotewizardResult.status === 'fulfilled',
+        success: quotewizardResult.status === 'fulfilled' && quotewizardResult.value?.businessSuccess,
         value: 0,
         error: quotewizardResult.status === 'rejected' ? quotewizardResult.reason?.message : null,
         data: quotewizardResult.status === 'fulfilled' ? quotewizardResult.value : null
@@ -849,6 +884,11 @@ router.post('/ping-both', async (req, res) => {
         data: exchangefloResult.status === 'fulfilled' ? exchangefloResult.value : null
       }
     };
+    
+    // Add additional error context for failed QuoteWizard business logic
+    if (quotewizardResult.status === 'fulfilled' && !quotewizardResult.value?.businessSuccess) {
+      comparison.quotewizard.error = 'QuoteWizard returned failure status';
+    }
     
     // Calculate values from successful pings
     if (comparison.quotewizard.success && comparison.quotewizard.data) {
