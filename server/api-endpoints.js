@@ -227,6 +227,14 @@ function extractQuoteID(pingResponse) {
 function extractQuoteWizardValue(response) {
   try {
     if (response && response.includes && response.includes('Quote_ID')) {
+      // Check if the response indicates success
+      if (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>')) {
+        return 15.0;
+      } else if (response.includes('<Status>Failure</Status>')) {
+        console.log('QuoteWizard response indicates failure, returning 0 value');
+        return 0;
+      }
+      // If status is unclear but Quote_ID exists, assume some value
       return 15.0;
     }
     return 0;
@@ -406,6 +414,33 @@ async function prepareExchangeFloData(inputData) {
     }
   };
   
+  const mapEducation = (education) => {
+    switch (education) {
+      case 'High School': return "high_school";
+      case 'Some College': return "some_college";
+      case 'Associate Degree': return "associates_degree";
+      case 'Bachelor\'s Degree': return "bachelors_degree";
+      case 'Master\'s Degree': return "masters_degree";
+      case 'Doctorate': return "doctorate";
+      default: return "bachelors_degree";
+    }
+  };
+  
+  const mapOccupation = (occupation) => {
+    switch (occupation) {
+      case 'Engineer': return "engineer";
+      case 'Teacher': return "teacher";
+      case 'Doctor': return "doctor";
+      case 'Lawyer': return "lawyer";
+      case 'Manager': return "manager";
+      case 'Sales': return "sales";
+      case 'Student': return "student";
+      case 'Retired': return "retired";
+      case 'Other': return "other";
+      default: return "other";
+    }
+  };
+  
   return {
     source_id: "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
     response_type: "detail",
@@ -442,11 +477,11 @@ async function prepareExchangeFloData(inputData) {
           license_suspended: "false",
           tickets: "0",
           dui_sr22: toBooleanString(inputData.sr22 === 'Yes'),
-          education: inputData.driverEducation || "bachelors_degree",
+          education: mapEducation(inputData.driverEducation),
           credit: mapCreditScore(inputData.creditScore) || "good",
-          occupation: inputData.driverOccupation || "engineer",
+          occupation: mapOccupation(inputData.driverOccupation),
           marital_status: mapMaritalStatus(inputData.maritalStatus) || "single",
-          license_state: inputData.state || "MA",
+          license_state: inputData.state || "WA",
           licensed_age: "16",
           license_status: inputData.driversLicense === 'Yes' ? "active" : "suspended",
           residence_type: mapHomeowner(inputData.homeowner) || "own",
@@ -539,7 +574,81 @@ async function postToQuoteWizard(pingData, formData) {
   const initialID = extractQuoteID(pingData.response);
   console.log('📤 POST TO QUOTEWIZARD - EXTRACTED INITIAL ID:', initialID);
   
-  const postXML = generateFullXML(pingData, pingData.vendorData);
+  // Recreate the vendor data from form data (similar to prepareQuoteWizardData)
+  const vendorData = {
+    LeadID: '2897BDB4',
+    SourceID: '',
+    SourceIPAddress: '::1',
+    SubmissionUrl: 'https://smartautoinsider.com',
+    UserAgent: 'axios/1.9.0',
+    DateLeadReceived: getTodayDate(),
+    LeadBornOnDateTimeUTC: getTodayDate(true),
+    JornayaLeadID: '',
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${formData.trusted_form_cert_id || 'placeholder'}`,
+    EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
+    TCPAOptIn: 'Yes',
+    TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
+  };
+  
+  // Recreate the full data structure needed for XML generation
+  const postData = {
+    drivers: [{
+      Gender: formData.gender || 'Male',
+      MaritalStatus: formData.maritalStatus || 'Single',
+      RelationshipToApplicant: 'Self',
+      FirstName: formData.firstName || 'John',
+      LastName: formData.lastName || 'Doe',
+      BirthDate: formData.birthdate || '1985-01-01',
+      State: formData.state || 'WA',
+      AgeLicensed: '16',
+      LicenseStatus: formData.driversLicense === 'Yes' ? 'Valid' : 'Invalid',
+      LicenseEverSuspendedRevoked: 'No',
+      Occupation: {
+        Name: 'OtherNonTechnical',
+        YearsInField: '5'
+      },
+      HighestLevelOfEducation: {
+        AtHomeStudent: 'No',
+        HighestDegree: 'BachelorsDegree'
+      },
+      RequiresSR22Filing: formData.sr22 || 'No',
+      CreditRating: {
+        Bankruptcy: 'No',
+        SelfRating: formData.creditScore || 'Good'
+      },
+      Incidents: []
+    }],
+    vehicles: transformVehicles(formData.vehicles || []),
+    insuranceProfile: [{
+      CoverageType: 'Standard',
+      CurrentPolicy: {
+        InsuranceCompany: {
+          CompanyName: formData.currentAutoInsurance || 'Geico'
+        },
+        ExpirationDate: '',
+        StartDate: ''
+      }
+    }],
+    contact: {
+      FirstName: formData.firstName || 'John',
+      LastName: formData.lastName || 'Doe',
+      Address1: formData.streetAddress || '123 Main St',
+      City: formData.city || 'Seattle',
+      State: formData.state || 'WA',
+      ZIPCode: formData.zipcode || '98101',
+      EmailAddress: formData.email || 'john@example.com',
+      PhoneNumbers: {
+        PrimaryPhone: transformPhoneNumber(formData.phoneNumber),
+        SecondaryPhone: transformPhoneNumber(formData.phoneNumber)
+      },
+      CurrentResidence: {
+        ResidenceStatus: formData.homeowner || 'Own',
+        OccupancyDate: '2012-02-08'
+      }
+    }
+  };
+  
+  const postXML = generateFullXML(postData, vendorData);
   console.log('📤 POST TO QUOTEWIZARD - XML BEING SENT:');
   console.log(postXML);
   
