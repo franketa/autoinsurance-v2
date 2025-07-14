@@ -26,6 +26,16 @@ function transformPhoneNumber(phone) {
   return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
 }
 
+// Generate random trusted form certificate ID (40 hex characters)
+function generateTrustedFormCertId() {
+  const hexChars = '0123456789abcdef';
+  let certId = '';
+  for (let i = 0; i < 40; i++) {
+    certId += hexChars[Math.floor(Math.random() * hexChars.length)];
+  }
+  return certId;
+}
+
 function transformVehicles(vehicles) {
   if (!vehicles || !Array.isArray(vehicles)) {
     console.log('No vehicles provided or not an array, returning empty array');
@@ -330,7 +340,7 @@ async function prepareQuoteWizardData(inputData, req) {
     DateLeadReceived: getTodayDate(),
     LeadBornOnDateTimeUTC: getTodayDate(true),
     JornayaLeadID: '',
-    TrustedFormCertificateUrl: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'placeholder'}`,
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || generateTrustedFormCertId()}`,
     EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
     TCPAOptIn: 'Yes',
     TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
@@ -454,7 +464,7 @@ async function prepareExchangeFloData(inputData) {
     test: true,
     tracking_id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sub_id_1: process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test",
-    trusted_form_cert_url: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'placeholder'}`,
+    trusted_form_cert_url: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || generateTrustedFormCertId()}`,
     ip_address: "127.0.0.1",
     landing_url: "https://smartautoinsider.com",
     privacy_url: "https://smartautoinsider.com/privacy",
@@ -619,7 +629,7 @@ async function postToQuoteWizard(pingData, formData) {
     DateLeadReceived: getTodayDate(),
     LeadBornOnDateTimeUTC: getTodayDate(true),
     JornayaLeadID: '',
-    TrustedFormCertificateUrl: `https://cert.trustedform.com/${formData.trusted_form_cert_id || 'placeholder'}`,
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${formData.trusted_form_cert_id || generateTrustedFormCertId()}`,
     EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
     TCPAOptIn: 'Yes',
     TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
