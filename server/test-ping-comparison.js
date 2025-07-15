@@ -34,7 +34,7 @@ const testFormData = {
       ownership: 'owned'
     }
   ],
-  trusted_form_cert_id: 'test123'
+  trusted_form_cert_id: 'https://cert.trustedform.com/0123456788abcdee0123456789abcdef012345999'
 };
 
 async function testPingComparison() {
