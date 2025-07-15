@@ -818,7 +818,7 @@ async function prepareQuoteWizardData(inputData, req) {
     DateLeadReceived: getTodayDate(),
     LeadBornOnDateTimeUTC: getTodayDate(true),
     JornayaLeadID: '',
-    TrustedFormCertificateUrl: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'placeholder'}`,
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'https://cert.trustedform.com/0223456788abcdee0123456789abcdef012345627'}`,
     EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
     TCPAOptIn: 'Yes',
     TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
@@ -909,7 +909,7 @@ async function prepareExchangeFloData(inputData) {
     test: true,
     tracking_id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sub_id_1: process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test",
-    trusted_form_cert_url: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'placeholder'}`,
+    trusted_form_cert_url: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'https://cert.trustedform.com/0123456788abcdee0123456789abcdef012345627'}`,
     ip_address: "127.0.0.1",
     landing_url: "https://smartautoinsider.com",
     privacy_url: "https://smartautoinsider.com/privacy",
