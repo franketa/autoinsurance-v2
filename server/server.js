@@ -521,17 +521,36 @@ async function prepareExchangeFloData(inputData) {
   };
   
   const mapOccupation = (occupation) => {
+    // Frontend dropdown values map 1:1 to ExchangeFlo accepted values
+    const validOccupations = [
+      'administrative_clerical', 'construction_trades', 'disabled', 'manager_supervisor',
+      'other_non_technical', 'other_technical', 'retail', 'retired', 'self_employed',
+      'skilled_semi_skilled', 'student', 'unemployed', 'architect', 'business_owner',
+      'certified_public_accountant', 'clergy', 'dentist', 'engineer', 'homemaker',
+      'lawyer', 'military_officer', 'military_enlisted', 'minor_na', 'physician',
+      'professional_salaried', 'professor', 'sales_inside', 'sales_outside',
+      'school_teacher', 'scientist'
+    ];
+    
+    // If the value is already valid, return it as-is
+    if (validOccupations.includes(occupation)) {
+      return occupation;
+    }
+    
+    // Handle legacy/fallback values (from old frontend or tests)
     switch (occupation) {
       case 'Engineer': return "engineer";
-      case 'Teacher': return "teacher";
-      case 'Doctor': return "doctor";
+      case 'Teacher': return "school_teacher";
+      case 'Doctor': return "physician";
       case 'Lawyer': return "lawyer";
-      case 'Manager': return "manager";
-      case 'Sales': return "sales";
+      case 'Manager': return "manager_supervisor";
+      case 'Sales': return "sales_inside";
       case 'Student': return "student";
       case 'Retired': return "retired";
-      case 'Other': return "other";
-      default: return "other";
+      case 'Other': return "other_non_technical";
+      default: 
+        logWithCapture('warn', `Unknown occupation value: "${occupation}", defaulting to "other_non_technical"`);
+        return "other_non_technical";
     }
   };
   
@@ -590,7 +609,11 @@ async function prepareExchangeFloData(inputData) {
           dui_sr22: toBooleanString(inputData.sr22 === 'Yes'),
           education: mapEducation(inputData.driverEducation),
           credit: mapCreditScore(inputData.creditScore) || "good",
-          occupation: mapOccupation(inputData.driverOccupation),
+          occupation: (() => {
+            const mappedOccupation = mapOccupation(inputData.driverOccupation);
+            logWithCapture('info', `Occupation mapping: "${inputData.driverOccupation}" → "${mappedOccupation}"`);
+            return mappedOccupation;
+          })(),
           marital_status: mapMaritalStatus(inputData.maritalStatus) || "single",
           license_state: mapLicenseState(inputData.state),
           licensed_age: "16",
