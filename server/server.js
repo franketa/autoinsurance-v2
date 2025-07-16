@@ -344,7 +344,19 @@ async function prepareQuoteWizardData(inputData, req) {
   const dob = inputData.birthdate || '1985-01-01';
   const city = inputData.city || 'Seattle';
   const state = inputData.state || 'WA';
-  const maritalStatus = inputData.maritalStatus || 'Single';
+  // Map frontend Yes/No to QuoteWizard Single/Married
+  const mapMaritalStatusForQuoteWizard = (status) => {
+    switch (status) {
+      case 'Yes': return 'Married';
+      case 'No': return 'Single';
+      case 'Married': return 'Married'; // Direct mapping
+      case 'Single': return 'Single';   // Direct mapping
+      default: return 'Single';
+    }
+  };
+  
+  const maritalStatus = mapMaritalStatusForQuoteWizard(inputData.maritalStatus || 'Single');
+  logWithCapture('info', `QuoteWizard marital status mapping: "${inputData.maritalStatus}" → "${maritalStatus}"`);
   const gender = inputData.gender || 'Male';
   const sr22 = inputData.sr22 || 'No';
   const license_status = inputData.driversLicense === 'Yes' ? 'Valid' : 'Invalid';
@@ -749,7 +761,17 @@ async function postToQuoteWizard(pingData, formData) {
   const postData = {
     drivers: [{
       Gender: formData.gender || 'Male',
-      MaritalStatus: formData.maritalStatus || 'Single',
+      MaritalStatus: (() => {
+        // Map frontend Yes/No to QuoteWizard Single/Married
+        const status = formData.maritalStatus || 'Single';
+        switch (status) {
+          case 'Yes': return 'Married';
+          case 'No': return 'Single';
+          case 'Married': return 'Married';
+          case 'Single': return 'Single';
+          default: return 'Single';
+        }
+      })(),
       RelationshipToApplicant: 'Self',
       FirstName: formData.firstName || 'John',
       LastName: formData.lastName || 'Doe',
