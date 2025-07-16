@@ -111,69 +111,231 @@ CREATE TABLE IF NOT EXISTS insurance_ping (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- INDEXES (Create safely after ensuring columns exist)
+-- INDEXES (Create safely using conditional SQL)
 -- ============================================================================
 
 -- Basic indexes for ping_requests
-CREATE INDEX IF NOT EXISTS idx_ping_timestamp ON ping_requests (timestamp);
-CREATE INDEX IF NOT EXISTS idx_ping_submission_id ON ping_requests (submission_id);
-CREATE INDEX IF NOT EXISTS idx_ping_status ON ping_requests (status);
-CREATE INDEX IF NOT EXISTS idx_ping_created_at ON ping_requests (created_at);
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND INDEX_NAME = 'idx_ping_timestamp'),
+    'SELECT "Index idx_ping_timestamp already exists" as message',
+    'CREATE INDEX idx_ping_timestamp ON ping_requests (timestamp)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND INDEX_NAME = 'idx_ping_submission_id'),
+    'SELECT "Index idx_ping_submission_id already exists" as message',
+    'CREATE INDEX idx_ping_submission_id ON ping_requests (submission_id)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND INDEX_NAME = 'idx_ping_status'),
+    'SELECT "Index idx_ping_status already exists" as message',
+    'CREATE INDEX idx_ping_status ON ping_requests (status)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND INDEX_NAME = 'idx_ping_created_at'),
+    'SELECT "Index idx_ping_created_at already exists" as message',
+    'CREATE INDEX idx_ping_created_at ON ping_requests (created_at)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Provider index (only if column exists)
 SET @sql = (SELECT IF(
     EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
            WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
            AND TABLE_NAME = 'ping_requests' 
-           AND COLUMN_NAME = 'provider'),
-    'CREATE INDEX IF NOT EXISTS idx_ping_provider ON ping_requests (provider)',
-    'SELECT "Provider column not found, skipping index" as message'
+           AND COLUMN_NAME = 'provider')
+    AND NOT EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+                   WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+                   AND TABLE_NAME = 'ping_requests' 
+                   AND INDEX_NAME = 'idx_ping_provider'),
+    'CREATE INDEX idx_ping_provider ON ping_requests (provider)',
+    'SELECT "Provider column missing or index already exists" as message'
 ));
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- Basic indexes for post_requests
-CREATE INDEX IF NOT EXISTS idx_post_timestamp ON post_requests (timestamp);
-CREATE INDEX IF NOT EXISTS idx_post_submission_id ON post_requests (submission_id);
-CREATE INDEX IF NOT EXISTS idx_post_status ON post_requests (status);
-CREATE INDEX IF NOT EXISTS idx_post_created_at ON post_requests (created_at);
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND INDEX_NAME = 'idx_post_timestamp'),
+    'SELECT "Index idx_post_timestamp already exists" as message',
+    'CREATE INDEX idx_post_timestamp ON post_requests (timestamp)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND INDEX_NAME = 'idx_post_submission_id'),
+    'SELECT "Index idx_post_submission_id already exists" as message',
+    'CREATE INDEX idx_post_submission_id ON post_requests (submission_id)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND INDEX_NAME = 'idx_post_status'),
+    'SELECT "Index idx_post_status already exists" as message',
+    'CREATE INDEX idx_post_status ON post_requests (status)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND INDEX_NAME = 'idx_post_created_at'),
+    'SELECT "Index idx_post_created_at already exists" as message',
+    'CREATE INDEX idx_post_created_at ON post_requests (created_at)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Provider index for post_requests (only if column exists)
 SET @sql = (SELECT IF(
     EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
            WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
            AND TABLE_NAME = 'post_requests' 
-           AND COLUMN_NAME = 'provider'),
-    'CREATE INDEX IF NOT EXISTS idx_post_provider ON post_requests (provider)',
-    'SELECT "Provider column not found in post_requests, skipping index" as message'
+           AND COLUMN_NAME = 'provider')
+    AND NOT EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+                   WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+                   AND TABLE_NAME = 'post_requests' 
+                   AND INDEX_NAME = 'idx_post_provider'),
+    'CREATE INDEX idx_post_provider ON post_requests (provider)',
+    'SELECT "Provider column missing or index already exists in post_requests" as message'
 ));
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- Indexes for ping_comparison
-CREATE INDEX IF NOT EXISTS idx_comparison_timestamp ON ping_comparison (timestamp);
-CREATE INDEX IF NOT EXISTS idx_comparison_winner ON ping_comparison (winner);
-CREATE INDEX IF NOT EXISTS idx_comparison_qw_success ON ping_comparison (quotewizard_success);
-CREATE INDEX IF NOT EXISTS idx_comparison_ef_success ON ping_comparison (exchangeflo_success);
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND INDEX_NAME = 'idx_comparison_timestamp'),
+    'SELECT "Index idx_comparison_timestamp already exists" as message',
+    'CREATE INDEX idx_comparison_timestamp ON ping_comparison (timestamp)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND INDEX_NAME = 'idx_comparison_winner'),
+    'SELECT "Index idx_comparison_winner already exists" as message',
+    'CREATE INDEX idx_comparison_winner ON ping_comparison (winner)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND INDEX_NAME = 'idx_comparison_qw_success'),
+    'SELECT "Index idx_comparison_qw_success already exists" as message',
+    'CREATE INDEX idx_comparison_qw_success ON ping_comparison (quotewizard_success)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND INDEX_NAME = 'idx_comparison_ef_success'),
+    'SELECT "Index idx_comparison_ef_success already exists" as message',
+    'CREATE INDEX idx_comparison_ef_success ON ping_comparison (exchangeflo_success)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Total value index (only if column exists)
 SET @sql = (SELECT IF(
     EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
            WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
            AND TABLE_NAME = 'ping_comparison' 
-           AND COLUMN_NAME = 'total_comparison_value'),
-    'CREATE INDEX IF NOT EXISTS idx_comparison_total_value ON ping_comparison (total_comparison_value)',
-    'SELECT "Total comparison value column not found, skipping index" as message'
+           AND COLUMN_NAME = 'total_comparison_value')
+    AND NOT EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+                   WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+                   AND TABLE_NAME = 'ping_comparison' 
+                   AND INDEX_NAME = 'idx_comparison_total_value'),
+    'CREATE INDEX idx_comparison_total_value ON ping_comparison (total_comparison_value)',
+    'SELECT "Total comparison value column missing or index already exists" as message'
 ));
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- Legacy table indexes
-CREATE INDEX IF NOT EXISTS idx_action ON insurance_ping (action);
-CREATE INDEX IF NOT EXISTS idx_created_at ON insurance_ping (created_at);
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'insurance_ping' 
+           AND INDEX_NAME = 'idx_action'),
+    'SELECT "Index idx_action already exists" as message',
+    'CREATE INDEX idx_action ON insurance_ping (action)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'insurance_ping' 
+           AND INDEX_NAME = 'idx_created_at'),
+    'SELECT "Index idx_created_at already exists" as message',
+    'CREATE INDEX idx_created_at ON insurance_ping (created_at)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- COMPOSITE INDEXES (Create safely)
@@ -184,9 +346,13 @@ SET @sql = (SELECT IF(
     EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
            WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
            AND TABLE_NAME = 'ping_requests' 
-           AND COLUMN_NAME = 'provider'),
-    'CREATE INDEX IF NOT EXISTS idx_ping_provider_status_timestamp ON ping_requests (provider, status, timestamp)',
-    'SELECT "Skipping composite index - provider column missing" as message'
+           AND COLUMN_NAME = 'provider')
+    AND NOT EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+                   WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+                   AND TABLE_NAME = 'ping_requests' 
+                   AND INDEX_NAME = 'idx_ping_provider_status_timestamp'),
+    'CREATE INDEX idx_ping_provider_status_timestamp ON ping_requests (provider, status, timestamp)',
+    'SELECT "Skipping composite index - provider column missing or index exists" as message'
 ));
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -196,15 +362,29 @@ SET @sql = (SELECT IF(
     EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
            WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
            AND TABLE_NAME = 'post_requests' 
-           AND COLUMN_NAME = 'provider'),
-    'CREATE INDEX IF NOT EXISTS idx_post_provider_status_timestamp ON post_requests (provider, status, timestamp)',
-    'SELECT "Skipping composite index - provider column missing in post_requests" as message'
+           AND COLUMN_NAME = 'provider')
+    AND NOT EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+                   WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+                   AND TABLE_NAME = 'post_requests' 
+                   AND INDEX_NAME = 'idx_post_provider_status_timestamp'),
+    'CREATE INDEX idx_post_provider_status_timestamp ON post_requests (provider, status, timestamp)',
+    'SELECT "Skipping composite index - provider column missing or index exists in post_requests" as message'
 ));
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-CREATE INDEX IF NOT EXISTS idx_comparison_winner_timestamp ON ping_comparison (winner, timestamp);
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.STATISTICS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND INDEX_NAME = 'idx_comparison_winner_timestamp'),
+    'SELECT "Index idx_comparison_winner_timestamp already exists" as message',
+    'CREATE INDEX idx_comparison_winner_timestamp ON ping_comparison (winner, timestamp)'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- ANALYTICS VIEWS (Recreate safely)
