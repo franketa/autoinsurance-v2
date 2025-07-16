@@ -5,7 +5,7 @@ module.exports = {
   database: {
     host: 'localhost',
     user: 'smartautoinsider_user',
-    password: '6UU2^5$dK)2_?^n3K6',
+    password: 'password123',
     database: 'smartautoinsider_db'
   },
   

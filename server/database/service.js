@@ -5,7 +5,7 @@ require('dotenv').config();
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'smartautoinsider_user',
-  password: process.env.DB_PASSWORD || 'SecurePassword123!',
+  password: process.env.DB_PASSWORD || 'password123',
   database: process.env.DB_NAME || 'smartautoinsider_db',
   charset: 'utf8mb4',
   timezone: '+00:00'

@@ -57,7 +57,7 @@ function getAndClearLogs() {
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'smartautoinsider_user',
-  password: process.env.DB_PASSWORD || '6UU2^5$dK)2_?^n3K6',
+  password: process.env.DB_PASSWORD || 'password123',
   database: process.env.DB_NAME || 'smartautoinsider_db',
   charset: 'utf8'
 };

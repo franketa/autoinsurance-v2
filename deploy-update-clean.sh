@@ -25,11 +25,62 @@ print_info() {
 
 echo "🚀 Starting CONSOLIDATED deployment update..."
 
+# Comprehensive system checks
+print_info "🔍 Running system checks..."
+
 # Check if we're in the right directory
 if [ ! -f "package.json" ]; then
     print_error "Not in project directory! Please run from /var/www/auto-insurance"
     exit 1
 fi
+
+# Check if required services are available
+print_info "Checking required services..."
+
+# Check MySQL
+if ! command -v mysql &> /dev/null; then
+    print_error "MySQL client not found! Please install mysql-client"
+    exit 1
+fi
+
+# Check if MySQL server is running
+if ! sudo systemctl is-active --quiet mysql && ! sudo systemctl is-active --quiet mysqld; then
+    print_error "MySQL service is not running!"
+    print_info "Available MySQL services:"
+    sudo systemctl list-units --type=service | grep -i mysql || echo "No MySQL services found"
+    print_info "Trying to start MySQL..."
+    if sudo systemctl start mysql 2>/dev/null || sudo systemctl start mysqld 2>/dev/null; then
+        print_success "MySQL started successfully"
+    else
+        print_error "Failed to start MySQL. Please start it manually:"
+        echo "  sudo systemctl start mysql"
+        echo "  OR"
+        echo "  sudo systemctl start mysqld"
+        exit 1
+    fi
+else
+    print_success "MySQL is running"
+fi
+
+# Check Node.js
+if ! command -v node &> /dev/null; then
+    print_error "Node.js not found! Please install Node.js"
+    exit 1
+fi
+
+# Check PM2
+if ! command -v pm2 &> /dev/null; then
+    print_error "PM2 not found! Installing PM2..."
+    npm install -g pm2
+fi
+
+# Check npm
+if ! command -v npm &> /dev/null; then
+    print_error "npm not found! Please install npm"
+    exit 1
+fi
+
+print_success "All system checks passed"
 
 # Pull latest changes
 print_info "📥 Pulling latest changes from GitHub..."
@@ -58,31 +109,56 @@ fi
 # Setup database and user (if needed)
 print_info "🗄️ Setting up database and user..."
 
-# Define password as a variable (avoiding shell escaping issues)
-DB_PASSWORD='6UU2^5$dK)2_?^n3K6'
+# Define password as a variable (simple password with no special characters)
+DB_PASSWORD='password123'
 
 # Create database and user with better error handling
 print_info "📊 Creating database..."
-if sudo mysql -e "CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null; then
+echo "Executing: CREATE DATABASE IF NOT EXISTS smartautoinsider_db..."
+DB_CREATE_OUTPUT=$(sudo mysql -e "CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>&1)
+DB_CREATE_EXIT_CODE=$?
+if [ $DB_CREATE_EXIT_CODE -eq 0 ]; then
     print_success "Database created/verified"
 else
-    print_error "Failed to create database"
+    print_error "Failed to create database. Exit code: $DB_CREATE_EXIT_CODE"
+    echo "Error output: $DB_CREATE_OUTPUT"
+    print_info "Trying to check if MySQL is running..."
+    if sudo systemctl is-active --quiet mysql; then
+        print_info "MySQL service is running"
+    else
+        print_error "MySQL service is not running!"
+        sudo systemctl status mysql
+        exit 1
+    fi
     exit 1
 fi
 
 print_info "👤 Creating database user..."
-# Use single quotes in SQL to avoid shell interpretation of special characters
-if sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';" 2>/dev/null; then
+echo "Executing: CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
+USER_CREATE_OUTPUT=$(sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';" 2>&1)
+USER_CREATE_EXIT_CODE=$?
+if [ $USER_CREATE_EXIT_CODE -eq 0 ]; then
     print_success "Database user created/verified"
+elif echo "$USER_CREATE_OUTPUT" | grep -q "Operation CREATE USER failed"; then
+    print_warning "User already exists (this is normal)"
 else
-    print_warning "User creation command completed (may already exist)"
+    print_error "Failed to create user. Exit code: $USER_CREATE_EXIT_CODE"
+    echo "Error output: $USER_CREATE_OUTPUT"
+    print_info "Checking if user already exists..."
+    sudo mysql -e "SELECT User FROM mysql.user WHERE User='smartautoinsider_user';"
 fi
 
 print_info "🔐 Granting privileges..."
-if sudo mysql -e "GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost'; FLUSH PRIVILEGES;" 2>/dev/null; then
+echo "Executing: GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost'; FLUSH PRIVILEGES;"
+GRANT_OUTPUT=$(sudo mysql -e "GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost'; FLUSH PRIVILEGES;" 2>&1)
+GRANT_EXIT_CODE=$?
+if [ $GRANT_EXIT_CODE -eq 0 ]; then
     print_success "Privileges granted successfully"
 else
-    print_error "Failed to grant privileges"
+    print_error "Failed to grant privileges. Exit code: $GRANT_EXIT_CODE"
+    echo "Error output: $GRANT_OUTPUT"
+    print_info "Checking user privileges..."
+    sudo mysql -e "SHOW GRANTS FOR 'smartautoinsider_user'@'localhost';" 2>/dev/null || print_warning "Could not show grants"
     exit 1
 fi
 
@@ -124,25 +200,49 @@ fi
 
 # Update database schema with consolidated version
 print_info "🔄 Updating database schema with consolidated version..."
+
+# Check if the schema file exists
+if [ ! -f "server/database/init.sql" ]; then
+    print_error "Database schema file not found: server/database/init.sql"
+    print_info "Available files in server/database/:"
+    ls -la server/database/ 2>/dev/null || echo "Directory does not exist"
+    rm -f "$TEMP_MYSQL_CONFIG"
+    exit 1
+fi
+
+print_info "Schema file found: server/database/init.sql"
+echo "File size: $(wc -l < server/database/init.sql) lines"
+
 if [ "$CONNECTION_METHOD" = "user" ]; then
-    if mysql --defaults-file="$TEMP_MYSQL_CONFIG" < server/database/init.sql 2>/dev/null; then
+    print_info "Attempting schema update with user credentials..."
+    SCHEMA_OUTPUT=$(mysql --defaults-file="$TEMP_MYSQL_CONFIG" < server/database/init.sql 2>&1)
+    SCHEMA_EXIT_CODE=$?
+    if [ $SCHEMA_EXIT_CODE -eq 0 ]; then
         print_success "Consolidated database schema updated successfully"
     else
-        print_error "Failed to update database schema with user credentials"
+        print_error "Failed to update database schema with user credentials. Exit code: $SCHEMA_EXIT_CODE"
+        echo "Error output: $SCHEMA_OUTPUT"
         print_info "Attempting with root access..."
-        if sudo mysql smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+        ROOT_SCHEMA_OUTPUT=$(sudo mysql smartautoinsider_db < server/database/init.sql 2>&1)
+        ROOT_SCHEMA_EXIT_CODE=$?
+        if [ $ROOT_SCHEMA_EXIT_CODE -eq 0 ]; then
             print_success "Consolidated database schema updated with root access"
         else
-            print_error "Failed to update consolidated database schema"
+            print_error "Failed to update consolidated database schema with root. Exit code: $ROOT_SCHEMA_EXIT_CODE"
+            echo "Root error output: $ROOT_SCHEMA_OUTPUT"
             rm -f "$TEMP_MYSQL_CONFIG"
             exit 1
         fi
     fi
 else
-    if sudo mysql smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+    print_info "Attempting schema update with root access..."
+    ROOT_SCHEMA_OUTPUT=$(sudo mysql smartautoinsider_db < server/database/init.sql 2>&1)
+    ROOT_SCHEMA_EXIT_CODE=$?
+    if [ $ROOT_SCHEMA_EXIT_CODE -eq 0 ]; then
         print_success "Consolidated database schema updated with root access"
     else
-        print_error "Failed to update consolidated database schema"
+        print_error "Failed to update consolidated database schema. Exit code: $ROOT_SCHEMA_EXIT_CODE"
+        echo "Error output: $ROOT_SCHEMA_OUTPUT"
         rm -f "$TEMP_MYSQL_CONFIG"
         exit 1
     fi
