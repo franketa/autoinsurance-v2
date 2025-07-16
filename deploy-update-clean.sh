@@ -57,43 +57,99 @@ fi
 
 # Setup database and user (if needed)
 print_info "🗄️ Setting up database and user..."
-DB_PASSWORD="6UU2^5\$dK)2_?^n3K6"
-sudo mysql -e "CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || true
-sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY '$DB_PASSWORD';" 2>/dev/null || true
-sudo mysql -e "GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost';" 2>/dev/null || true
-sudo mysql -e "FLUSH PRIVILEGES;" 2>/dev/null || true
 
-# Test database connection
-print_info "🧪 Testing database connection..."
-if mysql -u smartautoinsider_user -p"$DB_PASSWORD" smartautoinsider_db -e "SELECT 'Database connection successful' as status, NOW() as timestamp;" 2>/dev/null; then
-    print_success "Database connection test successful"
+# Define password as a variable (avoiding shell escaping issues)
+DB_PASSWORD='6UU2^5$dK)2_?^n3K6'
+
+# Create database and user with better error handling
+print_info "📊 Creating database..."
+if sudo mysql -e "CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null; then
+    print_success "Database created/verified"
 else
-    print_warning "Database connection test failed - trying with root access..."
+    print_error "Failed to create database"
+    exit 1
+fi
+
+print_info "👤 Creating database user..."
+# Use single quotes in SQL to avoid shell interpretation of special characters
+if sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';" 2>/dev/null; then
+    print_success "Database user created/verified"
+else
+    print_warning "User creation command completed (may already exist)"
+fi
+
+print_info "🔐 Granting privileges..."
+if sudo mysql -e "GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost'; FLUSH PRIVILEGES;" 2>/dev/null; then
+    print_success "Privileges granted successfully"
+else
+    print_error "Failed to grant privileges"
+    exit 1
+fi
+
+# Test database connection with better error handling
+print_info "🧪 Testing database connection..."
+
+# Create a temporary MySQL config file to avoid password on command line
+TEMP_MYSQL_CONFIG=$(mktemp)
+cat > "$TEMP_MYSQL_CONFIG" << EOF
+[client]
+user=smartautoinsider_user
+password=${DB_PASSWORD}
+host=localhost
+database=smartautoinsider_db
+EOF
+
+if mysql --defaults-file="$TEMP_MYSQL_CONFIG" -e "SELECT 'Database connection successful' as status, NOW() as timestamp;" 2>/dev/null; then
+    print_success "Database connection test successful"
+    CONNECTION_METHOD="user"
+else
+    print_warning "User connection failed - testing root access..."
     if sudo mysql smartautoinsider_db -e "SELECT 'Database connection successful' as status, NOW() as timestamp;" 2>/dev/null; then
         print_success "Database connection test successful with root access"
+        CONNECTION_METHOD="root"
     else
-        print_error "Failed to connect to database"
+        print_error "Failed to connect to database with both user and root"
+        rm -f "$TEMP_MYSQL_CONFIG"
         exit 1
     fi
 fi
 
 # Backup existing schema (optional safety measure)
 print_info "💾 Creating database backup..."
-mysqldump -u smartautoinsider_user -p"$DB_PASSWORD" smartautoinsider_db > backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || true
+if [ "$CONNECTION_METHOD" = "user" ]; then
+    mysqldump --defaults-file="$TEMP_MYSQL_CONFIG" smartautoinsider_db > backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || print_warning "Backup failed (database may be empty)"
+else
+    sudo mysqldump smartautoinsider_db > backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || print_warning "Backup failed (database may be empty)"
+fi
 
 # Update database schema with consolidated version
 print_info "🔄 Updating database schema with consolidated version..."
-if mysql -u smartautoinsider_user -p"$DB_PASSWORD" smartautoinsider_db < server/database/init.sql 2>/dev/null; then
-    print_success "Consolidated database schema updated successfully"
+if [ "$CONNECTION_METHOD" = "user" ]; then
+    if mysql --defaults-file="$TEMP_MYSQL_CONFIG" < server/database/init.sql 2>/dev/null; then
+        print_success "Consolidated database schema updated successfully"
+    else
+        print_error "Failed to update database schema with user credentials"
+        print_info "Attempting with root access..."
+        if sudo mysql smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+            print_success "Consolidated database schema updated with root access"
+        else
+            print_error "Failed to update consolidated database schema"
+            rm -f "$TEMP_MYSQL_CONFIG"
+            exit 1
+        fi
+    fi
 else
-    print_warning "Database schema update failed - trying with root access..."
     if sudo mysql smartautoinsider_db < server/database/init.sql 2>/dev/null; then
         print_success "Consolidated database schema updated with root access"
     else
         print_error "Failed to update consolidated database schema"
+        rm -f "$TEMP_MYSQL_CONFIG"
         exit 1
     fi
 fi
+
+# Clean up temporary config file
+rm -f "$TEMP_MYSQL_CONFIG"
 
 # Test the database service
 print_info "🧪 Testing database service..."
