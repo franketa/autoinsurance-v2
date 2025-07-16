@@ -370,7 +370,8 @@ async function prepareQuoteWizardData(inputData, req) {
   
   const sr22 = mapSR22ForQuoteWizard(inputData.sr22 || 'No');
   logWithCapture('info', `QuoteWizard SR22 mapping: "${inputData.sr22}" → "${sr22}"`);
-  const license_status = inputData.driversLicense === 'Yes' ? 'Valid' : 'Invalid';
+  const license_status = inputData.driversLicense === 'Yes' ? 'Valid' : 'None';
+  logWithCapture('info', `QuoteWizard license status mapping: "${inputData.driversLicense}" → "${license_status}"`);
   // Map frontend credit score options to QuoteWizard accepted values
   const mapCreditScoreForQuoteWizard = (score) => {
     switch (score) {
@@ -806,7 +807,7 @@ async function postToQuoteWizard(pingData, formData) {
       BirthDate: formData.birthdate || '1985-01-01',
       State: formData.state || 'WA',
       AgeLicensed: '16',
-      LicenseStatus: formData.driversLicense === 'Yes' ? 'Valid' : 'Invalid',
+      LicenseStatus: formData.driversLicense === 'Yes' ? 'Valid' : 'None',
       LicenseEverSuspendedRevoked: 'No',
       Occupation: {
         Name: 'OtherNonTechnical',
