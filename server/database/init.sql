@@ -16,29 +16,24 @@ CREATE TABLE IF NOT EXISTS ping_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     submission_id VARCHAR(255),
-    provider VARCHAR(50) DEFAULT 'unknown',
     status VARCHAR(50) DEFAULT 'unknown',
     ping_count INT DEFAULT 0,
     total_value DECIMAL(10,2) DEFAULT 0.00,
     request_data JSON,
     response_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Indexes for performance
-    INDEX idx_ping_timestamp (timestamp),
-    INDEX idx_ping_submission_id (submission_id),
-    INDEX idx_ping_provider (provider),
-    INDEX idx_ping_status (status),
-    INDEX idx_ping_created_at (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add missing columns to existing ping_requests table
+ALTER TABLE ping_requests 
+ADD COLUMN IF NOT EXISTS provider VARCHAR(50) DEFAULT 'unknown' AFTER submission_id;
 
 -- General post requests table (supports all providers) 
 CREATE TABLE IF NOT EXISTS post_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     submission_id VARCHAR(255),
-    provider VARCHAR(50) DEFAULT 'unknown',
     status VARCHAR(50) DEFAULT 'unknown',
     total_value DECIMAL(10,2) DEFAULT 0.00,
     ping_count INT DEFAULT 0,
@@ -46,15 +41,12 @@ CREATE TABLE IF NOT EXISTS post_requests (
     request_data JSON,
     response_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Indexes for performance
-    INDEX idx_post_timestamp (timestamp),
-    INDEX idx_post_submission_id (submission_id),
-    INDEX idx_post_provider (provider),
-    INDEX idx_post_status (status),
-    INDEX idx_post_created_at (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add missing columns to existing post_requests table
+ALTER TABLE post_requests 
+ADD COLUMN IF NOT EXISTS provider VARCHAR(50) DEFAULT 'unknown' AFTER submission_id;
 
 -- ============================================================================
 -- DUAL PING COMPARISON SYSTEM
@@ -71,17 +63,22 @@ CREATE TABLE IF NOT EXISTS ping_comparison (
     exchangeflo_value DECIMAL(10,2) DEFAULT 0,
     exchangeflo_error TEXT,
     winner VARCHAR(50),
-    total_comparison_value DECIMAL(10,2) GENERATED ALWAYS AS (quotewizard_value + exchangeflo_value) STORED,
     request_data JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Indexes for performance and analytics
-    INDEX idx_comparison_timestamp (timestamp),
-    INDEX idx_comparison_winner (winner),
-    INDEX idx_comparison_total_value (total_comparison_value),
-    INDEX idx_comparison_qw_success (quotewizard_success),
-    INDEX idx_comparison_ef_success (exchangeflo_success)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add computed column safely
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND COLUMN_NAME = 'total_comparison_value'),
+    'SELECT "Column already exists" as message',
+    'ALTER TABLE ping_comparison ADD COLUMN total_comparison_value DECIMAL(10,2) GENERATED ALWAYS AS (quotewizard_value + exchangeflo_value) STORED'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- LEGACY COMPATIBILITY (for any existing code)
@@ -92,23 +89,121 @@ CREATE TABLE IF NOT EXISTS insurance_ping (
     id INT AUTO_INCREMENT PRIMARY KEY,
     action VARCHAR(50) NOT NULL,
     data LONGTEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- ANALYTICS VIEWS
+-- INDEXES (Create safely after ensuring columns exist)
 -- ============================================================================
 
+-- Basic indexes for ping_requests
+CREATE INDEX IF NOT EXISTS idx_ping_timestamp ON ping_requests (timestamp);
+CREATE INDEX IF NOT EXISTS idx_ping_submission_id ON ping_requests (submission_id);
+CREATE INDEX IF NOT EXISTS idx_ping_status ON ping_requests (status);
+CREATE INDEX IF NOT EXISTS idx_ping_created_at ON ping_requests (created_at);
+
+-- Provider index (only if column exists)
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND COLUMN_NAME = 'provider'),
+    'CREATE INDEX IF NOT EXISTS idx_ping_provider ON ping_requests (provider)',
+    'SELECT "Provider column not found, skipping index" as message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Basic indexes for post_requests
+CREATE INDEX IF NOT EXISTS idx_post_timestamp ON post_requests (timestamp);
+CREATE INDEX IF NOT EXISTS idx_post_submission_id ON post_requests (submission_id);
+CREATE INDEX IF NOT EXISTS idx_post_status ON post_requests (status);
+CREATE INDEX IF NOT EXISTS idx_post_created_at ON post_requests (created_at);
+
+-- Provider index for post_requests (only if column exists)
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND COLUMN_NAME = 'provider'),
+    'CREATE INDEX IF NOT EXISTS idx_post_provider ON post_requests (provider)',
+    'SELECT "Provider column not found in post_requests, skipping index" as message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Indexes for ping_comparison
+CREATE INDEX IF NOT EXISTS idx_comparison_timestamp ON ping_comparison (timestamp);
+CREATE INDEX IF NOT EXISTS idx_comparison_winner ON ping_comparison (winner);
+CREATE INDEX IF NOT EXISTS idx_comparison_qw_success ON ping_comparison (quotewizard_success);
+CREATE INDEX IF NOT EXISTS idx_comparison_ef_success ON ping_comparison (exchangeflo_success);
+
+-- Total value index (only if column exists)
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_comparison' 
+           AND COLUMN_NAME = 'total_comparison_value'),
+    'CREATE INDEX IF NOT EXISTS idx_comparison_total_value ON ping_comparison (total_comparison_value)',
+    'SELECT "Total comparison value column not found, skipping index" as message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Legacy table indexes
+CREATE INDEX IF NOT EXISTS idx_action ON insurance_ping (action);
+CREATE INDEX IF NOT EXISTS idx_created_at ON insurance_ping (created_at);
+
+-- ============================================================================
+-- COMPOSITE INDEXES (Create safely)
+-- ============================================================================
+
+-- Composite indexes for common query patterns (only if all columns exist)
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND COLUMN_NAME = 'provider'),
+    'CREATE INDEX IF NOT EXISTS idx_ping_provider_status_timestamp ON ping_requests (provider, status, timestamp)',
+    'SELECT "Skipping composite index - provider column missing" as message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND COLUMN_NAME = 'provider'),
+    'CREATE INDEX IF NOT EXISTS idx_post_provider_status_timestamp ON post_requests (provider, status, timestamp)',
+    'SELECT "Skipping composite index - provider column missing in post_requests" as message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CREATE INDEX IF NOT EXISTS idx_comparison_winner_timestamp ON ping_comparison (winner, timestamp);
+
+-- ============================================================================
+-- ANALYTICS VIEWS (Recreate safely)
+-- ============================================================================
+
+-- Drop existing views before recreating
+DROP VIEW IF EXISTS request_analytics;
+DROP VIEW IF EXISTS comparison_analytics;
+
 -- Comprehensive analytics view combining all request types
-CREATE OR REPLACE VIEW request_analytics AS
+CREATE VIEW request_analytics AS
 SELECT 
     'ping' as request_type,
     id,
     timestamp,
     submission_id,
-    provider,
+    COALESCE(provider, 'unknown') as provider,
     status,
     total_value,
     ping_count,
@@ -121,7 +216,7 @@ SELECT
     id,
     timestamp,
     submission_id,
-    provider,
+    COALESCE(provider, 'unknown') as provider,
     status,
     total_value,
     ping_count,
@@ -131,7 +226,7 @@ FROM post_requests
 ORDER BY created_at DESC;
 
 -- Dual ping comparison analytics
-CREATE OR REPLACE VIEW comparison_analytics AS
+CREATE VIEW comparison_analytics AS
 SELECT 
     timestamp,
     winner,
@@ -139,7 +234,7 @@ SELECT
     quotewizard_value,
     exchangeflo_success,
     exchangeflo_value,
-    total_comparison_value,
+    COALESCE(quotewizard_value + exchangeflo_value, 0) as total_comparison_value,
     CASE 
         WHEN quotewizard_success AND exchangeflo_success THEN 'both_success'
         WHEN quotewizard_success AND NOT exchangeflo_success THEN 'qw_only'
@@ -159,32 +254,13 @@ FROM ping_comparison
 ORDER BY timestamp DESC;
 
 -- ============================================================================
--- PERFORMANCE OPTIMIZATIONS
--- ============================================================================
-
--- Create composite indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_ping_provider_status_timestamp 
-ON ping_requests (provider, status, timestamp);
-
-CREATE INDEX IF NOT EXISTS idx_post_provider_status_timestamp 
-ON post_requests (provider, status, timestamp);
-
-CREATE INDEX IF NOT EXISTS idx_comparison_winner_timestamp 
-ON ping_comparison (winner, timestamp);
-
--- ============================================================================
 -- VERIFICATION AND TESTING
 -- ============================================================================
 
--- Show table structures for verification
-DESCRIBE ping_requests;
-DESCRIBE post_requests;
-DESCRIBE ping_comparison;
-DESCRIBE insurance_ping;
-
--- Test database connection and show successful setup
+-- Show successful setup message
 SELECT 
-    'Database setup completed successfully' as status, 
+    'Database schema update completed successfully' as status, 
     NOW() as timestamp,
     'Single consolidated server architecture' as architecture_type,
-    'QuoteWizard + ExchangeFlo dual ping system' as features; 
+    'QuoteWizard + ExchangeFlo dual ping system' as features,
+    'Schema migration handled existing tables gracefully' as migration_notes; 
