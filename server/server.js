@@ -358,9 +358,37 @@ async function prepareQuoteWizardData(inputData, req) {
   const maritalStatus = mapMaritalStatusForQuoteWizard(inputData.maritalStatus || 'Single');
   logWithCapture('info', `QuoteWizard marital status mapping: "${inputData.maritalStatus}" → "${maritalStatus}"`);
   const gender = inputData.gender || 'Male';
-  const sr22 = inputData.sr22 || 'No';
+  // Map frontend SR22 options to QuoteWizard Yes/No
+  const mapSR22ForQuoteWizard = (sr22Value) => {
+    switch (sr22Value) {
+      case 'Yes': return 'Yes';
+      case 'No / Not Sure': return 'No';
+      case 'No': return 'No';
+      default: return 'No';
+    }
+  };
+  
+  const sr22 = mapSR22ForQuoteWizard(inputData.sr22 || 'No');
+  logWithCapture('info', `QuoteWizard SR22 mapping: "${inputData.sr22}" → "${sr22}"`);
   const license_status = inputData.driversLicense === 'Yes' ? 'Valid' : 'Invalid';
-  const credit_rating = inputData.creditScore || 'Good';
+  // Map frontend credit score options to QuoteWizard accepted values
+  const mapCreditScoreForQuoteWizard = (score) => {
+    switch (score) {
+      case 'Excellent (720+)': return 'Excellent';
+      case 'Good (680-719)': return 'Good';
+      case 'Fair/Average (580-679)': return 'Some Problems';
+      case 'Poor (below 580)': return 'Major Problems';
+      case 'Not Sure (that\'s okay!)': return 'Good'; // Default to Good
+      case 'Excellent': return 'Excellent'; // Direct mappings
+      case 'Good': return 'Good';
+      case 'Fair': return 'Some Problems';
+      case 'Poor': return 'Major Problems';
+      default: return 'Good';
+    }
+  };
+  
+  const credit_rating = mapCreditScoreForQuoteWizard(inputData.creditScore || 'Good');
+  logWithCapture('info', `QuoteWizard credit score mapping: "${inputData.creditScore}" → "${credit_rating}"`);
   const current_insurance = inputData.currentAutoInsurance || 'Geico';
   const homeowner = inputData.homeowner || 'Own';
   
@@ -788,10 +816,34 @@ async function postToQuoteWizard(pingData, formData) {
         AtHomeStudent: 'No',
         HighestDegree: 'BachelorsDegree'
       },
-      RequiresSR22Filing: formData.sr22 || 'No',
+      RequiresSR22Filing: (() => {
+        // Map frontend SR22 options to QuoteWizard Yes/No
+        const sr22Value = formData.sr22 || 'No';
+        switch (sr22Value) {
+          case 'Yes': return 'Yes';
+          case 'No / Not Sure': return 'No';
+          case 'No': return 'No';
+          default: return 'No';
+        }
+      })(),
       CreditRating: {
         Bankruptcy: 'No',
-        SelfRating: formData.creditScore || 'Good'
+        SelfRating: (() => {
+          // Map frontend credit score options to QuoteWizard accepted values
+          const score = formData.creditScore || 'Good';
+          switch (score) {
+            case 'Excellent (720+)': return 'Excellent';
+            case 'Good (680-719)': return 'Good';
+            case 'Fair/Average (580-679)': return 'Some Problems';
+            case 'Poor (below 580)': return 'Major Problems';
+            case 'Not Sure (that\'s okay!)': return 'Good';
+            case 'Excellent': return 'Excellent';
+            case 'Good': return 'Good';
+            case 'Fair': return 'Some Problems';
+            case 'Poor': return 'Major Problems';
+            default: return 'Good';
+          }
+        })()
       },
       Incidents: []
     }],
