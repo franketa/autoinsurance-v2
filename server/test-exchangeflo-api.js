@@ -142,8 +142,7 @@ function generatePingData(formData) {
     // Tracking and validation IDs - ensure they're strings
     "tracking_id": `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     "sub_id_1": "smartauto_test", // PLACEHOLDER: Sub ID 1
-    //"jornaya_leadid": "01234566-89AB-CDEF-0123-456789ABCDAF", // PLACEHOLDER: Jornaya Lead ID
-    "trusted_form_cert_url": "https://cert.trustedform.com/0123456788abcdee0123456789abcdef0123456627", // PLACEHOLDER
+    //"jornaya_leadid": "01234566-89AB-CDEF-0123-456789ABCDAF", // PLACEHOLDER: Jornaya Lead I
     
     // Request metadata
     "ip_address": "127.0.0.1", // PLACEHOLDER: Client IP
