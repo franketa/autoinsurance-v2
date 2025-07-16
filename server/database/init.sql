@@ -25,9 +25,18 @@ CREATE TABLE IF NOT EXISTS ping_requests (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Add missing columns to existing ping_requests table
-ALTER TABLE ping_requests 
-ADD COLUMN IF NOT EXISTS provider VARCHAR(50) DEFAULT 'unknown' AFTER submission_id;
+-- Add missing columns to existing ping_requests table (safely)
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'ping_requests' 
+           AND COLUMN_NAME = 'provider'),
+    'SELECT "Provider column already exists in ping_requests" as message',
+    'ALTER TABLE ping_requests ADD COLUMN provider VARCHAR(50) DEFAULT "unknown" AFTER submission_id'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- General post requests table (supports all providers) 
 CREATE TABLE IF NOT EXISTS post_requests (
@@ -44,9 +53,18 @@ CREATE TABLE IF NOT EXISTS post_requests (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Add missing columns to existing post_requests table
-ALTER TABLE post_requests 
-ADD COLUMN IF NOT EXISTS provider VARCHAR(50) DEFAULT 'unknown' AFTER submission_id;
+-- Add missing columns to existing post_requests table (safely)
+SET @sql = (SELECT IF(
+    EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = 'smartautoinsider_db' 
+           AND TABLE_NAME = 'post_requests' 
+           AND COLUMN_NAME = 'provider'),
+    'SELECT "Provider column already exists in post_requests" as message',
+    'ALTER TABLE post_requests ADD COLUMN provider VARCHAR(50) DEFAULT "unknown" AFTER submission_id'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- DUAL PING COMPARISON SYSTEM
