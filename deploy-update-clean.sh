@@ -57,14 +57,15 @@ fi
 
 # Setup database and user (if needed)
 print_info "🗄️ Setting up database and user..."
+DB_PASSWORD="6UU2^5\$dK)2_?^n3K6"
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || true
-sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY 'SecurePassword123!';" 2>/dev/null || true
+sudo mysql -e "CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY '$DB_PASSWORD';" 2>/dev/null || true
 sudo mysql -e "GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost';" 2>/dev/null || true
 sudo mysql -e "FLUSH PRIVILEGES;" 2>/dev/null || true
 
 # Test database connection
 print_info "🧪 Testing database connection..."
-if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db -e "SELECT 'Database connection successful' as status, NOW() as timestamp;" 2>/dev/null; then
+if mysql -u smartautoinsider_user -p"$DB_PASSWORD" smartautoinsider_db -e "SELECT 'Database connection successful' as status, NOW() as timestamp;" 2>/dev/null; then
     print_success "Database connection test successful"
 else
     print_warning "Database connection test failed - trying with root access..."
@@ -78,11 +79,11 @@ fi
 
 # Backup existing schema (optional safety measure)
 print_info "💾 Creating database backup..."
-mysqldump -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db > backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || true
+mysqldump -u smartautoinsider_user -p"$DB_PASSWORD" smartautoinsider_db > backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || true
 
 # Update database schema with consolidated version
 print_info "🔄 Updating database schema with consolidated version..."
-if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+if mysql -u smartautoinsider_user -p"$DB_PASSWORD" smartautoinsider_db < server/database/init.sql 2>/dev/null; then
     print_success "Consolidated database schema updated successfully"
 else
     print_warning "Database schema update failed - trying with root access..."
