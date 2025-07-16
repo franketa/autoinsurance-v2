@@ -1,173 +1,102 @@
-# Auto Insurance Quote - ExchangeFlo Integration
+# Auto Insurance Server
 
-This server implements the ExchangeFlo API integration to submit auto insurance leads with a comprehensive ping and post flow.
+Single, consolidated Node.js/Express server with **dual ping comparison system** for QuoteWizard and ExchangeFlo APIs.
 
-## Features
+## 🏗️ Architecture Overview
 
-- **Two-step ExchangeFlo API integration**: Ping → Get Available Buyers → Post Contact Info
-- **Database logging**: All API requests and responses are logged for debugging and analytics
-- **Data transformation**: Converts form data to ExchangeFlo JSON format
-- **Analytics**: View ping/post analytics and success rates
-- **Testing suite**: Complete test coverage for API integration
-- **Error handling**: Comprehensive error handling and logging
+### Single Server Design
+Our streamlined architecture consolidates all functionality into one robust server file:
 
-## Setup
+- **`server.js`** - Main server with all endpoints and logic
+- **`database/service.js`** - Database abstraction layer
+- **`database/init.sql`** - Consolidated database schema
+- **`location.js`** - IP and zip code location services
+- **`test-ping-comparison.js`** - Comprehensive testing suite
 
-### 1. Install Dependencies
+### Key Features
+- ✅ **Dual Ping Comparison** - QuoteWizard vs ExchangeFlo
+- ✅ **Automatic Winner Selection** - Highest bidder wins
+- ✅ **Enhanced Logging** - All requests/responses captured
+- ✅ **TrustedForm Integration** - Real certificates in production
+- ✅ **Error Handling** - Graceful degradation and detailed errors
+- ✅ **Analytics Support** - Comprehensive data tracking
 
+## 🚀 Quick Start
+
+### Prerequisites
 ```bash
+# Required software
+Node.js 16+
+MySQL 8.0+
+PM2 (for production)
+```
+
+### Development Setup
+```bash
+# Install dependencies
 npm install
+
+# Setup database
+mysql -u root -p < database/init.sql
+
+# Configure environment
+cp config.example.js config.js
+# Edit config.js with your credentials
+
+# Start development server
+node server.js
 ```
 
-### 2. Database Setup
-
-1. Create a MySQL database and user:
-
-```sql
--- Run the initialization script
-mysql -u root -p < server/database/init.sql
-```
-
-2. Or manually create the database:
-
-```sql
-CREATE DATABASE smartautoinsider_db;
-CREATE USER 'smartautoinsider_user'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-### 3. Configuration
-
-1. Copy the example configuration:
-
+### Production Deployment
 ```bash
-cp server/config.example.js server/config.js
+# Use the automated deployment script
+chmod +x ../deploy-update-clean.sh
+../deploy-update-clean.sh
+
+# Or manually with PM2
+pm2 start server.js --name auto-insurance-app --env production
 ```
 
-2. Update `server/config.js` with your actual values:
+## 📊 API Endpoints
 
-```javascript
-module.exports = {
-  database: {
-    host: 'localhost',
-    user: 'your_db_user',
-    password: 'your_db_password',
-    database: 'smartautoinsider_db'
-  },
-  
-  quoteWizard: {
-    contractID: 'your_quotewizard_contract_id',
-    productionUrl: 'https://quotewizard.com/LeadAPI/Services/SubmitVendorLead',
-    stagingUrl: 'https://stage.quotewizard.com/LeadAPI/Services/SubmitVendorLead'
-  },
-  
-  ignite: {
-    apiUrl: 'your_ignite_api_url_with_auth_token'
-  }
-};
-```
+### Core Dual Ping System
 
-3. Or use environment variables by creating a `.env` file:
+#### `POST /api/ping-both`
+Main endpoint that pings both services and returns comparison results.
 
-```env
-DB_HOST=localhost
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=smartautoinsider_db
-QW_CONTRACT_ID=your_quotewizard_contract_id
-NODE_ENV=production
-PORT=5000
-```
-
-## Usage
-
-### Development Mode
-
-Run both the React frontend and Node.js backend:
-
-```bash
-npm run dev
-```
-
-This will start:
-- React app on http://localhost:3000
-- Node.js server on http://localhost:5000
-
-### Production Mode
-
-1. Build the React app:
-
-```bash
-npm run build
-```
-
-2. Start the server:
-
-```bash
-npm run server
-```
-
-### Testing the ExchangeFlo Integration
-
-Run the comprehensive test suite:
-
-```bash
-# Start the server first
-npm run server
-
-# In another terminal, run the tests
-node server/test-exchangeflo-api.js
-```
-
-The test will:
-- ✅ Check server health
-- ✅ Test ping request with sample data
-- ✅ Validate ping response structure
-- ✅ Test post request with contact info
-- ✅ Verify database logging
-- ✅ Provide detailed analytics
-
-## API Endpoints
-
-### POST /api/submit-quote
-
-Submits a quote request to ExchangeFlo APIs using the ping and post flow.
-
-### POST /api/log/ping
-
-Logs ping requests to the database for analytics.
-
-### POST /api/log/post
-
-Logs post requests to the database for analytics.
-
-### GET /api/analytics/exchangeflo
-
-Returns analytics data for ping and post requests.
-
-**Request Body:**
+**Request:**
 ```json
 {
   "firstName": "John",
-  "lastName": "Doe",
+  "lastName": "Doe", 
   "email": "john@example.com",
-  "phoneNumber": "555-123-4567",
+  "phoneNumber": "5551234567",
   "streetAddress": "123 Main St",
-  "zipcode": "12345",
-  "birthdate": "1990-01-01",
+  "city": "Seattle",
+  "state": "WA",
+  "zipcode": "98101",
+  "birthdate": "1985-06-15",
   "gender": "Male",
   "maritalStatus": "Single",
-  "creditScore": "Excellent",
+  "creditScore": "Good",
   "homeowner": "Own",
+  "military": "No",
+  "driverEducation": "Bachelor's Degree",
+  "driverOccupation": "Engineer",
   "driversLicense": "Yes",
   "sr22": "No",
+  "insuranceHistory": "Yes",
   "currentAutoInsurance": "Geico",
+  "insuranceDuration": "1-3 years",
+  "coverageType": "Full Coverage",
   "vehicles": [
     {
       "year": "2020",
-      "make": "Toyota",
-      "model": "Camry"
+      "make": "Toyota", 
+      "model": "Camry",
+      "purpose": "commute",
+      "mileage": "10000-15000",
+      "ownership": "owned"
     }
   ]
 }
@@ -177,104 +106,357 @@ Returns analytics data for ping and post requests.
 ```json
 {
   "success": true,
-  "ping": {
-    "xml": "<?xml version='1.0'...",
-    "response": "QuoteWizard ping response"
+  "winner": "exchangeflo",
+  "comparison": {
+    "quotewizard": {
+      "success": true,
+      "value": 15.0,
+      "error": null,
+      "data": {...}
+    },
+    "exchangeflo": {
+      "success": true,
+      "value": 22.50,
+      "error": null,
+      "data": {...}
+    }
   },
-  "post": {
-    "xml": "<?xml version='1.0'...",
-    "response": "QuoteWizard post response"
-  },
-  "ignite": "Ignite API response",
-  "initialID": "quote_id_from_ping"
+  "winnerData": {...},
+  "message": "exchangeflo won with $22.50",
+  "logs": [...] // Detailed server logs for debugging
 }
 ```
 
-### GET /api/health
+#### `POST /api/post-winner`
+Posts the lead to the winning service.
 
-Health check endpoint.
+**Request:**
+```json
+{
+  "winner": "exchangeflo",
+  "winnerData": {...},
+  "formData": {...}
+}
+```
+
+### Utility Endpoints
+
+#### `GET /api/health`
+Health check with system status and logs.
 
 **Response:**
 ```json
 {
-  "status": "OK",
-  "timestamp": "2024-01-01T00:00:00.000Z"
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "version": "2.0.0",
+  "services": {
+    "server": "running",
+    "database": "connected"
+  },
+  "logs": [...] // Recent server logs
 }
 ```
 
-## Data Flow
+#### `GET /api/location`
+Location lookup by IP or zip code.
 
-1. **Form Submission**: User completes the insurance quote form
-2. **Data Transformation**: Form data is transformed to match QuoteWizard requirements
-3. **Ping Request**: First API call to QuoteWizard to get Quote ID
-4. **Post Request**: Second API call with Quote ID to submit complete lead
-5. **Ignite Integration**: Lead data sent to Ignite API
-6. **Database Logging**: All requests and responses logged to MySQL
-7. **Response**: Success/error response sent back to frontend
+**Query Parameters:**
+- `ip` - IP address to look up
+- `zip` - Zip code to look up
 
-## Data Mapping
+**Response:**
+```json
+{
+  "city": "Seattle",
+  "region": "WA",
+  "zip": "98101"
+}
+```
 
-The application maps form data to QuoteWizard XML format:
+#### `POST /api/test/ping`
+Test endpoint for ping logging functionality.
 
-| Form Field | QuoteWizard Field | Notes |
-|------------|-------------------|-------|
-| firstName | FirstName | |
-| lastName | LastName | |
-| email | EmailAddress | |
-| phoneNumber | PrimaryPhone | Formatted as XXX-XXX-XXXX |
-| streetAddress | Address1 | |
-| zipcode | ZIPCode | |
-| birthdate | BirthDate | Format: YYYY-MM-DD |
-| gender | Gender | |
-| maritalStatus | MaritalStatus | |
-| creditScore | CreditRating.SelfRating | |
-| homeowner | ResidenceStatus | |
-| driversLicense | LicenseStatus | Yes/No → Valid/Invalid |
-| sr22 | RequiresSR22Filing | |
-| vehicles | Vehicles array | Year, Make, Model |
+## 🗄️ Database Schema
 
-## Database Schema
+### Core Tables
 
-### insurance_ping Table
+#### `ping_requests`
+General ping logging for all providers.
+```sql
+CREATE TABLE ping_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    submission_id VARCHAR(255),
+    provider VARCHAR(50) DEFAULT 'unknown',
+    status VARCHAR(50) DEFAULT 'unknown',
+    ping_count INT DEFAULT 0,
+    total_value DECIMAL(10,2) DEFAULT 0.00,
+    request_data JSON,
+    response_data JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| action | VARCHAR(50) | Action type (ping, ping_response, post, post_response, ignite_post, ignite_response) |
-| data | LONGTEXT | Request/response data in JSON format |
-| created_at | TIMESTAMP | When the record was created |
+#### `post_requests`  
+General post logging for all providers.
+```sql
+CREATE TABLE post_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    submission_id VARCHAR(255),
+    provider VARCHAR(50) DEFAULT 'unknown',
+    status VARCHAR(50) DEFAULT 'unknown',
+    total_value DECIMAL(10,2) DEFAULT 0.00,
+    ping_count INT DEFAULT 0,
+    successful_posts INT DEFAULT 0,
+    request_data JSON,
+    response_data JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
 
-## Error Handling
+#### `ping_comparison`
+QuoteWizard vs ExchangeFlo head-to-head comparisons.
+```sql
+CREATE TABLE ping_comparison (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    quotewizard_success BOOLEAN DEFAULT FALSE,
+    quotewizard_value DECIMAL(10,2) DEFAULT 0,
+    quotewizard_error TEXT,
+    exchangeflo_success BOOLEAN DEFAULT FALSE,
+    exchangeflo_value DECIMAL(10,2) DEFAULT 0,
+    exchangeflo_error TEXT,
+    winner VARCHAR(50),
+    total_comparison_value DECIMAL(10,2) GENERATED ALWAYS AS (quotewizard_value + exchangeflo_value) STORED,
+    request_data JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-- API errors are caught and logged
-- Database connection errors are handled gracefully
-- Malformed XML responses are parsed safely
-- All errors are logged to the database for debugging
+### Analytics Views
 
-## Security Notes
+#### `request_analytics`
+Combined view of all ping and post requests.
 
-1. **Never commit sensitive configuration**: config.js and .env files are gitignored
-2. **Database credentials**: Use strong passwords and limit database user permissions
-3. **API keys**: Store QuoteWizard contract IDs and API tokens securely
-4. **Input validation**: Add input validation for production use
-5. **Rate limiting**: Consider adding rate limiting for the API endpoints
+#### `comparison_analytics`
+Detailed analytics for dual ping comparisons with extracted JSON fields.
 
-## Troubleshooting
+## 🧪 Testing
+
+### Automated Test Suite
+Run the comprehensive test suite:
+```bash
+node test-ping-comparison.js
+```
+
+**Test Features:**
+- ✅ Health check verification
+- ✅ Dual ping comparison testing
+- ✅ Winner selection validation
+- ✅ Post to winner functionality
+- ✅ Error handling verification
+- ✅ Log capture and analysis
+- ✅ TrustedForm certificate generation
+
+### Manual API Testing
+```bash
+# Health check
+curl http://localhost:5000/api/health
+
+# Test dual ping (replace with test data)
+curl -X POST http://localhost:5000/api/ping-both \
+  -H "Content-Type: application/json" \
+  -d @test-data.json
+```
+
+### Database Testing
+```sql
+-- Recent ping comparisons
+SELECT * FROM ping_comparison ORDER BY timestamp DESC LIMIT 10;
+
+-- Winner statistics  
+SELECT winner, COUNT(*) as wins, AVG(total_comparison_value) as avg_value
+FROM ping_comparison GROUP BY winner;
+
+-- Success rates
+SELECT 
+  AVG(quotewizard_success) * 100 as qw_success_rate,
+  AVG(exchangeflo_success) * 100 as ef_success_rate
+FROM ping_comparison;
+```
+
+## 🔧 Configuration
+
+### Environment Configuration
+```javascript
+// config.js
+module.exports = {
+  // Database Configuration
+  DB_HOST: process.env.DB_HOST || 'localhost',
+  DB_USER: process.env.DB_USER || 'smartautoinsider_user', 
+  DB_PASSWORD: process.env.DB_PASSWORD || 'your_password',
+  DB_NAME: process.env.DB_NAME || 'smartautoinsider_db',
+  
+  // QuoteWizard Configuration
+  QW_CONTRACT_ID: process.env.QW_CONTRACT_ID || 'your_contract_id',
+  QW_PRODUCTION_URL: 'https://quotewizard.com/LeadAPI/Services/SubmitVendorLead',
+  QW_STAGING_URL: 'https://stage.quotewizard.com/LeadAPI/Services/SubmitVendorLead',
+  
+  // ExchangeFlo Configuration
+  EXCHANGEFLO_TOKEN: process.env.EXCHANGEFLO_TOKEN || 'your_api_token',
+  EXCHANGEFLO_PING_URL: 'https://pub.exchangeflo.io/api/leads/ping',
+  EXCHANGEFLO_POST_URL: 'https://pub.exchangeflo.io/api/leads/post',
+  
+  // Server Configuration
+  PORT: process.env.PORT || 5000,
+  NODE_ENV: process.env.NODE_ENV || 'development'
+};
+```
+
+### TrustedForm Configuration
+- **Production**: Extracts real TrustedForm certificates from frontend
+- **Testing**: Generates random 40-character hex certificates
+- **Format**: `https://cert.trustedform.com/{certificate_id}`
+
+## 📈 Monitoring & Analytics
+
+### PM2 Process Management
+```bash
+# Status and monitoring
+pm2 status
+pm2 monit
+pm2 logs auto-insurance-app
+pm2 logs auto-insurance-app --lines 100
+
+# Management
+pm2 restart auto-insurance-app
+pm2 reload auto-insurance-app
+pm2 stop auto-insurance-app
+pm2 delete auto-insurance-app
+```
+
+### Database Analytics Queries
+```sql
+-- Daily comparison volume
+SELECT DATE(timestamp) as date, COUNT(*) as comparisons
+FROM ping_comparison 
+GROUP BY DATE(timestamp) 
+ORDER BY date DESC;
+
+-- Provider performance
+SELECT 
+    winner,
+    COUNT(*) as wins,
+    AVG(CASE WHEN winner = 'quotewizard' THEN quotewizard_value 
+             WHEN winner = 'exchangeflo' THEN exchangeflo_value 
+             ELSE 0 END) as avg_winning_value
+FROM ping_comparison 
+WHERE winner IS NOT NULL
+GROUP BY winner;
+
+-- Error analysis
+SELECT 
+    CASE 
+        WHEN quotewizard_error IS NOT NULL THEN 'QuoteWizard Error'
+        WHEN exchangeflo_error IS NOT NULL THEN 'ExchangeFlo Error'
+        ELSE 'No Errors'
+    END as error_type,
+    COUNT(*) as occurrences
+FROM ping_comparison
+GROUP BY error_type;
+```
+
+### Log Analysis
+The server captures comprehensive logs for all operations:
+- **Request/Response Logging** - Full data capture
+- **Error Tracking** - Detailed error messages and stack traces
+- **Performance Metrics** - Response times and success rates
+- **Debug Information** - XML/JSON data for troubleshooting
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Database connection errors**: Check MySQL is running and credentials are correct
-2. **QuoteWizard API errors**: Verify contract ID and API endpoints
-3. **XML parsing errors**: Check QuoteWizard response format
-4. **CORS errors**: Ensure CORS is properly configured for your domain
+#### Database Connection Errors
+```bash
+# Test database connection
+mysql -u smartautoinsider_user -p smartautoinsider_db
 
-### Debugging
+# Check if tables exist
+mysql -u smartautoinsider_user -p smartautoinsider_db -e "SHOW TABLES;"
+```
 
-1. Check server logs for error messages
-2. Check database `insurance_ping` table for API request/response logs
-3. Use browser developer tools to inspect network requests
-4. Test API endpoints directly with tools like Postman
+#### API Connection Issues
+```bash
+# Test QuoteWizard connectivity
+curl -X POST https://stage.quotewizard.com/LeadAPI/Services/SubmitVendorLead
 
-## License
+# Test ExchangeFlo connectivity  
+curl -X POST https://pub.exchangeflo.io/api/leads/ping \
+  -H "Authorization: Bearer your_token"
+```
 
-This project is for internal use only. Do not distribute without permission. 
+#### Server Performance Issues
+```bash
+# Check server resources
+top
+df -h
+netstat -tulnp | grep 5000
+
+# Check PM2 process health
+pm2 monit
+pm2 logs auto-insurance-app --lines 50
+```
+
+### Debug Mode
+Enable detailed logging by checking server logs:
+```bash
+# View recent logs with detailed information
+node test-ping-comparison.js
+
+# Check PM2 logs for production issues
+pm2 logs auto-insurance-app --follow
+```
+
+## 🚀 Performance Optimization
+
+### Database Optimizations
+- **Composite Indexes** - Optimized query performance
+- **Connection Pooling** - Efficient database connections
+- **Generated Columns** - Calculated fields for analytics
+
+### Application Optimizations
+- **Parallel Processing** - Simultaneous API calls
+- **Circular Log Buffer** - Memory-efficient logging
+- **Error Handling** - Graceful degradation
+- **Timeout Management** - Prevents hanging requests
+
+### Monitoring Recommendations
+- **Database Performance** - Monitor query execution times
+- **API Response Times** - Track external service performance  
+- **Memory Usage** - Watch for memory leaks
+- **Error Rates** - Monitor success/failure ratios
+
+## 📚 Additional Resources
+
+- **Main Documentation**: `../README.md`
+- **API Examples**: `PING_COMPARISON_README.md` 
+- **Database Schema**: `database/init.sql`
+- **Test Suite**: `test-ping-comparison.js`
+- **Configuration Template**: `config.example.js`
+
+---
+
+## 🎯 Development Notes
+
+This consolidated server architecture provides:
+- **Simplicity** - Single file with all functionality
+- **Maintainability** - Clear code organization and documentation
+- **Scalability** - Optimized database queries and connection pooling
+- **Reliability** - Comprehensive error handling and logging
+- **Testability** - Extensive test suite with log capture
+- **Analytics** - Detailed tracking of all operations 

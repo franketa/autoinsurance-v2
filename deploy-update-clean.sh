@@ -23,7 +23,7 @@ print_info() {
     echo -e "${GREEN}🚀 $1${NC}"
 }
 
-echo "🚀 Starting CLEAN deployment update..."
+echo "🚀 Starting CONSOLIDATED deployment update..."
 
 # Check if we're in the right directory
 if [ ! -f "package.json" ]; then
@@ -80,21 +80,21 @@ fi
 print_info "💾 Creating database backup..."
 mysqldump -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db > backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || true
 
-# Update database schema with clean version
-print_info "🔄 Updating database schema with clean version..."
-if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db < server/database/init_clean.sql 2>/dev/null; then
-    print_success "Clean database schema updated successfully"
+# Update database schema with consolidated version
+print_info "🔄 Updating database schema with consolidated version..."
+if mysql -u smartautoinsider_user -pSecurePassword123! smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+    print_success "Consolidated database schema updated successfully"
 else
-    print_warning "Clean database schema update failed - trying with root access..."
-    if sudo mysql smartautoinsider_db < server/database/init_clean.sql 2>/dev/null; then
-        print_success "Clean database schema updated with root access"
+    print_warning "Database schema update failed - trying with root access..."
+    if sudo mysql smartautoinsider_db < server/database/init.sql 2>/dev/null; then
+        print_success "Consolidated database schema updated with root access"
     else
-        print_error "Failed to update clean database schema"
+        print_error "Failed to update consolidated database schema"
         exit 1
     fi
 fi
 
-# Test the new database service
+# Test the database service
 print_info "🧪 Testing database service..."
 node -e "
 const databaseService = require('./server/database/service');
@@ -130,30 +130,22 @@ fi
 print_info "🛑 Stopping existing PM2 process..."
 pm2 stop auto-insurance-app 2>/dev/null || true
 
-# Switch to clean server
-print_info "🔄 Switching to clean server..."
+# Verify our single server.js exists
+print_info "🔍 Verifying server architecture..."
 if [ -f "server/server.js" ]; then
-    mv server/server.js server/server-old.js
-    print_info "Backed up old server to server-old.js"
-fi
-
-if [ -f "server/server-clean.js" ]; then
-    cp server/server-clean.js server/server.js
-    print_success "Switched to clean server"
+    print_success "Single consolidated server.js found"
 else
-    print_error "Clean server file not found!"
+    print_error "server.js not found! Check your repository structure"
     exit 1
 fi
 
-# Handle PM2 process restart/start
-print_info "🔄 Managing PM2 application with clean server..."
-
-# Start with clean server
+# Start with our consolidated single server
+print_info "🚀 Starting consolidated single server application..."
 pm2 start server/server.js --name auto-insurance-app --env production
 if [ $? -eq 0 ]; then
-    print_success "Clean application started successfully"
+    print_success "Consolidated application started successfully"
 else
-    print_error "Failed to start clean application"
+    print_error "Failed to start consolidated application"
     exit 1
 fi
 
@@ -161,7 +153,7 @@ fi
 sleep 3
 
 # Test the new endpoints
-print_info "🧪 Testing new API endpoints..."
+print_info "🧪 Testing API endpoints..."
 
 # Test health endpoint
 HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health)
@@ -171,19 +163,26 @@ else
     print_warning "Health endpoint test failed (HTTP $HEALTH_RESPONSE)"
 fi
 
-# Test ping endpoint with sample data
-PING_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/api/test/ping)
+# Test ping comparison endpoint (our main feature)
+print_info "🎯 Testing dual ping comparison system..."
+PING_TEST_DATA='{"firstName":"TestUser","lastName":"Deploy","email":"test@example.com","phoneNumber":"5551234567","streetAddress":"123 Test St","city":"Seattle","state":"WA","zipcode":"98101","birthdate":"1985-01-01","gender":"Male","maritalStatus":"Single","creditScore":"Good","homeowner":"Own","military":"No","driverEducation":"Bachelor'\''s Degree","driverOccupation":"Engineer","driversLicense":"Yes","sr22":"No","insuranceHistory":"Yes","currentAutoInsurance":"Geico","insuranceDuration":"1-3 years","coverageType":"Full Coverage","vehicles":[{"year":"2020","make":"Toyota","model":"Camry","purpose":"commute","mileage":"10000-15000","ownership":"owned"}]}'
+
+PING_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+    -H "Content-Type: application/json" \
+    -d "$PING_TEST_DATA" \
+    http://localhost:5000/api/ping-both)
+
 if [ "$PING_RESPONSE" = "200" ]; then
-    print_success "Test ping endpoint successful"
+    print_success "Dual ping comparison endpoint test successful"
 else
-    print_warning "Test ping endpoint failed (HTTP $PING_RESPONSE)"
+    print_warning "Dual ping comparison endpoint test failed (HTTP $PING_RESPONSE)"
 fi
 
 # Save PM2 configuration
 pm2 save > /dev/null 2>&1
 
 # Show current status
-print_success "🎉 Clean deployment completed successfully!"
+print_success "🎉 Consolidated deployment completed successfully!"
 echo ""
 print_info "📊 Current PM2 Status:"
 pm2 status
@@ -197,56 +196,29 @@ print_info "🌐 Test Your Application:"
 SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || echo "your-server-ip")
 echo "  Frontend: http://$SERVER_IP"
 echo "  API Health: http://$SERVER_IP/api/health"
-echo "  Dashboard: http://$SERVER_IP/admin/dashboard"
-echo "  Ping Analytics: http://$SERVER_IP/api/analytics/pings"
+echo "  Dual Ping Test: http://$SERVER_IP/api/ping-both"
+echo ""
+print_info "🎯 Key Features Available:"
+echo "  • Single consolidated server architecture"
+echo "  • QuoteWizard + ExchangeFlo dual ping comparison"
+echo "  • Automated winner selection and posting"
+echo "  • Comprehensive logging and analytics"
+echo "  • TrustedForm certificate integration"
 echo ""
 print_info "💡 Useful Commands:"
 echo "  View logs: pm2 logs auto-insurance-app"
 echo "  Check status: pm2 status"
 echo "  Restart app: pm2 restart auto-insurance-app"
-echo "  View dashboard: curl http://localhost:5000/admin/dashboard"
-echo "  Test ping: curl -X POST http://localhost:5000/api/test/ping"
+echo "  Test dual ping: node server/test-ping-comparison.js"
 
-# Test logging functionality
-print_info "🧪 Running integration test..."
-node -e "
-const axios = require('axios');
+# Test the dual ping comparison system
+print_info "🧪 Running comprehensive integration test..."
+node server/test-ping-comparison.js 2>/dev/null && print_success "Integration test completed!" || print_warning "Integration test had issues - check logs"
 
-async function testLogging() {
-    try {
-        // Test ping logging
-        const pingResponse = await axios.post('http://localhost:5000/api/log/ping', {
-            request_data: { test: 'data' },
-            response_data: { 
-                status: 'success', 
-                submission_id: 'test_$(date +%s)',
-                pings: [{ value: 10.50 }]
-            },
-            timestamp: new Date().toISOString()
-        });
-        
-        console.log('✅ Ping logging test successful');
-        
-        // Test post logging
-        const postResponse = await axios.post('http://localhost:5000/api/log/post', {
-            request_data: { submission_id: 'test_$(date +%s)' },
-            response_data: { 
-                status: 'success', 
-                value: 15.75,
-                results: [{ result: 'success' }]
-            },
-            timestamp: new Date().toISOString()
-        });
-        
-        console.log('✅ Post logging test successful');
-        console.log('🎉 All integration tests passed!');
-        
-    } catch (error) {
-        console.error('❌ Integration test failed:', error.message);
-    }
-}
-
-testLogging();
-"
-
-print_success "🎊 Clean deployment and testing completed!" 
+print_success "🎊 Consolidated deployment and testing completed!" 
+print_info "🏆 Your application is now running with:"
+echo "  • Single server.js architecture"
+echo "  • Consolidated database schema"
+echo "  • QuoteWizard vs ExchangeFlo dual ping system"
+echo "  • Automatic winner selection and posting"
+echo "  • Enhanced logging and error handling" 

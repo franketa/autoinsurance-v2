@@ -1,63 +1,66 @@
--- Database initialization script for auto insurance quote application
--- This script creates the necessary table for logging API requests and responses
+-- Consolidated Database Schema for Auto Insurance Quote Application
+-- This script creates all necessary tables for our single-server architecture
+-- Supports both QuoteWizard and ExchangeFlo dual ping system
 
 -- Create database (if not exists)
 CREATE DATABASE IF NOT EXISTS smartautoinsider_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE smartautoinsider_db;
 
--- Create the insurance_ping table for logging API requests and responses
-CREATE TABLE IF NOT EXISTS insurance_ping (
+-- ============================================================================
+-- CORE LOGGING TABLES
+-- ============================================================================
+
+-- General ping requests table (supports all providers)
+CREATE TABLE IF NOT EXISTS ping_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    action VARCHAR(50) NOT NULL,
-    data LONGTEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Optional: Create a user for the application (if not exists)
--- Note: Replace 'your_password' with a secure password
--- CREATE USER IF NOT EXISTS 'smartautoinsider_user'@'localhost' IDENTIFIED BY 'your_password';
--- GRANT ALL PRIVILEGES ON smartautoinsider_db.* TO 'smartautoinsider_user'@'localhost';
--- FLUSH PRIVILEGES;
-
--- Show the created table structure
-DESCRIBE insurance_ping;
-
--- Add ExchangeFlo ping request logging table (MySQL syntax)
-CREATE TABLE IF NOT EXISTS exchangeflo_ping_requests (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     submission_id VARCHAR(255),
-    status VARCHAR(50),
+    provider VARCHAR(50) DEFAULT 'unknown',
+    status VARCHAR(50) DEFAULT 'unknown',
     ping_count INT DEFAULT 0,
+    total_value DECIMAL(10,2) DEFAULT 0.00,
     request_data JSON,
     response_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_ping_submission_id (submission_id),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
     INDEX idx_ping_timestamp (timestamp),
-    INDEX idx_ping_status (status)
+    INDEX idx_ping_submission_id (submission_id),
+    INDEX idx_ping_provider (provider),
+    INDEX idx_ping_status (status),
+    INDEX idx_ping_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Add ExchangeFlo post request logging table (MySQL syntax)
-CREATE TABLE IF NOT EXISTS exchangeflo_post_requests (
+-- General post requests table (supports all providers) 
+CREATE TABLE IF NOT EXISTS post_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     submission_id VARCHAR(255),
-    status VARCHAR(50),
-    total_value DECIMAL(10,2) DEFAULT 0,
+    provider VARCHAR(50) DEFAULT 'unknown',
+    status VARCHAR(50) DEFAULT 'unknown',
+    total_value DECIMAL(10,2) DEFAULT 0.00,
     ping_count INT DEFAULT 0,
     successful_posts INT DEFAULT 0,
     request_data JSON,
     response_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_post_submission_id (submission_id),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
     INDEX idx_post_timestamp (timestamp),
-    INDEX idx_post_status (status)
+    INDEX idx_post_submission_id (submission_id),
+    INDEX idx_post_provider (provider),
+    INDEX idx_post_status (status),
+    INDEX idx_post_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Add ping comparison table for tracking QuoteWizard vs ExchangeFlo results
+-- ============================================================================
+-- DUAL PING COMPARISON SYSTEM
+-- ============================================================================
+
+-- Ping comparison table for QuoteWizard vs ExchangeFlo head-to-head comparisons
 CREATE TABLE IF NOT EXISTS ping_comparison (
     id INT AUTO_INCREMENT PRIMARY KEY,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -71,35 +74,117 @@ CREATE TABLE IF NOT EXISTS ping_comparison (
     total_comparison_value DECIMAL(10,2) GENERATED ALWAYS AS (quotewizard_value + exchangeflo_value) STORED,
     request_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance and analytics
     INDEX idx_comparison_timestamp (timestamp),
     INDEX idx_comparison_winner (winner),
-    INDEX idx_comparison_total_value (total_comparison_value)
+    INDEX idx_comparison_total_value (total_comparison_value),
+    INDEX idx_comparison_qw_success (quotewizard_success),
+    INDEX idx_comparison_ef_success (exchangeflo_success)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create a view for combined ping/post analysis
-CREATE OR REPLACE VIEW exchangeflo_analytics AS
+-- ============================================================================
+-- LEGACY COMPATIBILITY (for any existing code)
+-- ============================================================================
+
+-- Legacy insurance_ping table for backward compatibility
+CREATE TABLE IF NOT EXISTS insurance_ping (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    action VARCHAR(50) NOT NULL,
+    data LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_action (action),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- ANALYTICS VIEWS
+-- ============================================================================
+
+-- Comprehensive analytics view combining all request types
+CREATE OR REPLACE VIEW request_analytics AS
 SELECT 
-    pr.submission_id,
-    pr.timestamp as ping_timestamp,
-    pr.ping_count,
-    pr.status as ping_status,
-    pr.request_data,
-    pr.response_data as ping_response_data,
-    por.timestamp as post_timestamp,
-    por.status as post_status,
-    por.total_value,
-    por.successful_posts,
-    por.response_data as post_response_data,
+    'ping' as request_type,
+    id,
+    timestamp,
+    submission_id,
+    provider,
+    status,
+    total_value,
+    ping_count,
+    0 as successful_posts,
+    created_at
+FROM ping_requests
+UNION ALL
+SELECT 
+    'post' as request_type,
+    id,
+    timestamp,
+    submission_id,
+    provider,
+    status,
+    total_value,
+    ping_count,
+    successful_posts,
+    created_at
+FROM post_requests
+ORDER BY created_at DESC;
+
+-- Dual ping comparison analytics
+CREATE OR REPLACE VIEW comparison_analytics AS
+SELECT 
+    timestamp,
+    winner,
+    quotewizard_success,
+    quotewizard_value,
+    exchangeflo_success,
+    exchangeflo_value,
+    total_comparison_value,
     CASE 
-        WHEN por.submission_id IS NOT NULL THEN 'completed'
-        WHEN pr.status = 'success' THEN 'ping_only'
-        ELSE 'failed'
-    END as flow_status,
-    -- Extract useful JSON fields for easier querying
-    JSON_EXTRACT(pr.request_data, '$.profile.zip') as zip_code,
-    JSON_EXTRACT(pr.request_data, '$.profile.auto_coverage_type') as coverage_type,
-    JSON_EXTRACT(pr.request_data, '$.profile.vehicle_count') as vehicle_count,
-    JSON_EXTRACT(pr.response_data, '$.pings') as pings_data
-FROM exchangeflo_ping_requests pr
-LEFT JOIN exchangeflo_post_requests por ON pr.submission_id = por.submission_id
-ORDER BY pr.timestamp DESC; 
+        WHEN quotewizard_success AND exchangeflo_success THEN 'both_success'
+        WHEN quotewizard_success AND NOT exchangeflo_success THEN 'qw_only'
+        WHEN NOT quotewizard_success AND exchangeflo_success THEN 'ef_only'
+        ELSE 'both_failed'
+    END as success_pattern,
+    CASE
+        WHEN winner = 'quotewizard' THEN quotewizard_value
+        WHEN winner = 'exchangeflo' THEN exchangeflo_value
+        ELSE 0
+    END as winning_value,
+    JSON_EXTRACT(request_data, '$.zipcode') as zip_code,
+    JSON_EXTRACT(request_data, '$.state') as state,
+    JSON_EXTRACT(request_data, '$.coverageType') as coverage_type,
+    JSON_EXTRACT(request_data, '$.vehicles') as vehicles_data
+FROM ping_comparison
+ORDER BY timestamp DESC;
+
+-- ============================================================================
+-- PERFORMANCE OPTIMIZATIONS
+-- ============================================================================
+
+-- Create composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_ping_provider_status_timestamp 
+ON ping_requests (provider, status, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_post_provider_status_timestamp 
+ON post_requests (provider, status, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_comparison_winner_timestamp 
+ON ping_comparison (winner, timestamp);
+
+-- ============================================================================
+-- VERIFICATION AND TESTING
+-- ============================================================================
+
+-- Show table structures for verification
+DESCRIBE ping_requests;
+DESCRIBE post_requests;
+DESCRIBE ping_comparison;
+DESCRIBE insurance_ping;
+
+-- Test database connection and show successful setup
+SELECT 
+    'Database setup completed successfully' as status, 
+    NOW() as timestamp,
+    'Single consolidated server architecture' as architecture_type,
+    'QuoteWizard + ExchangeFlo dual ping system' as features; 

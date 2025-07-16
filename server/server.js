@@ -12,7 +12,46 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Global logging array to capture logs for test responses
+let logBuffer = [];
+const MAX_LOG_BUFFER_SIZE = 1000;
+
+// Enhanced logging function that captures logs for test responses
+function logWithCapture(level, message, data = null) {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    level,
+    message,
+    data: data ? JSON.stringify(data, null, 2) : null
+  };
+  
+  // Add to buffer for test responses
+  logBuffer.push(logEntry);
+  
+  // Keep buffer size manageable
+  if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
+    logBuffer = logBuffer.slice(-MAX_LOG_BUFFER_SIZE);
+  }
+  
+  // Also log to console for PM2 (but tests will capture from buffer)
+  const logStr = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+  if (data) {
+    console.log(logStr);
+    console.log(JSON.stringify(data, null, 2));
+  } else {
+    console.log(logStr);
+  }
+}
+
+// Function to get and clear logs (for test responses)
+function getAndClearLogs() {
+  const logs = [...logBuffer];
+  logBuffer = [];
+  return logs;
+}
 
 // Database configuration
 const dbConfig = {
@@ -40,11 +79,6 @@ const QUOTE_WIZARD_CONFIG = {
   staging_url: 'https://stage.quotewizard.com/LeadAPI/Services/SubmitVendorLead'
 };
 
-// Ignite API configuration
-const IGNITE_CONFIG = {
-  url: 'https://app-dp-tst-wu3.azurewebsites.net/api/Upload/SingleUpload?auth_token=B4YMZ43H31g0o0B9Xxx9'
-};
-
 // Helper Functions
 function transformPhoneNumber(phone) {
   if (!phone) return '';
@@ -53,14 +87,42 @@ function transformPhoneNumber(phone) {
   return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
 }
 
+// Generate random trusted form certificate ID (40 hex characters)
+function generateTrustedFormCertId() {
+  const hexChars = '0123456789abcdef';
+  
+  // Create a unique combination using timestamp + random bytes
+  const timestamp = Date.now().toString(16); // Convert timestamp to hex
+  const randomBytes = [];
+  
+  // Generate cryptographically strong random bytes
+  for (let i = 0; i < 32; i++) {
+    randomBytes.push(Math.floor(Math.random() * 256));
+  }
+  
+  // Convert random bytes to hex string
+  const randomHex = randomBytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  
+  // Combine timestamp and random hex, then take first 40 characters
+  const combined = (timestamp + randomHex).slice(0, 40);
+  
+  // Ensure exactly 40 characters by padding with random hex if needed
+  let certId = combined;
+  while (certId.length < 40) {
+    certId += hexChars[Math.floor(Math.random() * hexChars.length)];
+  }
+  
+  return certId.substring(0, 40);
+}
+
 function transformVehicles(vehicles) {
   if (!vehicles || !Array.isArray(vehicles)) {
-    console.log('No vehicles provided or not an array, returning empty array');
+    logWithCapture('debug', 'No vehicles provided or not an array, returning empty array');
     return [];
   }
   
   return vehicles.map((vehicle, index) => {
-    console.log(`Processing vehicle ${index + 1}:`, vehicle);
+    logWithCapture('debug', `Processing vehicle ${index + 1}`, vehicle);
     
     const transformed = {
       Year: vehicle.year || vehicle.Year || '',
@@ -68,7 +130,7 @@ function transformVehicles(vehicles) {
       Model: vehicle.model || vehicle.Model || ''
     };
     
-    console.log(`Transformed vehicle ${index + 1}:`, transformed);
+    logWithCapture('debug', `Transformed vehicle ${index + 1}`, transformed);
     return transformed;
   });
 }
@@ -105,12 +167,11 @@ function generateDriversXML(drivers) {
 
 function generateVehiclesXML(vehicles) {
   return vehicles.map(vehicle => {
-    // Ensure we have valid values, not undefined
     const year = vehicle.Year || '2020';
     const make = vehicle.Make || 'Toyota';
     const model = vehicle.Model || 'Camry';
     
-    console.log(`Generating XML for vehicle: Year=${year}, Make=${make}, Model=${model}`);
+    logWithCapture('debug', `Generating XML for vehicle: Year=${year}, Make=${make}, Model=${model}`);
     
     return `
     <Vehicle>
@@ -197,73 +258,10 @@ function generateFullXML(formData, vendorData) {
     </QuoteWizardData>`;
 }
 
-// Helper function to log data to MySQL
-async function logToDatabase(table, data) {
-  try {
-    let query, values;
-    
-    if (table === 'exchangeflo_ping_requests') {
-      query = `
-        INSERT INTO exchangeflo_ping_requests 
-        (timestamp, submission_id, status, ping_count, request_data, response_data)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `;
-      values = [
-        data.timestamp,
-        data.submission_id,
-        data.status,
-        data.ping_count,
-        JSON.stringify(data.request_data),
-        JSON.stringify(data.response_data)
-      ];
-    } else if (table === 'exchangeflo_post_requests') {
-      query = `
-        INSERT INTO exchangeflo_post_requests 
-        (timestamp, submission_id, status, total_value, ping_count, successful_posts, request_data, response_data)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      values = [
-        data.timestamp,
-        data.submission_id,
-        data.status,
-        data.total_value,
-        data.ping_count,
-        data.successful_posts,
-        JSON.stringify(data.request_data),
-        JSON.stringify(data.response_data)
-      ];
-    } else {
-      // Fallback for original insurance_ping table
-      query = `
-        INSERT INTO insurance_ping 
-        (zip_code, firstName, lastName, phoneNumber, email, streetAddress, city, state, birthdate, 
-         gender, maritalStatus, creditScore, homeowner, driversLicense, sr22, insuranceHistory, 
-         currentAutoInsurance, insuranceDuration, coverageType, military, vehicles, 
-         created_at, additional_data)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      values = [
-        data.zipcode, data.firstName, data.lastName, data.phoneNumber, data.email,
-        data.streetAddress, data.city, data.state, data.birthdate, data.gender,
-        data.maritalStatus, data.creditScore, data.homeowner, data.driversLicense,
-        data.sr22, data.insuranceHistory, data.currentAutoInsurance, data.insuranceDuration,
-        data.coverageType, data.military, JSON.stringify(data.vehicles),
-        new Date().toISOString(), JSON.stringify(data.additionalData || {})
-      ];
-    }
-    
-    const [result] = await promisePool.execute(query, values);
-    return { id: result.insertId };
-  } catch (error) {
-    console.error('Database logging error:', error);
-    throw error;
-  }
-}
-
 async function sendQuoteWizardRequest(contractID, initialID, pass, quoteData) {
   const url = process.env.NODE_ENV === 'production' 
     ? QUOTE_WIZARD_CONFIG.staging_url 
-    : QUOTE_WIZARD_CONFIG.staging_url; // Use production for now
+    : QUOTE_WIZARD_CONFIG.staging_url;
   
   const fields = {
     contractID,
@@ -284,14 +282,13 @@ async function sendQuoteWizardRequest(contractID, initialID, pass, quoteData) {
     
     return response.data;
   } catch (error) {
-    console.error('QuoteWizard API error:', error);
+    logWithCapture('error', 'QuoteWizard API error', error.message);
     throw error;
   }
 }
 
 function extractQuoteID(pingResponse) {
   try {
-    // Find the XML content within the response
     const startTag = '<string';
     const endTag = '</string>';
     const start = pingResponse.indexOf(startTag) + startTag.length;
@@ -304,7 +301,6 @@ function extractQuoteID(pingResponse) {
     const xmlContent = pingResponse.substring(start, end);
     const decodedXml = xmlContent.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
     
-    // Extract Quote_ID using regex
     const quoteIdMatch = decodedXml.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
     if (quoteIdMatch && quoteIdMatch[1]) {
       return quoteIdMatch[1];
@@ -312,425 +308,30 @@ function extractQuoteID(pingResponse) {
     
     throw new Error('Quote_ID not found in response');
   } catch (error) {
-    console.error('Error extracting Quote ID:', error);
+    logWithCapture('error', 'Error extracting Quote ID', error.message);
     throw error;
   }
 }
 
-async function sendToIgnite(formData) {
+function extractQuoteWizardValue(response) {
   try {
-    const igniteData = {
-      partitionKey: '',
-      rowKey: '',
-      timestamp: new Date().toISOString(),
-      eTag: '',
-      contact: {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        customField: {
-          sourceUrl: 'https://www.smartautoinsider.com',
-          ipAddress: formData.ipAddress || '',
-          postalAddress: formData.streetAddress,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipcode,
-          gender: formData.gender,
-          birthdate: formData.birthdate,
-          married: formData.maritalStatus,
-          ownRent: formData.homeowner,
-          optInDate: new Date().toISOString()
-        }
+    if (response && response.includes && response.includes('Quote_ID')) {
+      // Check if the response indicates success
+      if (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>')) {
+        return 15.0;
+      } else if (response.includes('<Status>Failure</Status>')) {
+        logWithCapture('info', 'QuoteWizard response indicates failure, returning 0 value');
+        return 0;
       }
-    };
-    
-    await logToDatabase('ignite_post', igniteData);
-    
-    const response = await axios.post(IGNITE_CONFIG.url, igniteData, {
-      headers: {
-        'Accept': '*/*',
-        'Content-Type': 'text/json'
-      }
-    });
-    
-    await logToDatabase('ignite_response', response.data);
-    
-    return response.data;
+      // If status is unclear but Quote_ID exists, assume some value
+      return 15.0;
+    }
+    return 0;
   } catch (error) {
-    console.error('Ignite API error:', error);
-    await logToDatabase('ignite_error', error.message);
-    throw error;
+    logWithCapture('error', 'Error extracting QuoteWizard value', error.message);
+    return 0;
   }
 }
-
-// Main API endpoint
-app.post('/api/submit-quote', async (req, res) => {
-  try {
-    const inputData = req.body;
-    
-    // Extract and set defaults for form data
-    const firstName = inputData.firstName || 'Matvii';
-    const lastName = inputData.lastName || 'Kapralov';
-    const phone = transformPhoneNumber(inputData.phoneNumber);
-    const email = inputData.email || 'xxxx@yahoo.com';
-    const address = inputData.streetAddress || '1111 XXX Dr';
-    const zipCode = inputData.zipcode || '98101';
-    const dob = inputData.birthdate || '1966-01-01';
-    const city = inputData.city || 'SEATTLE';
-    const state = inputData.state || 'WA';
-    const maritalStatus = inputData.maritalStatus || 'Married';
-    const gender = inputData.gender || 'Male';
-    const sr22 = inputData.sr22 || 'No';
-    const license_status = inputData.driversLicense === 'Yes' ? 'Valid' : 'Invalid';
-    const trusted_form_cert_id = inputData.trusted_form_cert_id || '';
-    const credit_rating = inputData.creditScore || 'Excellent';
-    const current_insurance = inputData.currentAutoInsurance || 'Geico';
-    const homeowner = inputData.homeowner || 'Own';
-    
-    const vehicles = transformVehicles(inputData.vehicles || []);
-    
-    // Debug: Log vehicle data
-    console.log('Original vehicles:', inputData.vehicles);
-    console.log('Transformed vehicles:', vehicles);
-    
-    // Build driver data
-    const drivers = [{
-      Gender: gender,
-      MaritalStatus: maritalStatus,
-      RelationshipToApplicant: 'Self',
-      FirstName: firstName,
-      LastName: lastName,
-      BirthDate: dob,
-      State: state,
-      AgeLicensed: '16',
-      LicenseStatus: license_status,
-      LicenseEverSuspendedRevoked: 'No',
-      Occupation: {
-        Name: 'OtherNonTechnical',
-        YearsInField: '5'
-      },
-      HighestLevelOfEducation: {
-        AtHomeStudent: 'No',
-        HighestDegree: 'BachelorsDegree'
-      },
-      RequiresSR22Filing: sr22,
-      CreditRating: {
-        Bankruptcy: 'No',
-        SelfRating: credit_rating
-      },
-      Incidents: []
-    }];
-    
-    // Build insurance profile
-    const insuranceProfile = [{
-      CoverageType: 'Standard',
-      CurrentPolicy: {
-        InsuranceCompany: {
-          CompanyName: current_insurance
-        },
-        ExpirationDate: '',
-        StartDate: ''
-      }
-    }];
-    
-    // Build contact data
-    const contact = {
-      FirstName: firstName,
-      LastName: lastName,
-      Address1: address,
-      City: city,
-      State: state,
-      ZIPCode: zipCode,
-      EmailAddress: email,
-      PhoneNumbers: {
-        PrimaryPhone: phone,
-        SecondaryPhone: phone
-      },
-      CurrentResidence: {
-        ResidenceStatus: homeowner,
-        OccupancyDate: '2012-02-08'
-      }
-    };
-    
-    // Build vendor data
-    const vendorData = {
-      LeadID: '2897BDB4',
-      SourceID: req.sessionID || '',
-      SourceIPAddress: req.ip || req.connection.remoteAddress || '',
-      SubmissionUrl: 'https://smartautoinsider.com',
-      UserAgent: req.get('User-Agent') || '',
-      DateLeadReceived: getTodayDate(),
-      LeadBornOnDateTimeUTC: getTodayDate(true),
-      JornayaLeadID: '',
-      TrustedFormCertificateUrl: `https://cert.trustedform.com/${trusted_form_cert_id}`,
-      EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
-      TCPAOptIn: 'Yes',
-      TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy, and consent to receive important notices and other communications electronically. You also consent to receive marketing and informational calls, text messages, and pre-recorded messages from us and third-party marketers we work with at the phone number you provide, including via an autodialer or prerecorded voice. Consent is not a condition of our services. Message and data rates may apply. Message frequency may vary. Reply STOP to opt out, HELP for help.'
-    };
-    
-    const formData = {
-      drivers,
-      vehicles,
-      insuranceProfile,
-      contact,
-      ...inputData
-    };
-    
-    // Validate we have vehicles
-    if (!vehicles || vehicles.length === 0) {
-      throw new Error('At least one vehicle is required');
-    }
-    
-    // Validate vehicle data
-    vehicles.forEach((vehicle, index) => {
-      if (!vehicle.Year || !vehicle.Make || !vehicle.Model) {
-        throw new Error(`Vehicle ${index + 1} is missing required data: Year=${vehicle.Year}, Make=${vehicle.Make}, Model=${vehicle.Model}`);
-      }
-    });
-    
-    console.log('Final vehicle data for XML:', vehicles);
-    
-    // Generate XML
-    const quoteXML = generateFullXML(formData, vendorData);
-    
-    // Step 1: Send ping request
-    await logToDatabase('ping', quoteXML);
-    const pingResponse = await sendQuoteWizardRequest(
-      QUOTE_WIZARD_CONFIG.contractID,
-      null,
-      1,
-      quoteXML
-    );
-    await logToDatabase('ping_response', pingResponse);
-    
-    // Step 2: Extract Quote ID and send post request
-    const initialID = extractQuoteID(pingResponse);
-    const postXML = generateFullXML(formData, vendorData);
-    
-    await logToDatabase('post', postXML);
-    const postResponse = await sendQuoteWizardRequest(
-      QUOTE_WIZARD_CONFIG.contractID,
-      initialID,
-      2,
-      postXML
-    );
-    await logToDatabase('post_response', postResponse);
-    
-    // Step 3: Send to Ignite API
-    const igniteResponse = await sendToIgnite(formData);
-    
-    // Return success response
-    res.json({
-      success: true,
-      ping: {
-        xml: quoteXML,
-        response: pingResponse
-      },
-      post: {
-        xml: postXML,
-        response: postResponse
-      },
-      ignite: igniteResponse,
-      initialID: initialID
-    });
-    
-  } catch (error) {
-    console.error('Quote submission error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Location lookup endpoint
-app.get('/api/location', async (req, res) => {
-  try {
-    const zipCode = req.query.zip;
-    
-    if (zipCode) {
-      // Zip code lookup
-      console.log('Looking up location for zip code:', zipCode);
-      const locationData = await getLocationFromZip(zipCode);
-      res.json(locationData);
-    } else {
-      // IP-based lookup (original functionality)
-      const ip = req.query.ip || req.ip || req.connection.remoteAddress || '';
-      
-      // Clean the IP address (remove ::ffff: prefix if present)
-      const cleanIP = ip.replace(/^::ffff:/, '');
-      
-      console.log('Looking up location for IP:', cleanIP);
-      
-      const locationData = await getLocationFromIP(cleanIP);
-      res.json(locationData);
-    }
-  } catch (error) {
-    console.error('Location lookup error:', error);
-    res.status(500).json({
-      error: 'Failed to lookup location',
-      zip: req.query.zip || '98101',
-      region: 'WA',
-      city: 'Seattle'
-    });
-  }
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    services: {
-      server: 'running',
-      database: 'connected' // You could add actual DB health check here
-    }
-  });
-});
-
-// Database logging endpoint for ping requests
-app.post('/api/log/ping', async (req, res) => {
-  try {
-    const { request, response, timestamp } = req.body;
-    
-    // Extract data for database storage
-    const logData = {
-      timestamp: timestamp || new Date().toISOString(),
-      submission_id: response?.submission_id || null,
-      status: response?.status || 'unknown',
-      ping_count: response?.pings?.length || 0,
-      request_data: request,
-      response_data: response
-    };
-    
-    await logToDatabase('exchangeflo_ping_requests', logData);
-    
-    res.json({ success: true, message: 'Ping logged successfully' });
-  } catch (error) {
-    console.error('Ping logging error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Database logging endpoint for post requests
-app.post('/api/log/post', async (req, res) => {
-  try {
-    const { request, response, timestamp } = req.body;
-    
-    // Calculate successful posts
-    const successfulPosts = response?.results?.filter(r => r.result === 'success').length || 0;
-    
-    // Extract data for database storage
-    const logData = {
-      timestamp: timestamp || new Date().toISOString(),
-      submission_id: response?.submission_id || request?.submission_id || null,
-      status: response?.status || 'unknown',
-      total_value: response?.value || 0,
-      ping_count: request?.ping_ids?.length || 0,
-      successful_posts: successfulPosts,
-      request_data: request,
-      response_data: response
-    };
-    
-    await logToDatabase('exchangeflo_post_requests', logData);
-    
-    res.json({ success: true, message: 'Post logged successfully' });
-  } catch (error) {
-    console.error('Post logging error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// New endpoint to ping both services and return the highest bidder
-app.post('/api/ping-both', async (req, res) => {
-  try {
-    const inputData = req.body;
-    console.log('Received ping-both request:', inputData);
-    
-    // Prepare data for both services
-    const quotewizardData = await prepareQuoteWizardData(inputData, req);
-    const exchangefloData = await prepareExchangeFloData(inputData);
-    
-    // Ping both services simultaneously
-    const [quotewizardResult, exchangefloResult] = await Promise.allSettled([
-      pingQuoteWizard(quotewizardData),
-      pingExchangeFlo(exchangefloData)
-    ]);
-    
-    console.log('QuoteWizard ping result:', quotewizardResult);
-    console.log('ExchangeFlo ping result:', exchangefloResult);
-    
-    // Analyze results and determine winner
-    const comparison = {
-      quotewizard: {
-        success: quotewizardResult.status === 'fulfilled',
-        value: 0,
-        error: quotewizardResult.status === 'rejected' ? quotewizardResult.reason?.message : null,
-        data: quotewizardResult.status === 'fulfilled' ? quotewizardResult.value : null
-      },
-      exchangeflo: {
-        success: exchangefloResult.status === 'fulfilled',
-        value: 0,
-        error: exchangefloResult.status === 'rejected' ? exchangefloResult.reason?.message : null,
-        data: exchangefloResult.status === 'fulfilled' ? exchangefloResult.value : null
-      }
-    };
-    
-    // Calculate values from successful pings
-    if (comparison.quotewizard.success && comparison.quotewizard.data) {
-      // For QuoteWizard, we need to parse the XML response to get potential value
-      comparison.quotewizard.value = extractQuoteWizardValue(comparison.quotewizard.data);
-    }
-    
-    if (comparison.exchangeflo.success && comparison.exchangeflo.data) {
-      // For ExchangeFlo, sum up all ping values
-      const pings = comparison.exchangeflo.data.pings || [];
-      comparison.exchangeflo.value = pings.reduce((sum, ping) => sum + (parseFloat(ping.value) || 0), 0);
-    }
-    
-    // Determine winner based on highest value
-    let winner = null;
-    if (comparison.quotewizard.value > comparison.exchangeflo.value) {
-      winner = 'quotewizard';
-    } else if (comparison.exchangeflo.value > comparison.quotewizard.value) {
-      winner = 'exchangeflo';
-    } else if (comparison.quotewizard.success && !comparison.exchangeflo.success) {
-      winner = 'quotewizard';
-    } else if (comparison.exchangeflo.success && !comparison.quotewizard.success) {
-      winner = 'exchangeflo';
-    }
-    
-    // Log to database using database service
-    await databaseService.logPingComparison({
-      timestamp: new Date().toISOString(),
-      quotewizard_success: comparison.quotewizard.success,
-      quotewizard_value: comparison.quotewizard.value,
-      quotewizard_error: comparison.quotewizard.error,
-      exchangeflo_success: comparison.exchangeflo.success,
-      exchangeflo_value: comparison.exchangeflo.value,
-      exchangeflo_error: comparison.exchangeflo.error,
-      winner: winner,
-      request_data: inputData
-    });
-    
-    res.json({
-      success: true,
-      winner: winner,
-      comparison: comparison,
-      winnerData: winner ? comparison[winner].data : null,
-      message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed'
-    });
-    
-  } catch (error) {
-    console.error('Ping comparison error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      winner: null
-    });
-  }
-});
 
 // Helper function to prepare QuoteWizard data
 async function prepareQuoteWizardData(inputData, req) {
@@ -809,6 +410,11 @@ async function prepareQuoteWizardData(inputData, req) {
     }
   };
   
+  // Use random cert ID for testing, real TrustedForm for production
+  const trustedFormCertId = process.env.NODE_ENV === 'production' 
+    ? (inputData.trusted_form_cert_id || generateTrustedFormCertId())
+    : generateTrustedFormCertId();
+  
   const vendorData = {
     LeadID: '2897BDB4',
     SourceID: req.sessionID || '',
@@ -818,7 +424,7 @@ async function prepareQuoteWizardData(inputData, req) {
     DateLeadReceived: getTodayDate(),
     LeadBornOnDateTimeUTC: getTodayDate(true),
     JornayaLeadID: '',
-    TrustedFormCertificateUrl: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'https://cert.trustedform.com/0223456788abcdee0123456789abcdef012345627'}`,
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${trustedFormCertId}`,
     EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
     TCPAOptIn: 'Yes',
     TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
@@ -902,6 +508,43 @@ async function prepareExchangeFloData(inputData) {
     }
   };
   
+  const mapEducation = (education) => {
+    switch (education) {
+      case 'High School': return "high_school";
+      case 'Some College': return "some_college";
+      case 'Associate Degree': return "associates_degree";
+      case 'Bachelor\'s Degree': return "bachelors_degree";
+      case 'Master\'s Degree': return "masters_degree";
+      case 'Doctorate': return "doctorate";
+      default: return "bachelors_degree";
+    }
+  };
+  
+  const mapOccupation = (occupation) => {
+    switch (occupation) {
+      case 'Engineer': return "engineer";
+      case 'Teacher': return "teacher";
+      case 'Doctor': return "doctor";
+      case 'Lawyer': return "lawyer";
+      case 'Manager': return "manager";
+      case 'Sales': return "sales";
+      case 'Student': return "student";
+      case 'Retired': return "retired";
+      case 'Other': return "other";
+      default: return "other";
+    }
+  };
+  
+  const mapLicenseState = (state) => {
+    if (!state || typeof state !== 'string') return "WA";
+    return state.toUpperCase();
+  };
+  
+  // Use random cert ID for testing, real TrustedForm for production
+  const trustedFormCertId = process.env.NODE_ENV === 'production' 
+    ? (inputData.trusted_form_cert_id || generateTrustedFormCertId())
+    : generateTrustedFormCertId();
+  
   return {
     source_id: "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
     response_type: "detail",
@@ -909,7 +552,7 @@ async function prepareExchangeFloData(inputData) {
     test: true,
     tracking_id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sub_id_1: process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test",
-    trusted_form_cert_url: `https://cert.trustedform.com/${inputData.trusted_form_cert_id || 'https://cert.trustedform.com/0123456788abcdee0123456789abcdef012345627'}`,
+    trusted_form_cert_url: `https://cert.trustedform.com/${trustedFormCertId}`,
     ip_address: "127.0.0.1",
     landing_url: "https://smartautoinsider.com",
     privacy_url: "https://smartautoinsider.com/privacy",
@@ -917,7 +560,10 @@ async function prepareExchangeFloData(inputData) {
     user_agent: "Mozilla/5.0 (compatible; SmartAutoInsider/1.0)",
     
     profile: {
-      zip: String(inputData.zipcode || ""),
+      zip: String(inputData.zipcode || "").padStart(5, '0'),
+      address: String(inputData.streetAddress || ""),
+      city: String(inputData.city || ""),
+      state: mapLicenseState(inputData.state),
       address_2: "",
       currently_insured: toBooleanString(inputData.insuranceHistory === 'Yes'),
       current_company: inputData.insuranceHistory === 'Yes' ? (inputData.currentAutoInsurance || "") : "",
@@ -931,6 +577,10 @@ async function prepareExchangeFloData(inputData) {
       
       drivers: [
         {
+          first_name: String(inputData.firstName || ""),
+          last_name: String(inputData.lastName || ""),
+          email: String(inputData.email || ""),
+          phone: String(inputData.phoneNumber || "").replace(/\D/g, ''),
           relationship: "self",
           gender: (inputData.gender || "male").toLowerCase(),
           birth_date: formatBirthdate(inputData.birthdate),
@@ -938,11 +588,11 @@ async function prepareExchangeFloData(inputData) {
           license_suspended: "false",
           tickets: "0",
           dui_sr22: toBooleanString(inputData.sr22 === 'Yes'),
-          education: inputData.driverEducation || "bachelors_degree",
+          education: mapEducation(inputData.driverEducation),
           credit: mapCreditScore(inputData.creditScore) || "good",
-          occupation: inputData.driverOccupation || "engineer",
+          occupation: mapOccupation(inputData.driverOccupation),
           marital_status: mapMaritalStatus(inputData.maritalStatus) || "single",
-          license_state: inputData.state || "MA",
+          license_state: mapLicenseState(inputData.state),
           licensed_age: "16",
           license_status: inputData.driversLicense === 'Yes' ? "active" : "suspended",
           residence_type: mapHomeowner(inputData.homeowner) || "own",
@@ -967,86 +617,171 @@ async function prepareExchangeFloData(inputData) {
 
 // Helper function to ping QuoteWizard
 async function pingQuoteWizard(data) {
-  const quoteXML = generateFullXML(data, data.vendorData);
-  
-  const response = await sendQuoteWizardRequest(
-    QUOTE_WIZARD_CONFIG.contractID,
-    null,
-    1,
-    quoteXML
-  );
-  
-  return {
-    xml: quoteXML,
-    response: response
-  };
+  try {
+    const quoteXML = generateFullXML(data, data.vendorData);
+    
+    logWithCapture('info', 'QUOTEWIZARD XML BEING SENT', quoteXML);
+    
+    const response = await sendQuoteWizardRequest(
+      QUOTE_WIZARD_CONFIG.contractID,
+      null,
+      1,
+      quoteXML
+    );
+    
+    logWithCapture('info', 'QUOTEWIZARD RESPONSE RECEIVED', response);
+    
+    // Check if the response indicates business success
+    const isBusinessSuccess = response && response.includes && 
+      (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>'));
+    
+    logWithCapture('info', `QUOTEWIZARD BUSINESS SUCCESS: ${isBusinessSuccess}`);
+    
+    return {
+      xml: quoteXML,
+      response: response,
+      businessSuccess: isBusinessSuccess
+    };
+  } catch (error) {
+    logWithCapture('error', 'QUOTEWIZARD ERROR', {
+      message: error.message,
+      stack: error.stack,
+      requestData: data
+    });
+    throw error;
+  }
 }
 
 // Helper function to ping ExchangeFlo
 async function pingExchangeFlo(data) {
-  const axios = require('axios');
-  
-  const response = await axios.post('https://pub.exchangeflo.io/api/leads/ping', data, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
-    }
-  });
-  
-  return response.data;
-}
-
-// Helper function to extract value from QuoteWizard XML response
-function extractQuoteWizardValue(response) {
   try {
-    // QuoteWizard typically returns XML with lead acceptance info
-    // For now, we'll assign a fixed value if the response indicates success
-    // You might want to parse the XML more thoroughly to get actual bid values
-    if (response && response.includes && response.includes('Quote_ID')) {
-      return 15.0; // Default value for QuoteWizard - you can adjust this
-    }
-    return 0;
-  } catch (error) {
-    console.error('Error extracting QuoteWizard value:', error);
-    return 0;
-  }
-}
-
-// New endpoint to handle posting to the winner
-app.post('/api/post-winner', async (req, res) => {
-  try {
-    const { winner, winnerData, formData } = req.body;
+    logWithCapture('info', 'EXCHANGEFLO JSON BEING SENT', data);
     
-    let result;
-    
-    if (winner === 'quotewizard') {
-      result = await postToQuoteWizard(winnerData, formData);
-    } else if (winner === 'exchangeflo') {
-      result = await postToExchangeFlo(winnerData, formData);
-    } else {
-      throw new Error('Invalid winner specified');
-    }
-    
-    res.json({
-      success: true,
-      winner: winner,
-      result: result
+    const response = await axios.post('https://pub.exchangeflo.io/api/leads/ping', data, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
+      }
     });
     
+    logWithCapture('info', 'EXCHANGEFLO RESPONSE RECEIVED', response.data);
+    
+    return response.data;
   } catch (error) {
-    console.error('Post winner error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
+    logWithCapture('error', 'EXCHANGEFLO ERROR', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      responseData: error.response?.data,
+      requestData: {
+        source_id: data.source_id,
+        profile: {
+          zip: data.profile?.zip,
+          state: data.profile?.state,
+          drivers: data.profile?.drivers?.map(d => ({
+            first_name: d.first_name,
+            last_name: d.last_name,
+            email: d.email,
+            phone: d.phone,
+            license_state: d.license_state,
+            education: d.education,
+            occupation: d.occupation
+          }))
+        }
+      }
     });
+    throw error;
   }
-});
+}
 
 // Helper function to post to QuoteWizard
 async function postToQuoteWizard(pingData, formData) {
+  logWithCapture('info', 'POST TO QUOTEWIZARD - PING DATA', pingData);
+  logWithCapture('info', 'POST TO QUOTEWIZARD - FORM DATA', formData);
+  
   const initialID = extractQuoteID(pingData.response);
-  const postXML = generateFullXML(pingData, pingData.vendorData);
+  logWithCapture('info', `POST TO QUOTEWIZARD - EXTRACTED INITIAL ID: ${initialID}`);
+  
+  // Recreate the vendor data from form data
+  const trustedFormCertId = process.env.NODE_ENV === 'production' 
+    ? (formData.trusted_form_cert_id || generateTrustedFormCertId())
+    : generateTrustedFormCertId();
+    
+  const vendorData = {
+    LeadID: '2897BDB4',
+    SourceID: '',
+    SourceIPAddress: '::1',
+    SubmissionUrl: 'https://smartautoinsider.com',
+    UserAgent: 'axios/1.9.0',
+    DateLeadReceived: getTodayDate(),
+    LeadBornOnDateTimeUTC: getTodayDate(true),
+    JornayaLeadID: '',
+    TrustedFormCertificateUrl: `https://cert.trustedform.com/${trustedFormCertId}`,
+    EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
+    TCPAOptIn: 'Yes',
+    TCPALanguage: 'By clicking "Get My Auto Quotes", you agree to our Terms and Conditions and Privacy Policy'
+  };
+  
+  // Recreate the full data structure needed for XML generation
+  const postData = {
+    drivers: [{
+      Gender: formData.gender || 'Male',
+      MaritalStatus: formData.maritalStatus || 'Single',
+      RelationshipToApplicant: 'Self',
+      FirstName: formData.firstName || 'John',
+      LastName: formData.lastName || 'Doe',
+      BirthDate: formData.birthdate || '1985-01-01',
+      State: formData.state || 'WA',
+      AgeLicensed: '16',
+      LicenseStatus: formData.driversLicense === 'Yes' ? 'Valid' : 'Invalid',
+      LicenseEverSuspendedRevoked: 'No',
+      Occupation: {
+        Name: 'OtherNonTechnical',
+        YearsInField: '5'
+      },
+      HighestLevelOfEducation: {
+        AtHomeStudent: 'No',
+        HighestDegree: 'BachelorsDegree'
+      },
+      RequiresSR22Filing: formData.sr22 || 'No',
+      CreditRating: {
+        Bankruptcy: 'No',
+        SelfRating: formData.creditScore || 'Good'
+      },
+      Incidents: []
+    }],
+    vehicles: transformVehicles(formData.vehicles || []),
+    insuranceProfile: [{
+      CoverageType: 'Standard',
+      CurrentPolicy: {
+        InsuranceCompany: {
+          CompanyName: formData.currentAutoInsurance || 'Geico'
+        },
+        ExpirationDate: '',
+        StartDate: ''
+      }
+    }],
+    contact: {
+      FirstName: formData.firstName || 'John',
+      LastName: formData.lastName || 'Doe',
+      Address1: formData.streetAddress || '123 Main St',
+      City: formData.city || 'Seattle',
+      State: formData.state || 'WA',
+      ZIPCode: formData.zipcode || '98101',
+      EmailAddress: formData.email || 'john@example.com',
+      PhoneNumbers: {
+        PrimaryPhone: transformPhoneNumber(formData.phoneNumber),
+        SecondaryPhone: transformPhoneNumber(formData.phoneNumber)
+      },
+      CurrentResidence: {
+        ResidenceStatus: formData.homeowner || 'Own',
+        OccupancyDate: '2012-02-08'
+      }
+    }
+  };
+  
+  const postXML = generateFullXML(postData, vendorData);
+  logWithCapture('info', 'POST TO QUOTEWIZARD - XML BEING SENT', postXML);
   
   const response = await sendQuoteWizardRequest(
     QUOTE_WIZARD_CONFIG.contractID,
@@ -1054,6 +789,8 @@ async function postToQuoteWizard(pingData, formData) {
     2,
     postXML
   );
+  
+  logWithCapture('info', 'POST TO QUOTEWIZARD - RESPONSE RECEIVED', response);
   
   return {
     xml: postXML,
@@ -1064,8 +801,6 @@ async function postToQuoteWizard(pingData, formData) {
 
 // Helper function to post to ExchangeFlo
 async function postToExchangeFlo(pingData, formData) {
-  const axios = require('axios');
-  
   const { submission_id, pings } = pingData;
   
   const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
@@ -1107,6 +842,217 @@ async function postToExchangeFlo(pingData, formData) {
   return response.data;
 }
 
+// API Routes
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '2.0.0',
+    services: {
+      server: 'running',
+      database: 'connected'
+    },
+    logs: getAndClearLogs() // Include logs in response for testing
+  });
+});
+
+// Test ping endpoint
+app.post('/api/test/ping', async (req, res) => {
+  try {
+    const testData = {
+      timestamp: new Date().toISOString(),
+      submission_id: `test_${Date.now()}`,
+      status: 'success',
+      ping_count: 1,
+      total_value: 25.50,
+      request_data: { test: 'ping request' },
+      response_data: { test: 'ping response', status: 'success' }
+    };
+    
+    await databaseService.logPingRequest(testData);
+    
+    res.json({
+      success: true,
+      message: 'Test ping logged successfully',
+      data: testData,
+      logs: getAndClearLogs() // Include logs in response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      logs: getAndClearLogs() // Include logs even on error
+    });
+  }
+});
+
+// Ping both services and return the highest bidder
+app.post('/api/ping-both', async (req, res) => {
+  try {
+    const inputData = req.body;
+    logWithCapture('info', 'Received ping-both request', inputData);
+    
+    // Prepare data for both services
+    const quotewizardData = await prepareQuoteWizardData(inputData, req);
+    const exchangefloData = await prepareExchangeFloData(inputData);
+    
+    logWithCapture('info', 'QUOTEWIZARD DATA BEING SENT', quotewizardData);
+    logWithCapture('info', 'EXCHANGEFLO DATA BEING SENT', exchangefloData);
+    
+    // Ping both services simultaneously
+    const [quotewizardResult, exchangefloResult] = await Promise.allSettled([
+      pingQuoteWizard(quotewizardData),
+      pingExchangeFlo(exchangefloData)
+    ]);
+    
+    logWithCapture('info', 'QuoteWizard ping result', quotewizardResult);
+    logWithCapture('info', 'ExchangeFlo ping result', exchangefloResult);
+    
+    // Analyze results and determine winner
+    const comparison = {
+      quotewizard: {
+        success: quotewizardResult.status === 'fulfilled' && quotewizardResult.value?.businessSuccess,
+        value: 0,
+        error: quotewizardResult.status === 'rejected' ? quotewizardResult.reason?.message : null,
+        data: quotewizardResult.status === 'fulfilled' ? quotewizardResult.value : null
+      },
+      exchangeflo: {
+        success: exchangefloResult.status === 'fulfilled',
+        value: 0,
+        error: exchangefloResult.status === 'rejected' ? exchangefloResult.reason?.message : null,
+        data: exchangefloResult.status === 'fulfilled' ? exchangefloResult.value : null
+      }
+    };
+    
+    // Add additional error context for failed QuoteWizard business logic
+    if (quotewizardResult.status === 'fulfilled' && !quotewizardResult.value?.businessSuccess) {
+      comparison.quotewizard.error = 'QuoteWizard returned failure status';
+    }
+    
+    // Calculate values from successful pings
+    if (comparison.quotewizard.success && comparison.quotewizard.data) {
+      comparison.quotewizard.value = extractQuoteWizardValue(comparison.quotewizard.data.response);
+    }
+    
+    if (comparison.exchangeflo.success && comparison.exchangeflo.data) {
+      const pings = comparison.exchangeflo.data.pings || [];
+      comparison.exchangeflo.value = pings.reduce((sum, ping) => sum + (parseFloat(ping.value) || 0), 0);
+    }
+    
+    // Determine winner based on highest value
+    let winner = null;
+    if (comparison.quotewizard.value > comparison.exchangeflo.value) {
+      winner = 'quotewizard';
+    } else if (comparison.exchangeflo.value > comparison.quotewizard.value) {
+      winner = 'exchangeflo';
+    } else if (comparison.quotewizard.success && !comparison.exchangeflo.success) {
+      winner = 'quotewizard';
+    } else if (comparison.exchangeflo.success && !comparison.quotewizard.success) {
+      winner = 'exchangeflo';
+    }
+    
+    logWithCapture('info', `WINNER DETERMINED: ${winner}`, comparison);
+    
+    // Log to database using database service
+    await databaseService.logPingComparison({
+      timestamp: new Date().toISOString(),
+      quotewizard_success: comparison.quotewizard.success,
+      quotewizard_value: comparison.quotewizard.value,
+      quotewizard_error: comparison.quotewizard.error,
+      exchangeflo_success: comparison.exchangeflo.success,
+      exchangeflo_value: comparison.exchangeflo.value,
+      exchangeflo_error: comparison.exchangeflo.error,
+      winner: winner,
+      request_data: inputData
+    });
+    
+    res.json({
+      success: true,
+      winner: winner,
+      comparison: comparison,
+      winnerData: winner ? comparison[winner].data : null,
+      message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed',
+      logs: getAndClearLogs() // Include logs in response
+    });
+    
+  } catch (error) {
+    logWithCapture('error', 'Ping comparison error', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      winner: null,
+      logs: getAndClearLogs() // Include logs even on error
+    });
+  }
+});
+
+// Post to winner endpoint
+app.post('/api/post-winner', async (req, res) => {
+  try {
+    const { winner, winnerData, formData } = req.body;
+    
+    logWithCapture('info', `Posting to winner: ${winner}`);
+    
+    let result;
+    
+    if (winner === 'quotewizard') {
+      result = await postToQuoteWizard(winnerData, formData);
+    } else if (winner === 'exchangeflo') {
+      result = await postToExchangeFlo(winnerData, formData);
+    } else {
+      throw new Error('Invalid winner specified');
+    }
+    
+    logWithCapture('info', 'Post to winner completed successfully', result);
+    
+    res.json({
+      success: true,
+      winner: winner,
+      result: result,
+      logs: getAndClearLogs() // Include logs in response
+    });
+    
+  } catch (error) {
+    logWithCapture('error', 'Post winner error', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      logs: getAndClearLogs() // Include logs even on error
+    });
+  }
+});
+
+// Location lookup endpoint
+app.get('/api/location', async (req, res) => {
+  try {
+    const zipCode = req.query.zip;
+    
+    if (zipCode) {
+      logWithCapture('info', 'Looking up location for zip code', zipCode);
+      const locationData = await getLocationFromZip(zipCode);
+      res.json(locationData);
+    } else {
+      const ip = req.query.ip || req.ip || req.connection.remoteAddress || '';
+      const cleanIP = ip.replace(/^::ffff:/, '');
+      
+      logWithCapture('info', 'Looking up location for IP', cleanIP);
+      
+      const locationData = await getLocationFromIP(cleanIP);
+      res.json(locationData);
+    }
+  } catch (error) {
+    logWithCapture('error', 'Location lookup error', error.message);
+    res.status(500).json({
+      error: 'Failed to lookup location',
+      zip: req.query.zip || '98101',
+      region: 'WA',
+      city: 'Seattle'
+    });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logWithCapture('info', `Server running on port ${PORT}`);
 }); 

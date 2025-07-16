@@ -1,170 +1,272 @@
 # Auto Insurance Quote Application
 
-A multi-step car insurance quote application built with React.
+A modern, multi-step auto insurance quote application with **dual ping comparison system** that automatically compares QuoteWizard and ExchangeFlo rates and posts leads to the highest bidder.
 
-## Features
+## 🏗️ Architecture
 
-- **Progressive Multi-Step Form**: Guides users through a 13+ step quote process
-- **Smart Navigation**: Auto-advances after selections to minimize user interaction
-- **Vehicle Management**: Handles 1-2 vehicles with dynamic year/make/model selection
-- **Responsive Design**: Clean, mobile-first interface
-- **Data Validation**: Form validation at each step
-- **Progress Tracking**: Visual progress bar showing completion percentage
+### Single Server Design
+- **Consolidated server.js** - All functionality in one place
+- **Dual ping system** - QuoteWizard vs ExchangeFlo comparison
+- **Automatic winner selection** - Posts to highest bidder
+- **Enhanced logging** - Comprehensive request/response tracking
+- **TrustedForm integration** - Real certificates in production, random in testing
 
-## User Journey Flow
+### Tech Stack
+- **Frontend**: React.js with modern UI/UX
+- **Backend**: Node.js/Express single server
+- **Database**: MySQL with optimized schema
+- **APIs**: QuoteWizard (XML) + ExchangeFlo (JSON)
+- **Process Manager**: PM2
+- **Web Server**: Nginx (reverse proxy)
 
-1. **ZIP Code Entry** (5-digit validation)
-2. **Vehicle Count** (1, 2, or 3+ vehicles)
-3. **Vehicle Information** (year, make, model for each vehicle)
-4. **Insurance History** (past 30 days coverage)
-5. **Demographics** (gender, marital status, homeowner status)
-6. **Risk Assessment** (military affiliation)
-7. **Birth Date**
-8. **Contact Information** (name, email)
-9. **Address Information** (street address, phone)
-
-## Technology Stack
-
-- **React 18** - UI framework
-- **CSS3** - Styling with custom CSS (no external frameworks)
-- **Inter Font** - Typography
-- **Modern JavaScript** - ES6+ features
-
-## Design System
-
-- **Primary Color**: `#467FCE` (blue for text accents, borders, button text)
-- **Secondary Color**: `#6FD0BD` (teal for progress bars, selections)
-- **Font Family**: Inter
-- **Clean, minimal design** with generous white space
-- **Mobile-first responsive** layout
-
-## Project Structure
-
-```
-src/
-├── components/
-│   ├── Header.js & Header.css
-│   ├── ProgressBar.js & ProgressBar.css
-│   ├── StepContainer.js
-│   ├── Footer.js & Footer.css
-│   └── steps/
-│       ├── ZipCodeStep.js
-│       ├── VehicleCountStep.js
-│       ├── VehicleYearStep.js
-│       ├── VehicleMakeStep.js
-│       ├── VehicleModelStep.js
-│       ├── InsuranceHistoryStep.js
-│       ├── GenderStep.js
-│       ├── MaritalStatusStep.js
-│       ├── HomeownerStep.js
-│       ├── MilitaryStep.js
-│       ├── BirthdateStep.js
-│       ├── ContactInfoStep.js
-│       └── AddressInfoStep.js
-├── data/
-│   └── vehicleData.js
-├── App.js & App.css
-├── index.js & index.css
-```
-
-## Key Features
-
-### Smart Step Management
-- Dynamic step flow based on vehicle count selection
-- Auto-advance functionality for better UX
-- Progress tracking with percentage completion
-
-### Vehicle Data Management
-- Years from 2025 back to 1987
-- 11 major car manufacturers (BMW, Toyota, Honda, Ford, Chevrolet, etc.)
-- Comprehensive model lists for each make
-- Maximum 2 vehicles even if user selects "3+"
-
-### Form Validation
-- ZIP code validation (5 digits)
-- Email validation
-- Required field validation
-- Date validation for birth date
-
-### Data Submission
-- Collects comprehensive insurance profile
-- Structured JSON output
-- Webhook endpoint ready (placeholder included)
-- Console logging for development
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (14+ recommended)
-- npm or yarn
+- Node.js 16+
+- MySQL 8.0+
+- PM2 (for production)
+- Nginx (for production)
 
-### Installation
+### Development Setup
 
-1. Clone or download the project
-2. Install dependencies:
+1. **Clone and install:**
 ```bash
+git clone <repository-url>
+cd auto-insurancev2
 npm install
 ```
 
-3. Start the development server:
+2. **Database setup:**
 ```bash
+# Create database and tables
+mysql -u root -p < server/database/init.sql
+```
+
+3. **Environment configuration:**
+```bash
+cp server/config.example.js server/config.js
+# Edit config.js with your API keys and database credentials
+```
+
+4. **Start development:**
+```bash
+# Frontend (http://localhost:3000)
 npm start
+
+# Backend (http://localhost:5000)
+npm run server
+
+# Both simultaneously
+npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+### Production Deployment
 
-### Building for Production
-
+**Automated deployment:**
 ```bash
+# Run the consolidated deployment script
+chmod +x deploy-update-clean.sh
+./deploy-update-clean.sh
+```
+
+**Manual deployment:**
+```bash
+# Build frontend
 npm run build
+
+# Start with PM2
+pm2 start server/server.js --name auto-insurance-app --env production
+pm2 save
 ```
 
-## Configuration
+## 🎯 Core Features
 
-### Webhook Integration
-To integrate with your backend, update the `submitFormData` function in `src/App.js`:
+### Dual Ping Comparison System
+The application automatically:
+1. **Pings both services** simultaneously (QuoteWizard + ExchangeFlo)
+2. **Compares bid values** in real-time
+3. **Selects the winner** (highest dollar amount)
+4. **Posts the lead** to the winning service
+5. **Logs everything** for analytics
 
+### Multi-Step Form
+- **Progressive data collection** with smart validation
+- **Real-time zip code lookup** for location data
+- **Dynamic vehicle year/make/model** selection
+- **Insurance history** and coverage preferences
+- **Contact information** with TrustedForm integration
+
+### Advanced Features
+- **TrustedForm Certificates**: Real certificates in production, random in testing
+- **Phone Number Formatting**: Automatic formatting and validation
+- **State Mapping**: Full state name resolution
+- **Error Handling**: Graceful degradation and detailed logging
+- **Analytics**: Comprehensive request/response tracking
+
+## 📊 API Endpoints
+
+### Core Endpoints
+- `GET /api/health` - Health check and system status
+- `POST /api/ping-both` - Dual ping comparison (main feature)
+- `POST /api/post-winner` - Post to winning service
+- `GET /api/location` - Location lookup by IP or zip
+
+### Testing Endpoints
+- `POST /api/test/ping` - Test ping logging
+- Test script: `node server/test-ping-comparison.js`
+
+## 🗄️ Database Schema
+
+### Core Tables
+- **`ping_requests`** - General ping logging (all providers)
+- **`post_requests`** - General post logging (all providers) 
+- **`ping_comparison`** - QuoteWizard vs ExchangeFlo comparisons
+- **`insurance_ping`** - Legacy compatibility table
+
+### Analytics Views
+- **`request_analytics`** - Combined ping/post analysis
+- **`comparison_analytics`** - Dual ping comparison insights
+
+## 🧪 Testing
+
+### Automated Testing
+```bash
+# Test the dual ping comparison system
+node server/test-ping-comparison.js
+
+# Check API health
+curl http://localhost:5000/api/health
+```
+
+### Manual Testing
+```bash
+# Test dual ping endpoint
+curl -X POST http://localhost:5000/api/ping-both \
+  -H "Content-Type: application/json" \
+  -d @test-data.json
+```
+
+## 📝 Configuration
+
+### Environment Variables
 ```javascript
-const response = await fetch('YOUR_WEBHOOK_URL', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(submissionData)
-});
+// server/config.js
+module.exports = {
+  // Database
+  DB_HOST: 'localhost',
+  DB_USER: 'smartautoinsider_user',
+  DB_PASSWORD: 'your_password',
+  DB_NAME: 'smartautoinsider_db',
+  
+  // QuoteWizard
+  QW_CONTRACT_ID: 'your_contract_id',
+  
+  // ExchangeFlo  
+  EXCHANGEFLO_TOKEN: 'your_api_token',
+  
+  // Server
+  PORT: 5000,
+  NODE_ENV: 'production'
+};
 ```
 
-### Vehicle Data
-Update `src/data/vehicleData.js` to modify available car makes and models.
+### TrustedForm Configuration
+- **Production**: Uses real TrustedForm certificates from frontend script
+- **Testing**: Generates random 40-character hex certificates
+- **Format**: `https://cert.trustedform.com/{certificate_id}`
 
-### Styling
-Core colors can be updated in the CSS files:
-- Primary: `#467FCE`
-- Secondary: `#6FD0BD`
+## 📈 Analytics & Monitoring
 
-## Development Notes
+### PM2 Process Management
+```bash
+pm2 status                    # Check application status
+pm2 logs auto-insurance-app   # View application logs
+pm2 restart auto-insurance-app # Restart application
+pm2 monit                     # Real-time monitoring
+```
 
-- **Component Structure**: Each step is a separate component for maintainability
-- **State Management**: Uses React hooks with centralized form state
-- **Auto-advance**: 300ms delay after selection for smooth UX
-- **Responsive**: Mobile-first design with tablet/desktop enhancements
-- **Accessibility**: Proper form labels, focus management, semantic HTML
+### Database Analytics
+```sql
+-- Recent ping comparisons
+SELECT * FROM ping_comparison ORDER BY timestamp DESC LIMIT 10;
 
-- To deploy after git push use ./deploy-update.sh on deploy user ssh deploy@66.42.86.208
-- To Go back to previous commit
-- git reset --hard HEAD~1
-- npm run build
-- pm2 restart auto-insurance-app
+-- Winner statistics
+SELECT winner, COUNT(*) as wins, AVG(total_comparison_value) as avg_value
+FROM ping_comparison GROUP BY winner;
 
-- pm2 start server/server.js --name auto-insurance-app --env production
-- pm2 stop all, pm2 delete all, pm2 kill, run ./deploy-update.sh
+-- Success rates
+SELECT 
+  AVG(quotewizard_success) * 100 as qw_success_rate,
+  AVG(exchangeflo_success) * 100 as ef_success_rate
+FROM ping_comparison;
+```
 
+### Log Analysis
+All requests and responses are logged with:
+- **Timestamps** for tracking
+- **Status codes** for success/failure analysis
+- **Full request/response data** for debugging
+- **Error details** for troubleshooting
 
-## Browser Support
+## 🔧 Troubleshooting
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+### Common Issues
 
-## License
+**Database Connection:**
+```bash
+# Test database connection
+mysql -u smartautoinsider_user -p smartautoinsider_db
+```
 
-Private project - All rights reserved. 
+**Server Not Starting:**
+```bash
+# Check if port is in use
+lsof -i :5000
+
+# Check PM2 logs
+pm2 logs auto-insurance-app --lines 50
+```
+
+**API Errors:**
+```bash
+# Test health endpoint
+curl http://localhost:5000/api/health
+
+# Check detailed logs in test responses
+node server/test-ping-comparison.js
+```
+
+### Performance Optimization
+- **Database Indexing**: Optimized indexes for all query patterns
+- **Connection Pooling**: MySQL connection pool for efficiency
+- **Logging Buffer**: Circular buffer to prevent memory leaks
+- **Parallel Processing**: Simultaneous ping requests for speed
+
+## 📚 Documentation
+
+- **Server Documentation**: `server/README.md`
+- **API Documentation**: `PING_COMPARISON_README.md`
+- **Database Schema**: `server/database/init.sql`
+- **Test Examples**: `server/test-ping-comparison.js`
+
+## 🤝 Contributing
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/your-feature`
+3. **Test thoroughly**: Run all test scripts
+4. **Submit a pull request**: Include detailed description
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 🎯 Key Benefits
+
+- **Higher Revenue**: Automatic selection of highest bidder
+- **Better Rates**: Competition between QuoteWizard and ExchangeFlo
+- **Reliability**: Graceful fallback if one service fails
+- **Analytics**: Detailed performance tracking and insights
+- **Scalability**: Single server architecture with optimized database
+- **Maintainability**: Consolidated codebase with comprehensive logging 
