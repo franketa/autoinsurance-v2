@@ -577,10 +577,10 @@ async function prepareExchangeFloData(inputData) {
       
       drivers: [
         {
-          first_name: String(inputData.firstName || ""),
-          last_name: String(inputData.lastName || ""),
-          email: String(inputData.email || ""),
-          phone: String(inputData.phoneNumber || "").replace(/\D/g, ''),
+          //first_name: String(inputData.firstName || ""),
+          //last_name: String(inputData.lastName || ""),
+          //email: String(inputData.email || ""),
+          //phone: String(inputData.phoneNumber || "").replace(/\D/g, ''),
           relationship: "self",
           gender: (inputData.gender || "male").toLowerCase(),
           birth_date: formatBirthdate(inputData.birthdate),
