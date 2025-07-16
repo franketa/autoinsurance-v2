@@ -801,45 +801,66 @@ async function postToQuoteWizard(pingData, formData) {
 
 // Helper function to post to ExchangeFlo
 async function postToExchangeFlo(pingData, formData) {
-  const { submission_id, pings } = pingData;
-  
-  const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
-  const sharedPings = pings.filter(ping => ping.type === 'shared');
-  const pingsToPost = exclusivePings.length > 0 ? exclusivePings : sharedPings;
-  const ping_ids = pingsToPost.map(ping => ping.ping_id);
-  
-  const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
-  
-  const postData = {
-    submission_id,
-    ping_ids,
-    profile: {
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      email: formData.email,
-      phone: cleanPhone,
-      address: formData.streetAddress,
-      city: formData.city,
-      state: formData.state,
-      zip: formData.zipcode,
-      drivers: [
-        {
-          first_name: formData.firstName,
-          last_name: formData.lastName
-        }
-      ]
-    }
-  };
-  
-  const response = await axios.post('https://pub.exchangeflo.io/api/leads/post', postData, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
-    }
-  });
-  
-  return response.data;
+  try {
+    const { submission_id, pings } = pingData;
+    
+    const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
+    const sharedPings = pings.filter(ping => ping.type === 'shared');
+    const pingsToPost = exclusivePings.length > 0 ? exclusivePings : sharedPings;
+    const ping_ids = pingsToPost.map(ping => ping.ping_id);
+    
+    const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
+    
+    const postData = {
+      submission_id,
+      ping_ids,
+      profile: {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: cleanPhone,
+        address: formData.streetAddress,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zipcode,
+        drivers: [
+          {
+            first_name: formData.firstName,
+            last_name: formData.lastName
+          }
+        ]
+      }
+    };
+    
+    logWithCapture('info', 'EXCHANGEFLO POST DATA BEING SENT', postData);
+    
+    const response = await axios.post('https://pub.exchangeflo.io/api/leads/post', postData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 570ff8ba-26b3-44dc-b880-33042485e9d0'
+      }
+    });
+    
+    logWithCapture('info', 'EXCHANGEFLO POST RESPONSE RECEIVED', response.data);
+    
+    return response.data;
+  } catch (error) {
+    logWithCapture('error', 'EXCHANGEFLO POST ERROR', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      responseData: error.response?.data,
+      requestData: {
+        submission_id: pingData.submission_id,
+        ping_ids: pingData.pings?.map(p => p.ping_id),
+        phone: formData.phoneNumber,
+        email: formData.email,
+        name: `${formData.firstName} ${formData.lastName}`,
+        location: `${formData.city}, ${formData.state} ${formData.zipcode}`
+      }
+    });
+    throw error;
+  }
 }
 
 // API Routes
