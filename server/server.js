@@ -316,10 +316,25 @@ function extractQuoteID(pingResponse) {
 function extractQuoteWizardValue(response) {
   try {
     if (response && response.includes && response.includes('Quote_ID')) {
-      // Check if the response indicates success
-      if (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>')) {
+      // Check if the response indicates success (both regular and HTML-encoded formats)
+      const isSuccess = response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>') ||
+                       response.includes('&lt;Status&gt;Success&lt;/Status&gt;') || response.includes('&lt;Status&gt;Accepted&lt;/Status&gt;');
+      
+      const isFailure = response.includes('<Status>Failure</Status>') || 
+                       response.includes('&lt;Status&gt;Failure&lt;/Status&gt;');
+      
+      if (isSuccess) {
+        // Try to extract actual payout value from response
+        const payoutMatch = response.match(/&lt;Payout&gt;([\d.]+)&lt;\/Payout&gt;/) || 
+                           response.match(/<Payout>([\d.]+)<\/Payout>/);
+        if (payoutMatch && payoutMatch[1]) {
+          const payoutValue = parseFloat(payoutMatch[1]);
+          logWithCapture('info', `QuoteWizard extracted payout value: ${payoutValue}`);
+          return payoutValue;
+        }
+        // Fallback to default value if payout extraction fails
         return 15.0;
-      } else if (response.includes('<Status>Failure</Status>')) {
+      } else if (isFailure) {
         logWithCapture('info', 'QuoteWizard response indicates failure, returning 0 value');
         return 0;
       }
@@ -696,8 +711,10 @@ async function pingQuoteWizard(data) {
     logWithCapture('info', 'QUOTEWIZARD RESPONSE RECEIVED', response);
     
     // Check if the response indicates business success
+    // QuoteWizard response is HTML-encoded, so we need to check for both formats
     const isBusinessSuccess = response && response.includes && 
-      (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>'));
+      (response.includes('<Status>Success</Status>') || response.includes('<Status>Accepted</Status>') ||
+       response.includes('&lt;Status&gt;Success&lt;/Status&gt;') || response.includes('&lt;Status&gt;Accepted&lt;/Status&gt;'));
     
     logWithCapture('info', `QUOTEWIZARD BUSINESS SUCCESS: ${isBusinessSuccess}`);
     
