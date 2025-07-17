@@ -1369,6 +1369,13 @@ app.post('/api/ping-both', async (req, res) => {
     logWithCapture('info', `WINNER DETERMINED: ${winner}`, comparison);
     
     // Store revenue amount in session if there's a winner with revenue
+    logWithCapture('info', 'Revenue storage check', {
+      hasWinner: !!winner,
+      winnerValue: winner ? comparison[winner].value : 0,
+      winnerValueCheck: winner ? comparison[winner].value > 0 : false,
+      currentSessionRevenue: session.revenue
+    });
+    
     if (winner && comparison[winner].value > 0) {
       session.revenue = comparison[winner].value;
       logWithCapture('info', 'Stored revenue in session', { 
@@ -1376,6 +1383,12 @@ app.post('/api/ping-both', async (req, res) => {
         winner, 
         revenue: session.revenue,
         sessionData: JSON.stringify(session, null, 2)
+      });
+    } else {
+      logWithCapture('info', 'No revenue stored - conditions not met', {
+        hasWinner: !!winner,
+        winnerValue: winner ? comparison[winner].value : 0,
+        reason: !winner ? 'no winner' : 'no revenue'
       });
     }
     
@@ -1436,7 +1449,19 @@ app.post('/api/post-winner', async (req, res) => {
       });
       
       // Look through all sessions to find one with TID
+      logWithCapture('info', 'Searching all sessions for TID', {
+        totalSessions: sessions.size,
+        sessionKeys: Array.from(sessions.keys())
+      });
+      
       for (const [sid, sess] of sessions.entries()) {
+        logWithCapture('info', `Checking session: ${sid}`, {
+          hasTid: !!sess.tid,
+          tid: sess.tid,
+          revenue: sess.revenue,
+          ip: sess.ip
+        });
+        
         if (sess.tid) {
           logWithCapture('info', `Found session with TID: ${sid}`, {
             tid: sess.tid,
