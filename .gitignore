@@ -40,8 +40,8 @@ pids
 .yarn-integrity
 
 # dotenv environment variables file
-.env
-.env.*
+#.env
+#.env.*
 
 # Server configuration
 server/config.js
