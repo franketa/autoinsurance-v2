@@ -1287,14 +1287,32 @@ app.post('/api/ping-both', async (req, res) => {
     logWithCapture('info', 'Received ping-both request', inputData);
     
     // Get or create session and capture tid parameter
-    const sessionId = getSessionId(req);
-    const session = getSession(sessionId);
+    let sessionId = getSessionId(req);
+    let session = getSession(sessionId);
     
     // Capture tid parameter if present
     const tid = req.query.tid || req.body?.tid;
     if (tid) {
       session.tid = tid;
       logWithCapture('info', 'Captured tid parameter in ping-both', { tid, sessionId });
+    }
+    
+    // If we don't have a TID in this session, try to find an existing session with TID
+    if (!session.tid) {
+      logWithCapture('info', 'No TID in current session, searching for existing session with TID');
+      
+      // Look through all sessions to find one with TID
+      for (const [sid, sess] of sessions.entries()) {
+        if (sess.tid) {
+          logWithCapture('info', `Found existing session with TID: ${sid}`, {
+            tid: sess.tid,
+            revenue: sess.revenue
+          });
+          sessionId = sid;
+          session = sess;
+          break;
+        }
+      }
     }
     
     // Store IP address
