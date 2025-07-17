@@ -1361,7 +1361,8 @@ app.post('/api/ping-both', async (req, res) => {
       logWithCapture('info', 'Stored revenue in session', { 
         sessionId, 
         winner, 
-        revenue: session.revenue 
+        revenue: session.revenue,
+        sessionData: JSON.stringify(session, null, 2)
       });
     }
     
@@ -1414,7 +1415,11 @@ app.post('/api/post-winner', async (req, res) => {
     const sessionId = getSessionId(req);
     const session = getSession(sessionId);
     
-    logWithCapture('info', 'Session data for post-winner', { sessionId, session });
+    logWithCapture('info', 'Session data for post-winner', { 
+      sessionId, 
+      session: JSON.stringify(session, null, 2),
+      allSessions: JSON.stringify(Array.from(sessions.entries()), null, 2)
+    });
     
     let result;
     
