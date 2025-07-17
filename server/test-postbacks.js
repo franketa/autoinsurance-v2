@@ -63,8 +63,30 @@ async function testPingBoth() {
         console.log('✅ Ping both successful:', {
             success: response.data.success,
             winner: response.data.winner,
-            message: response.data.message
+            message: response.data.message,
+            sessionInfo: response.data.sessionInfo
         });
+        
+        // Display session information from ping-both
+        if (response.data.sessionInfo) {
+            console.log('📊 Ping-Both Session Info:');
+            console.log(`   Session ID: ${response.data.sessionInfo.sessionId}`);
+            console.log(`   Has TID: ${response.data.sessionInfo.hasTid}`);
+            console.log(`   TID: ${response.data.sessionInfo.tid}`);
+            console.log(`   Revenue: $${response.data.sessionInfo.revenue}`);
+            console.log(`   IP: ${response.data.sessionInfo.ip}`);
+        }
+        
+        // Display relevant logs
+        if (response.data.logs && response.data.logs.length > 0) {
+            console.log('📝 Ping-Both Logs:');
+            response.data.logs.forEach(log => {
+                if (log.message.includes('revenue') || log.message.includes('Revenue') || log.message.includes('session')) {
+                    console.log(`   [${log.level}] ${log.message}`);
+                }
+            });
+        }
+        
         return response.data;
     } catch (error) {
         console.error('❌ Ping both failed:', error.response?.data || error.message);

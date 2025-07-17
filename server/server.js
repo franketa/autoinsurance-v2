@@ -1416,6 +1416,13 @@ app.post('/api/ping-both', async (req, res) => {
       comparison: comparison,
       winnerData: winner ? comparison[winner].data : null,
       message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed',
+      sessionInfo: {
+        sessionId: sessionId,
+        hasTid: !!session.tid,
+        tid: session.tid,
+        revenue: session.revenue,
+        ip: session.ip
+      },
       logs: getAndClearLogs() // Include logs in response
     });
     
