@@ -222,14 +222,6 @@ function App() {
     const stepProgress = (currentStep / (visibleSteps.length - 1)) * progressRange;
     const finalProgress = Math.round(minProgress + stepProgress);
     
-    // Debug logging
-    console.log('Progress Calculation:', {
-      currentStep: currentStep + 1, // +1 for 1-based display
-      totalSteps: visibleSteps.length,
-      currentStepId: currentStepData?.id,
-      progressPercentage: finalProgress
-    });
-    
     return finalProgress;
   };
 
