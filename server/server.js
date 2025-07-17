@@ -43,31 +43,41 @@ async function sendHitpathPostback(tid, revenue) {
     const response = await axios.get(url, { timeout: 10000 });
     logWithCapture('info', 'Hitpath postback response', { status: response.status, data: response.data });
     
-    // Log to database
-    await databaseService.logPingRequest({
-      timestamp: new Date().toISOString(),
-      submission_id: `hitpath_${Date.now()}`,
-      status: 'success',
-      ping_count: 1,
-      total_value: revenue,
-      request_data: { url, tid, revenue },
-      response_data: { status: response.status, data: response.data }
-    });
+    // Log to database (with error handling)
+    try {
+      await databaseService.logPingRequest({
+        timestamp: new Date().toISOString(),
+        submission_id: `hitpath_${Date.now()}`,
+        status: 'success',
+        ping_count: 1,
+        total_value: revenue,
+        request_data: { url, tid, revenue },
+        response_data: { status: response.status, data: response.data }
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log Hitpath postback to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     return { success: true, response: response.data };
   } catch (error) {
     logWithCapture('error', 'Hitpath postback failed', { error: error.message, tid, revenue });
     
-    // Log error to database
-    await databaseService.logPingRequest({
-      timestamp: new Date().toISOString(),
-      submission_id: `hitpath_error_${Date.now()}`,
-      status: 'error',
-      ping_count: 1,
-      total_value: revenue,
-      request_data: { tid, revenue },
-      response_data: { error: error.message }
-    });
+    // Log error to database (with error handling)
+    try {
+      await databaseService.logPingRequest({
+        timestamp: new Date().toISOString(),
+        submission_id: `hitpath_error_${Date.now()}`,
+        status: 'error',
+        ping_count: 1,
+        total_value: revenue,
+        request_data: { tid, revenue },
+        response_data: { error: error.message }
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log Hitpath error to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     return { success: false, error: error.message };
   }
@@ -81,31 +91,41 @@ async function sendEverflowPostback(tid, revenue) {
     const response = await axios.get(url, { timeout: 10000 });
     logWithCapture('info', 'Everflow postback response', { status: response.status, data: response.data });
     
-    // Log to database
-    await databaseService.logPingRequest({
-      timestamp: new Date().toISOString(),
-      submission_id: `everflow_${Date.now()}`,
-      status: 'success',
-      ping_count: 1,
-      total_value: revenue,
-      request_data: { url, tid, revenue },
-      response_data: { status: response.status, data: response.data }
-    });
+    // Log to database (with error handling)
+    try {
+      await databaseService.logPingRequest({
+        timestamp: new Date().toISOString(),
+        submission_id: `everflow_${Date.now()}`,
+        status: 'success',
+        ping_count: 1,
+        total_value: revenue,
+        request_data: { url, tid, revenue },
+        response_data: { status: response.status, data: response.data }
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log Everflow postback to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     return { success: true, response: response.data };
   } catch (error) {
     logWithCapture('error', 'Everflow postback failed', { error: error.message, tid, revenue });
     
-    // Log error to database
-    await databaseService.logPingRequest({
-      timestamp: new Date().toISOString(),
-      submission_id: `everflow_error_${Date.now()}`,
-      status: 'error',
-      ping_count: 1,
-      total_value: revenue,
-      request_data: { tid, revenue },
-      response_data: { error: error.message }
-    });
+    // Log error to database (with error handling)
+    try {
+      await databaseService.logPingRequest({
+        timestamp: new Date().toISOString(),
+        submission_id: `everflow_error_${Date.now()}`,
+        status: 'error',
+        ping_count: 1,
+        total_value: revenue,
+        request_data: { tid, revenue },
+        response_data: { error: error.message }
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log Everflow error to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     return { success: false, error: error.message };
   }
@@ -153,31 +173,41 @@ async function submitEmailToAzure(formData, session) {
     
     logWithCapture('info', 'Azure API response', { status: response.status, data: response.data });
     
-    // Log request to database
-    await databaseService.logPingRequest({
-      timestamp: new Date().toISOString(),
-      submission_id: `azure_request_${Date.now()}`,
-      status: 'success',
-      ping_count: 1,
-      total_value: 0,
-      request_data: { action: 'ignite_post', data },
-      response_data: { action: 'ignite_response', data: response.data }
-    });
+    // Log request to database (with error handling)
+    try {
+      await databaseService.logPingRequest({
+        timestamp: new Date().toISOString(),
+        submission_id: `azure_request_${Date.now()}`,
+        status: 'success',
+        ping_count: 1,
+        total_value: 0,
+        request_data: { action: 'ignite_post', data },
+        response_data: { action: 'ignite_response', data: response.data }
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log Azure API request to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     return { success: true, response: response.data };
   } catch (error) {
     logWithCapture('error', 'Azure API submission failed', { error: error.message, formData });
     
-    // Log error to database
-    await databaseService.logPingRequest({
-      timestamp: new Date().toISOString(),
-      submission_id: `azure_error_${Date.now()}`,
-      status: 'error',
-      ping_count: 1,
-      total_value: 0,
-      request_data: { action: 'ignite_post', data: formData },
-      response_data: { action: 'ignite_response', error: error.message }
-    });
+    // Log error to database (with error handling)
+    try {
+      await databaseService.logPingRequest({
+        timestamp: new Date().toISOString(),
+        submission_id: `azure_error_${Date.now()}`,
+        status: 'error',
+        ping_count: 1,
+        total_value: 0,
+        request_data: { action: 'ignite_post', data: formData },
+        response_data: { action: 'ignite_response', error: error.message }
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log Azure API error to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     return { success: false, error: error.message };
   }
@@ -1335,18 +1365,23 @@ app.post('/api/ping-both', async (req, res) => {
       });
     }
     
-    // Log to database using database service
-    await databaseService.logPingComparison({
-      timestamp: new Date().toISOString(),
-      quotewizard_success: comparison.quotewizard.success,
-      quotewizard_value: comparison.quotewizard.value,
-      quotewizard_error: comparison.quotewizard.error,
-      exchangeflo_success: comparison.exchangeflo.success,
-      exchangeflo_value: comparison.exchangeflo.value,
-      exchangeflo_error: comparison.exchangeflo.error,
-      winner: winner,
-      request_data: inputData
-    });
+    // Log to database using database service (with error handling)
+    try {
+      await databaseService.logPingComparison({
+        timestamp: new Date().toISOString(),
+        quotewizard_success: comparison.quotewizard.success,
+        quotewizard_value: comparison.quotewizard.value,
+        quotewizard_error: comparison.quotewizard.error,
+        exchangeflo_success: comparison.exchangeflo.success,
+        exchangeflo_value: comparison.exchangeflo.value,
+        exchangeflo_error: comparison.exchangeflo.error,
+        winner: winner,
+        request_data: inputData
+      });
+    } catch (dbError) {
+      logWithCapture('error', 'Failed to log ping comparison to database', { error: dbError.message });
+      // Don't throw - continue with the flow even if database logging fails
+    }
     
     res.json({
       success: true,

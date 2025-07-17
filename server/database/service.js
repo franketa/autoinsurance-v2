@@ -7,7 +7,7 @@ const dbConfig = {
   user: process.env.DB_USER || 'smartautoinsider_user',
   password: process.env.DB_PASSWORD || 'password123',
   database: process.env.DB_NAME || 'smartautoinsider_db',
-  charset: 'utf8mb4',
+  charset: 'utf8',
   timezone: '+00:00'
 };
 
