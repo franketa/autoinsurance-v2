@@ -34,6 +34,15 @@ function getSessionId(req) {
   return `ip_${ip.replace(/^::ffff:/, '')}`;
 }
 
+// Helper function to find session by TID across all sessions
+function findSessionByTid(tid) {
+  const sessionId = `tid_${tid}`;
+  if (sessions.has(sessionId)) {
+    return sessions.get(sessionId);
+  }
+  return null;
+}
+
 // Postback functions
 async function sendHitpathPostback(tid, revenue) {
   try {
@@ -1285,14 +1294,18 @@ app.post('/api/ping-both', async (req, res) => {
     const tid = req.query.tid || req.body?.tid;
     if (tid) {
       session.tid = tid;
-      logWithCapture('info', 'Captured tid parameter', { tid, sessionId });
+      logWithCapture('info', 'Captured tid parameter in ping-both', { tid, sessionId });
     }
     
     // Store IP address
     const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
     session.ip = ip.replace(/^::ffff:/, '');
     
-    logWithCapture('info', 'Session data', { sessionId, session });
+    logWithCapture('info', 'Session data after tid capture', { 
+      sessionId, 
+      session: JSON.stringify(session, null, 2),
+      allSessions: JSON.stringify(Array.from(sessions.entries()), null, 2)
+    });
     
     // Prepare data for both services
     const quotewizardData = await prepareQuoteWizardData(inputData, req);
@@ -1411,11 +1424,32 @@ app.post('/api/post-winner', async (req, res) => {
     
     logWithCapture('info', `Posting to winner: ${winner}`);
     
-    // Get session data
-    const sessionId = getSessionId(req);
-    const session = getSession(sessionId);
+    // Get session data - try multiple approaches
+    let sessionId = getSessionId(req);
+    let session = getSession(sessionId);
     
-    logWithCapture('info', 'Session data for post-winner', { 
+    // If session doesn't have TID, try to find it in all sessions
+    if (!session.tid) {
+      logWithCapture('info', 'Session has no TID, searching all sessions for TID', {
+        currentSessionId: sessionId,
+        currentSession: JSON.stringify(session, null, 2)
+      });
+      
+      // Look through all sessions to find one with TID
+      for (const [sid, sess] of sessions.entries()) {
+        if (sess.tid) {
+          logWithCapture('info', `Found session with TID: ${sid}`, {
+            tid: sess.tid,
+            revenue: sess.revenue
+          });
+          sessionId = sid;
+          session = sess;
+          break;
+        }
+      }
+    }
+    
+    logWithCapture('info', 'Final session data for post-winner', { 
       sessionId, 
       session: JSON.stringify(session, null, 2),
       allSessions: JSON.stringify(Array.from(sessions.entries()), null, 2)
@@ -1434,6 +1468,15 @@ app.post('/api/post-winner', async (req, res) => {
     logWithCapture('info', 'Post to winner completed successfully', result);
     
     // If post was successful and we have revenue, send postbacks
+    logWithCapture('info', 'Checking postback conditions', {
+      hasResult: !!result,
+      sessionRevenue: session.revenue,
+      sessionTid: session.tid,
+      revenueCheck: session.revenue > 0,
+      tidCheck: !!session.tid,
+      shouldSendPostbacks: !!(result && session.revenue > 0 && session.tid)
+    });
+    
     if (result && session.revenue > 0 && session.tid) {
       logWithCapture('info', 'Sending postbacks due to successful post and revenue', {
         tid: session.tid,
@@ -1464,6 +1507,13 @@ app.post('/api/post-winner', async (req, res) => {
         hitpath: session.revenue > 0 && session.tid ? 'sent' : 'skipped',
         everflow: session.revenue > 0 && session.tid ? 'sent' : 'skipped',
         email: emailResult.success ? 'sent' : 'failed'
+      },
+      sessionInfo: {
+        sessionId: sessionId,
+        hasTid: !!session.tid,
+        tid: session.tid,
+        revenue: session.revenue,
+        ip: session.ip
       },
       logs: getAndClearLogs() // Include logs in response
     });
