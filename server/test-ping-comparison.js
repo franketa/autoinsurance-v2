@@ -4,7 +4,7 @@ const axios = require('axios');
 const testFormData = {
   firstName: 'John',
   lastName: 'Doe',
-  email: 'john.doe@test.com',
+  email: 'john.doe@example.com',
   phoneNumber: '6032011234',
   streetAddress: '123 Main St',
   city: 'Seattle',
