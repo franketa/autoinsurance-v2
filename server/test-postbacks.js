@@ -84,8 +84,30 @@ async function testPostWinner(winner, winnerData) {
     console.log('✅ Post winner successful:', {
       success: response.data.success,
       winner: response.data.winner,
-      postbacks: response.data.postbacks
+      postbacks: response.data.postbacks,
+      sessionInfo: response.data.sessionInfo
     });
+    
+    // Display detailed session information
+    if (response.data.sessionInfo) {
+      console.log('📊 Session Information:');
+      console.log(`   Session ID: ${response.data.sessionInfo.sessionId}`);
+      console.log(`   Has TID: ${response.data.sessionInfo.hasTid}`);
+      console.log(`   TID: ${response.data.sessionInfo.tid}`);
+      console.log(`   Revenue: $${response.data.sessionInfo.revenue}`);
+      console.log(`   IP: ${response.data.sessionInfo.ip}`);
+    }
+    
+    // Display logs if available
+    if (response.data.logs && response.data.logs.length > 0) {
+      console.log('📝 Server Logs:');
+      response.data.logs.forEach(log => {
+        if (log.message.includes('session') || log.message.includes('TID') || log.message.includes('revenue')) {
+          console.log(`   [${log.level}] ${log.message}`);
+        }
+      });
+    }
+    
     return response.data;
   } catch (error) {
     console.error('❌ Post winner failed:', error.response?.data || error.message);
