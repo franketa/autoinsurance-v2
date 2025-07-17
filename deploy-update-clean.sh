@@ -372,6 +372,10 @@ echo "  Test dual ping: node server/test-ping-comparison.js"
 print_info "🧪 Running comprehensive integration test..."
 node server/test-ping-comparison.js 2>/dev/null && print_success "Integration test completed!" || print_warning "Integration test had issues - check logs"
 
+# Test the postback integration system
+print_info "🧪 Running postback integration test..."
+node server/test-postbacks.js 2>/dev/null && print_success "Postback integration test completed!" || print_warning "Postback integration test had issues - check logs"
+
 print_success "🎊 Consolidated deployment and testing completed!" 
 print_info "🏆 Your application is now running with:"
 echo "  • Single server.js architecture"

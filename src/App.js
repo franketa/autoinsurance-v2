@@ -80,6 +80,30 @@ function App() {
     phoneNumber: ''
   });
 
+  // Capture tid parameter on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tid = urlParams.get('tid');
+    
+    if (tid) {
+      console.log('Capturing tid parameter:', tid);
+      
+      // Send tid to server to store in session
+      fetch(`/api/session/capture?tid=${tid}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log('Tid captured successfully:', data);
+          } else {
+            console.error('Failed to capture tid:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error capturing tid:', error);
+        });
+    }
+  }, []);
+
   // Handle exit modal
   const handleExitClick = () => {
     setShowExitModal(true);

@@ -7,6 +7,182 @@ const { getLocationFromIP, getLocationFromZip } = require('./location');
 const databaseService = require('./database/service');
 require('dotenv').config();
 
+// Session management for tracking
+const sessions = new Map();
+
+// Helper function to get or create session
+function getSession(sessionId) {
+  if (!sessions.has(sessionId)) {
+    sessions.set(sessionId, {
+      tid: null,
+      revenue: 0,
+      ip: null,
+      created: new Date()
+    });
+  }
+  return sessions.get(sessionId);
+}
+
+// Helper function to generate session ID from request
+function getSessionId(req) {
+  // Use tid parameter if present, otherwise use IP
+  const tid = req.query.tid || req.body?.tid;
+  if (tid) {
+    return `tid_${tid}`;
+  }
+  const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+  return `ip_${ip.replace(/^::ffff:/, '')}`;
+}
+
+// Postback functions
+async function sendHitpathPostback(tid, revenue) {
+  try {
+    const url = `https://www.trackinglynx.com/rd/px.php?hid=${tid}&sid=3338&transid=&ate=${revenue}`;
+    logWithCapture('info', 'Sending Hitpath postback', { url, tid, revenue });
+    
+    const response = await axios.get(url, { timeout: 10000 });
+    logWithCapture('info', 'Hitpath postback response', { status: response.status, data: response.data });
+    
+    // Log to database
+    await databaseService.logPingRequest({
+      timestamp: new Date().toISOString(),
+      submission_id: `hitpath_${Date.now()}`,
+      status: 'success',
+      ping_count: 1,
+      total_value: revenue,
+      request_data: { url, tid, revenue },
+      response_data: { status: response.status, data: response.data }
+    });
+    
+    return { success: true, response: response.data };
+  } catch (error) {
+    logWithCapture('error', 'Hitpath postback failed', { error: error.message, tid, revenue });
+    
+    // Log error to database
+    await databaseService.logPingRequest({
+      timestamp: new Date().toISOString(),
+      submission_id: `hitpath_error_${Date.now()}`,
+      status: 'error',
+      ping_count: 1,
+      total_value: revenue,
+      request_data: { tid, revenue },
+      response_data: { error: error.message }
+    });
+    
+    return { success: false, error: error.message };
+  }
+}
+
+async function sendEverflowPostback(tid, revenue) {
+  try {
+    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${tid}&amount=${revenue}`;
+    logWithCapture('info', 'Sending Everflow postback', { url, tid, revenue });
+    
+    const response = await axios.get(url, { timeout: 10000 });
+    logWithCapture('info', 'Everflow postback response', { status: response.status, data: response.data });
+    
+    // Log to database
+    await databaseService.logPingRequest({
+      timestamp: new Date().toISOString(),
+      submission_id: `everflow_${Date.now()}`,
+      status: 'success',
+      ping_count: 1,
+      total_value: revenue,
+      request_data: { url, tid, revenue },
+      response_data: { status: response.status, data: response.data }
+    });
+    
+    return { success: true, response: response.data };
+  } catch (error) {
+    logWithCapture('error', 'Everflow postback failed', { error: error.message, tid, revenue });
+    
+    // Log error to database
+    await databaseService.logPingRequest({
+      timestamp: new Date().toISOString(),
+      submission_id: `everflow_error_${Date.now()}`,
+      status: 'error',
+      ping_count: 1,
+      total_value: revenue,
+      request_data: { tid, revenue },
+      response_data: { error: error.message }
+    });
+    
+    return { success: false, error: error.message };
+  }
+}
+
+// Email submission to Azure API
+async function submitEmailToAzure(formData, session) {
+  try {
+    const url = 'https://app-dp-tst-wu3.azurewebsites.net/api/Upload/SingleUpload?auth_token=B4YMZ43H31g0o0B9Xxx9';
+    
+    const data = {
+      partitionKey: "",
+      rowKey: "",
+      timestamp: new Date().toISOString(),
+      eTag: "",
+      contact: {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        customField: {
+          sourceUrl: "https://www.smartautoinsider.com",
+          ipAddress: session.ip,
+          postalAddress: formData.streetAddress,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipcode,
+          gender: formData.gender,
+          birthdate: formData.birthdate,
+          married: formData.maritalStatus,
+          ownRent: formData.homeowner,
+          optInDate: new Date().toISOString()
+        }
+      }
+    };
+    
+    logWithCapture('info', 'Submitting email to Azure API', { url, data });
+    
+    const response = await axios.post(url, data, {
+      headers: {
+        'Accept': '*/*',
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    });
+    
+    logWithCapture('info', 'Azure API response', { status: response.status, data: response.data });
+    
+    // Log request to database
+    await databaseService.logPingRequest({
+      timestamp: new Date().toISOString(),
+      submission_id: `azure_request_${Date.now()}`,
+      status: 'success',
+      ping_count: 1,
+      total_value: 0,
+      request_data: { action: 'ignite_post', data },
+      response_data: { action: 'ignite_response', data: response.data }
+    });
+    
+    return { success: true, response: response.data };
+  } catch (error) {
+    logWithCapture('error', 'Azure API submission failed', { error: error.message, formData });
+    
+    // Log error to database
+    await databaseService.logPingRequest({
+      timestamp: new Date().toISOString(),
+      submission_id: `azure_error_${Date.now()}`,
+      status: 'error',
+      ping_count: 1,
+      total_value: 0,
+      request_data: { action: 'ignite_post', data: formData },
+      response_data: { action: 'ignite_response', error: error.message }
+    });
+    
+    return { success: false, error: error.message };
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -980,6 +1156,47 @@ async function postToExchangeFlo(pingData, formData) {
 
 // API Routes
 
+// Session management endpoint - capture tid parameter
+app.get('/api/session/capture', (req, res) => {
+  try {
+    const tid = req.query.tid;
+    if (!tid) {
+      return res.status(400).json({
+        success: false,
+        error: 'tid parameter is required'
+      });
+    }
+    
+    const sessionId = getSessionId(req);
+    const session = getSession(sessionId);
+    
+    // Store tid and IP
+    session.tid = tid;
+    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    session.ip = ip.replace(/^::ffff:/, '');
+    
+    logWithCapture('info', 'Captured tid parameter via session endpoint', { 
+      tid, 
+      sessionId, 
+      ip: session.ip 
+    });
+    
+    res.json({
+      success: true,
+      sessionId,
+      tid,
+      ip: session.ip,
+      message: 'Session data captured successfully'
+    });
+  } catch (error) {
+    logWithCapture('error', 'Session capture error', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
@@ -1029,6 +1246,23 @@ app.post('/api/ping-both', async (req, res) => {
   try {
     const inputData = req.body;
     logWithCapture('info', 'Received ping-both request', inputData);
+    
+    // Get or create session and capture tid parameter
+    const sessionId = getSessionId(req);
+    const session = getSession(sessionId);
+    
+    // Capture tid parameter if present
+    const tid = req.query.tid || req.body?.tid;
+    if (tid) {
+      session.tid = tid;
+      logWithCapture('info', 'Captured tid parameter', { tid, sessionId });
+    }
+    
+    // Store IP address
+    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    session.ip = ip.replace(/^::ffff:/, '');
+    
+    logWithCapture('info', 'Session data', { sessionId, session });
     
     // Prepare data for both services
     const quotewizardData = await prepareQuoteWizardData(inputData, req);
@@ -1091,6 +1325,16 @@ app.post('/api/ping-both', async (req, res) => {
     
     logWithCapture('info', `WINNER DETERMINED: ${winner}`, comparison);
     
+    // Store revenue amount in session if there's a winner with revenue
+    if (winner && comparison[winner].value > 0) {
+      session.revenue = comparison[winner].value;
+      logWithCapture('info', 'Stored revenue in session', { 
+        sessionId, 
+        winner, 
+        revenue: session.revenue 
+      });
+    }
+    
     // Log to database using database service
     await databaseService.logPingComparison({
       timestamp: new Date().toISOString(),
@@ -1131,6 +1375,12 @@ app.post('/api/post-winner', async (req, res) => {
     
     logWithCapture('info', `Posting to winner: ${winner}`);
     
+    // Get session data
+    const sessionId = getSessionId(req);
+    const session = getSession(sessionId);
+    
+    logWithCapture('info', 'Session data for post-winner', { sessionId, session });
+    
     let result;
     
     if (winner === 'quotewizard') {
@@ -1143,10 +1393,38 @@ app.post('/api/post-winner', async (req, res) => {
     
     logWithCapture('info', 'Post to winner completed successfully', result);
     
+    // If post was successful and we have revenue, send postbacks
+    if (result && session.revenue > 0 && session.tid) {
+      logWithCapture('info', 'Sending postbacks due to successful post and revenue', {
+        tid: session.tid,
+        revenue: session.revenue
+      });
+      
+      // Send postbacks in parallel
+      const [hitpathResult, everflowResult] = await Promise.allSettled([
+        sendHitpathPostback(session.tid, session.revenue),
+        sendEverflowPostback(session.tid, session.revenue)
+      ]);
+      
+      logWithCapture('info', 'Postback results', {
+        hitpath: hitpathResult.status === 'fulfilled' ? hitpathResult.value : hitpathResult.reason,
+        everflow: everflowResult.status === 'fulfilled' ? everflowResult.value : everflowResult.reason
+      });
+    }
+    
+    // Always submit email to Azure API (regardless of post success)
+    const emailResult = await submitEmailToAzure(formData, session);
+    logWithCapture('info', 'Email submission result', emailResult);
+    
     res.json({
       success: true,
       winner: winner,
       result: result,
+      postbacks: {
+        hitpath: session.revenue > 0 && session.tid ? 'sent' : 'skipped',
+        everflow: session.revenue > 0 && session.tid ? 'sent' : 'skipped',
+        email: emailResult.success ? 'sent' : 'failed'
+      },
       logs: getAndClearLogs() // Include logs in response
     });
     
