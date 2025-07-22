@@ -44,12 +44,30 @@ function findSessionByTid(tid) {
 }
 
 // Postback functions
-async function sendHitpathPostback(tid, revenue) {
+async function sendHitpathPostback(tid, revenue, buyerCode = '', buyerId = '') {
   try {
-    const url = `https://www.trackinglynx.com/rd/px.php?hid=${tid}&sid=3338&transid=&ate=${revenue}`;
-    logWithCapture('info', 'Sending Hitpath postback', { url, tid, revenue });
+    const transid = buyerCode && buyerId ? `${buyerCode}_${buyerId}` : '';
+    const url = `https://www.trackinglynx.com/rd/px.php?hid=${tid}&sid=3338&transid=${transid}&ate=${revenue}`;
+    
+    console.log('🎯 HITPATH POSTBACK:', {
+      url: url,
+      tid: tid,
+      revenue: revenue,
+      buyerCode: buyerCode,
+      buyerId: buyerId,
+      transid: transid
+    });
+    
+    logWithCapture('info', 'Sending Hitpath postback', { url, tid, revenue, buyerCode, buyerId, transid });
     
     const response = await axios.get(url, { timeout: 10000 });
+    
+    console.log('🎯 HITPATH RESPONSE:', {
+      status: response.status,
+      data: response.data,
+      requestUrl: url
+    });
+    
     logWithCapture('info', 'Hitpath postback response', { status: response.status, data: response.data });
     
     // Log to database (with error handling)
@@ -92,12 +110,30 @@ async function sendHitpathPostback(tid, revenue) {
   }
 }
 
-async function sendEverflowPostback(tid, revenue) {
+async function sendEverflowPostback(tid, revenue, buyerCode = '', buyerId = '') {
   try {
-    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${tid}&amount=${revenue}`;
-    logWithCapture('info', 'Sending Everflow postback', { url, tid, revenue });
+    const adv1 = buyerCode && buyerId ? `${buyerCode}_${buyerId}` : '';
+    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${tid}&amount=${revenue}&adv1=${adv1}`;
+    
+    console.log('🚀 EVERFLOW POSTBACK:', {
+      url: url,
+      tid: tid,
+      revenue: revenue,
+      buyerCode: buyerCode,
+      buyerId: buyerId,
+      adv1: adv1
+    });
+    
+    logWithCapture('info', 'Sending Everflow postback', { url, tid, revenue, buyerCode, buyerId, adv1 });
     
     const response = await axios.get(url, { timeout: 10000 });
+    
+    console.log('🚀 EVERFLOW RESPONSE:', {
+      status: response.status,
+      data: response.data,
+      requestUrl: url
+    });
+    
     logWithCapture('info', 'Everflow postback response', { status: response.status, data: response.data });
     
     // Log to database (with error handling)
@@ -1533,10 +1569,37 @@ app.post('/api/post-winner', async (req, res) => {
         revenue: session.revenue
       });
       
+      // Determine buyer information based on winner
+      let buyerCode = '';
+      let buyerId = '';
+      
+      if (winner === 'quotewizard') {
+        buyerCode = 'QWD';
+        // Extract Quote ID from QuoteWizard response as buyer ID
+        try {
+          const quoteId = extractQuoteID(result.response);
+          buyerId = quoteId || 'unknown';
+        } catch (e) {
+          buyerId = 'unknown';
+        }
+      } else if (winner === 'exchangeflo') {
+        buyerCode = 'EXF';
+        // Extract submission ID from ExchangeFlo response as buyer ID
+        buyerId = result.submission_id || 'unknown';
+      }
+      
+      console.log('📊 POSTBACK INFO:', {
+        winner: winner,
+        buyerCode: buyerCode,
+        buyerId: buyerId,
+        tid: session.tid,
+        revenue: session.revenue
+      });
+      
       // Send postbacks in parallel
       const [hitpathResult, everflowResult] = await Promise.allSettled([
-        sendHitpathPostback(session.tid, session.revenue),
-        sendEverflowPostback(session.tid, session.revenue)
+        sendHitpathPostback(session.tid, session.revenue, buyerCode, buyerId),
+        sendEverflowPostback(session.tid, session.revenue, buyerCode, buyerId)
       ]);
       
       logWithCapture('info', 'Postback results', {
