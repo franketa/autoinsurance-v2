@@ -1540,36 +1540,65 @@ app.post('/api/post-winner', async (req, res) => {
     let sessionId = getSessionId(req);
     let session = getSession(sessionId);
     
-    // If session doesn't have TID, try to find it in all sessions
+    // If session doesn't have TID, try to find the most recent session with TID
     if (!session.tid) {
-      logWithCapture('info', 'Session has no TID, searching all sessions for TID', {
+      logWithCapture('info', 'Session has no TID, searching for most recent session with TID', {
         currentSessionId: sessionId,
         currentSession: JSON.stringify(session, null, 2)
       });
       
-      // Look through all sessions to find one with TID
+      // Look through all sessions to find the most recent one with TID
       logWithCapture('info', 'Searching all sessions for TID', {
         totalSessions: sessions.size,
         sessionKeys: Array.from(sessions.keys())
       });
+      
+      let mostRecentSession = null;
+      let mostRecentSessionId = null;
+      let mostRecentTime = null;
       
       for (const [sid, sess] of sessions.entries()) {
         logWithCapture('info', `Checking session: ${sid}`, {
           hasTid: !!sess.tid,
           tid: sess.tid,
           revenue: sess.revenue,
-          ip: sess.ip
+          ip: sess.ip,
+          created: sess.created
         });
         
-        if (sess.tid) {
-          logWithCapture('info', `Found session with TID: ${sid}`, {
-            tid: sess.tid,
-            revenue: sess.revenue
-          });
-          sessionId = sid;
-          session = sess;
-          break;
+        if (sess.tid && sess.created) {
+          const sessionTime = new Date(sess.created);
+          if (!mostRecentTime || sessionTime > mostRecentTime) {
+            mostRecentTime = sessionTime;
+            mostRecentSession = sess;
+            mostRecentSessionId = sid;
+            
+            console.log('🕒 FOUND NEWER SESSION:', {
+              sessionId: sid,
+              tid: sess.tid,
+              created: sess.created,
+              isNewer: !mostRecentTime ? 'first' : 'yes'
+            });
+          }
         }
+      }
+      
+      if (mostRecentSession) {
+        sessionId = mostRecentSessionId;
+        session = mostRecentSession;
+        
+        console.log('🎯 USING MOST RECENT SESSION:', {
+          sessionId: mostRecentSessionId,
+          tid: session.tid,
+          revenue: session.revenue,
+          created: session.created
+        });
+        
+        logWithCapture('info', `Using most recent session: ${mostRecentSessionId}`, {
+          tid: session.tid,
+          revenue: session.revenue,
+          created: session.created
+        });
       }
     }
     
