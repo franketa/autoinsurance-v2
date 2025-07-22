@@ -1620,6 +1620,24 @@ app.post('/api/post-winner', async (req, res) => {
     
     logWithCapture('info', 'Post to winner completed successfully', result);
     
+    // Update session revenue if result has value
+    if (result && result.value && result.value > 0) {
+      session.revenue = result.value;
+      
+      console.log('💰 UPDATED SESSION REVENUE:', {
+        sessionId: sessionId,
+        oldRevenue: session.revenue,
+        newRevenue: result.value,
+        postResult: result.value
+      });
+      
+      logWithCapture('info', 'Updated session revenue from post result', {
+        sessionId: sessionId,
+        newRevenue: result.value,
+        postResultValue: result.value
+      });
+    }
+    
     // If post was successful and we have revenue, send postbacks
     logWithCapture('info', 'Checking postback conditions', {
       hasResult: !!result,
