@@ -15,6 +15,11 @@ function getSession(sessionId) {
   if (!sessions.has(sessionId)) {
     sessions.set(sessionId, {
       tid: null,
+      ef_transaction_id: null,
+      hitid: null,
+      sid: null,
+      oid: null,
+      affid: null,
       revenue: 0,
       ip: null,
       created: new Date()
@@ -1231,27 +1236,55 @@ async function postToExchangeFlo(pingData, formData) {
 
 // API Routes
 
-// Session management endpoint - capture tid parameter
+// Session management endpoint - capture tracking parameters
 app.get('/api/session/capture', (req, res) => {
   try {
     const tid = req.query.tid;
-    if (!tid) {
-      return res.status(400).json({
-        success: false,
-        error: 'tid parameter is required'
-      });
-    }
+    const ef_transaction_id = req.query.ef_transaction_id;
+    const hitid = req.query.hitid;
+    const sid = req.query.sid;
+    const oid = req.query.oid;
+    const affid = req.query.affid;
     
-    const sessionId = getSessionId(req);
+    console.log('📥 SESSION CAPTURE REQUEST:', {
+      tid,
+      ef_transaction_id,
+      hitid,
+      sid,
+      oid,
+      affid,
+      allParams: req.query
+    });
+    
+    // Use the best available ID for TID (priority: tid, ef_transaction_id, hitid, sid, oid, affid)
+    const bestTid = tid || ef_transaction_id || hitid || sid || oid || affid || null;
+    
+    const sessionId = bestTid ? `tid_${bestTid}` : getSessionId(req);
     const session = getSession(sessionId);
     
-    // Store tid and IP
-    session.tid = tid;
+    // Store all parameters and IP
+    session.tid = bestTid;
+    session.ef_transaction_id = ef_transaction_id;
+    session.hitid = hitid;
+    session.sid = sid;
+    session.oid = oid;
+    session.affid = affid;
+    
     const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
     session.ip = ip.replace(/^::ffff:/, '');
     
-    logWithCapture('info', 'Captured tid parameter via session endpoint', { 
-      tid, 
+    console.log('📥 SESSION CREATED/UPDATED:', {
+      sessionId,
+      session: JSON.stringify(session, null, 2)
+    });
+    
+    logWithCapture('info', 'Captured tracking parameters via session endpoint', { 
+      tid: bestTid,
+      ef_transaction_id,
+      hitid,
+      sid,
+      oid,
+      affid,
       sessionId, 
       ip: session.ip 
     });
@@ -1259,7 +1292,12 @@ app.get('/api/session/capture', (req, res) => {
     res.json({
       success: true,
       sessionId,
-      tid,
+      tid: bestTid,
+      ef_transaction_id,
+      hitid,
+      sid,
+      oid,
+      affid,
       ip: session.ip,
       message: 'Session data captured successfully'
     });

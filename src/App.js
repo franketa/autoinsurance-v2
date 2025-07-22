@@ -80,28 +80,46 @@ function App() {
     phoneNumber: ''
   });
 
-  // Capture tid parameter on component mount
+  // Capture URL parameters on component mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tid = urlParams.get('tid');
+    const ef_transaction_id = urlParams.get('ef_transaction_id');
+    const hitid = urlParams.get('hitid');
+    const sid = urlParams.get('sid');
+    const oid = urlParams.get('oid');
+    const affid = urlParams.get('affid');
     
-    if (tid) {
-      console.log('Capturing tid parameter:', tid);
-      
-      // Send tid to server to store in session
-      fetch(`/api/session/capture?tid=${tid}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            console.log('Tid captured successfully:', data);
-          } else {
-            console.error('Failed to capture tid:', data.error);
-          }
-        })
-        .catch(error => {
-          console.error('Error capturing tid:', error);
-        });
-    }
+    console.log('📋 URL PARAMETERS FOUND:', {
+      tid,
+      ef_transaction_id,
+      hitid,
+      sid,
+      oid,
+      affid,
+      fullUrl: window.location.href
+    });
+    
+    // Send parameters to server to store in session (always send, even if some are empty)
+    const params = new URLSearchParams();
+    if (tid) params.append('tid', tid);
+    if (ef_transaction_id) params.append('ef_transaction_id', ef_transaction_id);
+    if (hitid) params.append('hitid', hitid);
+    if (sid) params.append('sid', sid);
+    if (oid) params.append('oid', oid);
+    if (affid) params.append('affid', affid);
+    
+    // Always capture, even if no parameters (to establish session)
+    const captureUrl = params.toString() ? `/api/session/capture?${params.toString()}` : '/api/session/capture?tid=';
+    
+    fetch(captureUrl)
+      .then(response => response.json())
+      .then(data => {
+        console.log('📋 SESSION CAPTURE RESULT:', data);
+      })
+      .catch(error => {
+        console.error('Error capturing URL parameters:', error);
+      });
   }, []);
 
   // Handle exit modal
