@@ -80,46 +80,117 @@ function App() {
     phoneNumber: ''
   });
 
-  // Capture URL parameters on component mount
+  // Load Everflow SDK and capture URL parameters on component mount
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tid = urlParams.get('tid');
-    const ef_transaction_id = urlParams.get('ef_transaction_id');
-    const hitid = urlParams.get('hitid');
-    const sid = urlParams.get('sid');
-    const oid = urlParams.get('oid');
-    const affid = urlParams.get('affid');
-    
-    console.log('📋 URL PARAMETERS FOUND:', {
-      tid,
-      ef_transaction_id,
-      hitid,
-      sid,
-      oid,
-      affid,
-      fullUrl: window.location.href
-    });
-    
-    // Send parameters to server to store in session (always send, even if some are empty)
-    const params = new URLSearchParams();
-    if (tid) params.append('tid', tid);
-    if (ef_transaction_id) params.append('ef_transaction_id', ef_transaction_id);
-    if (hitid) params.append('hitid', hitid);
-    if (sid) params.append('sid', sid);
-    if (oid) params.append('oid', oid);
-    if (affid) params.append('affid', affid);
-    
-    // Always capture, even if no parameters (to establish session)
-    const captureUrl = params.toString() ? `/api/session/capture?${params.toString()}` : '/api/session/capture?tid=';
-    
-    fetch(captureUrl)
-      .then(response => response.json())
-      .then(data => {
-        console.log('📋 SESSION CAPTURE RESULT:', data);
-      })
-      .catch(error => {
-        console.error('Error capturing URL parameters:', error);
+    const loadEverflowSDK = () => {
+      return new Promise((resolve, reject) => {
+        // Check if Everflow SDK is already loaded
+        if (window.EF) {
+          resolve();
+          return;
+        }
+
+        // Only load if script hasn't been loaded already
+        if (!document.querySelector('script[src*="everflow.js"]')) {
+          const script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.async = true;
+          script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
+          
+          script.onload = () => {
+            console.log('🚀 Everflow SDK loaded successfully');
+            resolve();
+          };
+          
+          script.onerror = () => {
+            console.error('❌ Failed to load Everflow SDK');
+            reject(new Error('Failed to load Everflow SDK'));
+          };
+          
+          document.head.appendChild(script);
+        } else {
+          resolve();
+        }
       });
+    };
+
+    const captureParametersAndTid = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      let tid = urlParams.get('tid');
+      const ef_transaction_id = urlParams.get('ef_transaction_id');
+      const hitid = urlParams.get('hitid');
+      const sid = urlParams.get('sid');
+      const oid = urlParams.get('oid');
+      const affid = urlParams.get('affid');
+      
+      console.log('📋 URL PARAMETERS FOUND:', {
+        tid,
+        ef_transaction_id,
+        hitid,
+        sid,
+        oid,
+        affid,
+        fullUrl: window.location.href
+      });
+
+      // If no TID parameter exists or is empty, try to get one from Everflow SDK
+      if (!tid || tid.trim() === '') {
+        try {
+          console.log('🔍 No TID found in URL, attempting to get from Everflow SDK...');
+          
+          // Load Everflow SDK first
+          await loadEverflowSDK();
+          
+          // Wait a bit for SDK to initialize
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (window.EF && typeof window.EF.click === 'function') {
+            console.log('🚀 Calling EF.click to generate transaction ID...');
+            
+            // Use EF.click to generate a transaction ID
+            const transactionId = await window.EF.click({
+              offer_id: oid || window.EF.urlParameter('oid'),
+              affiliate_id: affid || window.EF.urlParameter('affid')
+            });
+            
+            if (transactionId) {
+              tid = transactionId;
+              console.log('✅ Generated TID from Everflow SDK:', tid);
+            } else {
+              console.log('⚠️ EF.click returned empty transaction ID');
+            }
+          } else {
+            console.log('⚠️ Everflow SDK not available or EF.click method not found');
+          }
+        } catch (error) {
+          console.error('❌ Error generating TID from Everflow SDK:', error);
+        }
+      } else {
+        console.log('✅ TID found in URL parameters:', tid);
+      }
+      
+      // Send parameters to server to store in session (always send, even if some are empty)
+      const params = new URLSearchParams();
+      if (tid) params.append('tid', tid);
+      if (ef_transaction_id) params.append('ef_transaction_id', ef_transaction_id);
+      if (hitid) params.append('hitid', hitid);
+      if (sid) params.append('sid', sid);
+      if (oid) params.append('oid', oid);
+      if (affid) params.append('affid', affid);
+      
+      // Always capture, even if no parameters (to establish session)
+      const captureUrl = params.toString() ? `/api/session/capture?${params.toString()}` : '/api/session/capture?tid=';
+      
+      try {
+        const response = await fetch(captureUrl);
+        const data = await response.json();
+        console.log('📋 SESSION CAPTURE RESULT:', data);
+      } catch (error) {
+        console.error('Error capturing URL parameters:', error);
+      }
+    };
+
+    captureParametersAndTid();
   }, []);
 
   // Handle exit modal
