@@ -593,45 +593,107 @@ function App() {
         console.log(`  ExchangeFlo Error: ${comparison.exchangeflo.error}`);
       }
       
-      // If we have a winner, post to that service
+      // If we have a winner, post to that service (with fallback logic)
+      let finalWinner = null;
+      let finalResult = null;
+      let conversionValue = 0;
+      
       if (winner && winnerData) {
         console.log(`🎯 Posting lead to ${winner}...`);
         
-        const postResponse = await fetch('/api/post-winner', {
-          method: 'POST',
-          headers: { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            winner: winner,
-            winnerData: winnerData,
-            formData: submissionData
-          })
-        });
-        
-        const postResult = await postResponse.json();
-        
-        if (!postResponse.ok) {
-          console.error('❌ Post to winner failed:', JSON.stringify(postResult, null, 2));
-          // Don't throw here - we can still show results even if post fails
-        } else {
-          console.log('✅ Post to winner successful:', postResult);
+        // Try posting to the primary winner first
+        try {
+          const postResponse = await fetch('/api/post-winner', {
+            method: 'POST',
+            headers: { 
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              winner: winner,
+              winnerData: winnerData,
+              formData: submissionData
+            })
+          });
           
-          // Fire conversion tracking if there's revenue
-          const winnerValue = comparison[winner].value;
-          if (winnerValue > 0) {
-            // Load and fire Everflow conversion
+          const postResult = await postResponse.json();
+          
+          if (postResponse.ok && postResult.success) {
+            console.log('✅ Post to primary winner successful:', postResult);
+            finalWinner = winner;
+            finalResult = postResult;
+            conversionValue = comparison[winner].value;
+          } else {
+            throw new Error(`Primary winner post failed: ${postResult.error || 'Unknown error'}`);
+          }
+        } catch (primaryError) {
+          console.error('❌ Post to primary winner failed:', primaryError.message);
+          
+          // Try fallback to the other service if it was successful in ping
+          const fallbackWinner = winner === 'quotewizard' ? 'exchangeflo' : 'quotewizard';
+          const fallbackData = comparison[fallbackWinner];
+          
+          if (fallbackData.success && fallbackData.value > 0) {
+            console.log(`🔄 Trying fallback to ${fallbackWinner}...`);
+            
+            try {
+              const fallbackResponse = await fetch('/api/post-winner', {
+                method: 'POST',
+                headers: { 
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  winner: fallbackWinner,
+                  winnerData: fallbackData.data,
+                  formData: submissionData
+                })
+              });
+              
+              const fallbackResult = await fallbackResponse.json();
+              
+              if (fallbackResponse.ok && fallbackResult.success) {
+                console.log('✅ Fallback post successful:', fallbackResult);
+                finalWinner = fallbackWinner;
+                finalResult = fallbackResult;
+                conversionValue = comparison[fallbackWinner].value;
+              } else {
+                console.error('❌ Fallback post also failed:', fallbackResult);
+              }
+            } catch (fallbackError) {
+              console.error('❌ Fallback post error:', fallbackError.message);
+            }
+          } else {
+            console.warn('⚠️ No valid fallback option available');
+          }
+        }
+        
+        // Fire conversion pixels only if we had a successful post
+        if (finalWinner && finalResult && conversionValue > 0) {
+          console.log('🎯 Firing conversion pixels for successful post:', {
+            winner: finalWinner,
+            value: conversionValue
+          });
+          
+          // Load and fire Everflow conversion
+          try {
             const script = document.createElement('script');
             script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
             script.onload = () => {
-              window.EF.conversion({
-                aid: 118,
-                amount: winnerValue,
-              });
+              if (window.EF && typeof window.EF.conversion === 'function') {
+                window.EF.conversion({
+                  aid: 118,
+                  amount: conversionValue,
+                });
+                console.log('✅ Everflow conversion pixel fired');
+              }
             };
             document.head.appendChild(script);
+          } catch (pixelError) {
+            console.error('❌ Error firing conversion pixel:', pixelError);
           }
+        } else {
+          console.warn('⚠️ No successful posts - conversion pixels will NOT fire');
         }
       } else {
         console.warn('⚠️ No winner found - both services may have failed');
