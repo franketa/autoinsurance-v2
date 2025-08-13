@@ -5,7 +5,7 @@ import ProgressBar from './components/ProgressBar';
 import StepContainer from './components/StepContainer';
 import Footer from './components/Footer';
 import SearchingScreen from './components/SearchingScreen';
-import ResultsScreen from './components/ResultsScreen';
+import ThankYouPage from './components/ThankYouPage';
 import ContactUsPage from './components/ContactUsPage';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsOfUsePage from './components/TermsOfUsePage';
@@ -792,10 +792,9 @@ function App() {
       <div className="app">
         <Header state={formData.state} />
         <main className="main-content">
-          <ResultsScreen 
-            userName={formData.firstName || 'franco'} 
-            onViewRate={handleViewRate}
-            onViewAllRates={handleViewAllRates}
+          <ThankYouPage 
+            location={`${formData.city || 'Vista'}, ${formData.state || 'California'}`}
+            userName={formData.firstName || ''}
           />
         </main>
         <Footer 

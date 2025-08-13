@@ -1,0 +1,7 @@
+Logo placeholders for offers:
+- carshield-logo.png
+- ace-auto-logo.png  
+- ace-auto-refi-logo.png
+- vehicle-protection-usa-logo.png
+
+These should be replaced with actual logos when available.

@@ -1,0 +1,310 @@
+/* Mobile-first responsive design for ThankYou Page */
+.thankyou-page {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 20px 16px;
+}
+
+.thankyou-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.thankyou-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.thankyou-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #28a745;
+  line-height: 1.3;
+  margin-bottom: 12px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.location-highlight {
+  color: #007bff;
+}
+
+.thankyou-subtitle {
+  font-size: 16px;
+  color: #007bff;
+  line-height: 1.5;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 500;
+}
+
+/* Offers Container */
+.offers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+/* Offer Card */
+.offer-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.offer-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.offer-card.recommended {
+  border: 2px solid #28a745;
+}
+
+/* Recommended Badge */
+.recommended-badge {
+  background: #28a745;
+  color: white;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.badge-icon {
+  font-size: 16px;
+}
+
+.badge-text {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Offer Content */
+.offer-content {
+  padding: 20px;
+}
+
+.offer-logo {
+  height: 50px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.offer-logo img {
+  max-height: 100%;
+  max-width: 200px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-placeholder {
+  font-size: 18px;
+  font-weight: 700;
+  color: #007bff;
+  letter-spacing: 1px;
+}
+
+.offer-headline {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  line-height: 1.3;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Offer Copy */
+.offer-copy {
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* CTA Button */
+.offer-cta-button {
+  display: block;
+  width: 100%;
+  padding: 14px 24px;
+  background: #007bff;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.offer-cta-button:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.offer-cta-button:active {
+  transform: translateY(0);
+}
+
+/* Footer */
+.thankyou-footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.footer-note {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.5;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Tablet Styles (768px and up) */
+@media (min-width: 768px) {
+  .thankyou-page {
+    padding: 40px 24px;
+  }
+
+  .thankyou-header {
+    margin-bottom: 40px;
+  }
+
+  .thankyou-title {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  .thankyou-subtitle {
+    font-size: 18px;
+  }
+
+  .offers-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .offer-content {
+    padding: 24px;
+  }
+
+  .offer-logo {
+    height: 60px;
+    margin-bottom: 20px;
+  }
+
+  .offer-headline {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .offer-copy {
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+
+  .footer-note {
+    font-size: 13px;
+  }
+}
+
+/* Desktop Styles (1024px and up) */
+@media (min-width: 1024px) {
+  .thankyou-page {
+    padding: 60px 32px;
+  }
+
+  .thankyou-header {
+    margin-bottom: 48px;
+  }
+
+  .thankyou-title {
+    font-size: 36px;
+  }
+
+  .offers-container {
+    gap: 32px;
+  }
+
+  .offer-card {
+    transition: all 0.3s ease;
+  }
+
+  .offer-content {
+    padding: 32px;
+  }
+
+  .offer-logo {
+    height: 70px;
+    margin-bottom: 24px;
+  }
+
+  .offer-headline {
+    font-size: 22px;
+    margin-bottom: 24px;
+  }
+
+  .offer-copy {
+    font-size: 16px;
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .offer-cta-button {
+    font-size: 17px;
+    padding: 16px 32px;
+  }
+}
+
+/* Extra Large Desktop (1440px and up) */
+@media (min-width: 1440px) {
+  .offers-container {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 1200px;
+    margin: 0 auto 40px;
+  }
+}
+
+/* Animation for cards appearing */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.offer-card {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.offer-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.offer-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.offer-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.offer-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
