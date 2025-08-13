@@ -28,8 +28,9 @@ const ContactInfoStep = ({
   const [localCity, setLocalCity] = useState(city || '');
   const [localState, setLocalState] = useState(state || '');
   const [errors, setErrors] = useState({});
+  const [agreementChecked, setAgreementChecked] = useState(false);
 
-  // Load TrustedForm script when component mounts
+  // Load TrustedForm and Jornaya scripts when component mounts
   useEffect(() => {
     const loadTrustedForm = () => {
       // Only load if script hasn't been loaded already
@@ -52,7 +53,31 @@ const ContactInfoStep = ({
       }
     };
 
+    const loadJornaya = () => {
+      // Only load if script hasn't been loaded already
+      if (!document.querySelector('script#LeadiDscript_campaign')) {
+        // First create the base LeadiDscript if it doesn't exist
+        if (!document.getElementById('LeadiDscript')) {
+          const leadIdBase = document.createElement('script');
+          leadIdBase.id = 'LeadiDscript';
+          leadIdBase.type = 'text/javascript';
+          document.head.appendChild(leadIdBase);
+        }
+        
+        // Now create and insert the campaign script
+        const s = document.createElement('script');
+        s.id = 'LeadiDscript_campaign';
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = '//create.lidstatic.com/campaign/79baaed6-d254-23be-3049-b9e04bb5b8d1.js?snippet_version=2';
+        
+        const LeadiDscript = document.getElementById('LeadiDscript');
+        LeadiDscript.parentNode.insertBefore(s, LeadiDscript);
+      }
+    };
+
     loadTrustedForm();
+    loadJornaya();
   }, []);
 
   // Update parent state immediately when local state changes
@@ -112,8 +137,8 @@ const ContactInfoStep = ({
     }
   };
 
-  // Check if form is valid (all fields filled and no errors)
-  const isFormValid = localFirstName && localLastName && localEmail && localPhoneNumber && localStreetAddress && localCity && localState && Object.keys(errors).length === 0;
+  // Check if form is valid (all fields filled, no errors, and agreement checked)
+  const isFormValid = localFirstName && localLastName && localEmail && localPhoneNumber && localStreetAddress && localCity && localState && Object.keys(errors).length === 0 && agreementChecked;
 
   // Clear specific field error when user starts typing
   const clearFieldError = (fieldName) => {
@@ -238,6 +263,21 @@ const ContactInfoStep = ({
           />
           {errors.state && <div className="error-message">{errors.state}</div>}
         </div>
+        
+        <div className="form-section">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <input
+              type="checkbox"
+              id="agreement"
+              checked={agreementChecked}
+              onChange={(e) => setAgreementChecked(e.target.checked)}
+              style={{ marginTop: '3px' }}
+            />
+            <label htmlFor="agreement" style={{ fontSize: '14px', lineHeight: '1.4', cursor: 'pointer' }}>
+              By clicking "Get My Auto Quotes", you agree to our <span style={{color: '#007bff', cursor: 'pointer', textDecoration: 'underline'}} onClick={onTermsClick}>Terms and Conditions</span> and <span style={{color: '#007bff', cursor: 'pointer', textDecoration: 'underline'}} onClick={onPrivacyClick}>Privacy Policy</span>, and consent to receive important notices and other communications electronically. You also expressly consent to receive marketing and promotional calls, text messages, and pre-recorded messages from Vision Media Group, its subsidiaries, and third-party marketers acting on its behalf at the phone number you provide, including via an automatic telephone dialing system or pre-recorded or artificial voice messages. Consent is not a condition of our services. Message and data rates may apply. Message frequency may vary. Reply STOP to opt out, HELP for help.
+            </label>
+          </div>
+        </div>
 
         <button 
           type="submit" 
@@ -246,7 +286,6 @@ const ContactInfoStep = ({
         >
           CONTINUE
         </button>
-        <p className="submit-disclaimer">By clicking continue, you agree to our <span style={{color: '#007bff', cursor: 'pointer', textDecoration: 'underline'}} onClick={onTermsClick}>Terms of Service</span> and <span style={{color: '#007bff', cursor: 'pointer', textDecoration: 'underline'}} onClick={onPrivacyClick}>Privacy Policy</span>, and consent to receive important notices and other communications electronically. You also consent to receive marketing and informational calls, text messages, and pre-recorded messages from us and third-party marketers we work with at the phone number you provide, including via an autodialer or prerecorded voice. Consent is not a condition of our services. Message and data rates may apply. Message frequency may vary. Reply STOP to opt out, HELP for help.</p>
       </form>
     </div>
   );

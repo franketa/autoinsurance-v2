@@ -727,6 +727,9 @@ async function prepareQuoteWizardData(inputData, req) {
     ? (inputData.trusted_form_cert_id || generateTrustedFormCertId())
     : generateTrustedFormCertId();
   
+  // Use Jornaya Lead ID from input data or generate a test one
+  const jornayaLeadId = inputData.jornaya_lead_id || '01234566-89AB-CDEF-0123-456789ABCDAF';
+  
   const vendorData = {
     LeadID: '2897BDB4',
     SourceID: req.sessionID || '',
@@ -735,7 +738,7 @@ async function prepareQuoteWizardData(inputData, req) {
     UserAgent: req.get('User-Agent') || '',
     DateLeadReceived: getTodayDate(),
     LeadBornOnDateTimeUTC: getTodayDate(true),
-    JornayaLeadID: '01234566-89AB-CDEF-0123-456789ABCDAF',
+    JornayaLeadID: jornayaLeadId,
     TrustedFormCertificateUrl: `https://cert.trustedform.com/${trustedFormCertId}`,
     EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
     TCPAOptIn: 'Yes',
@@ -876,6 +879,9 @@ async function prepareExchangeFloData(inputData) {
     ? (inputData.trusted_form_cert_id || generateTrustedFormCertId())
     : generateTrustedFormCertId();
   
+  // Use Jornaya Lead ID from input data or generate a test one
+  const jornayaLeadId = inputData.jornaya_lead_id || '01234566-89AB-CDEF-0123-456789ABCDAF';
+  
   return {
     source_id: "aaf3cd79-1fc5-43f6-86bc-d86d9d61c0d5",
     response_type: "detail",
@@ -884,6 +890,7 @@ async function prepareExchangeFloData(inputData) {
     tracking_id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sub_id_1: process.env.NODE_ENV === 'production' ? "smartauto_prod" : "smartauto_test",
     trusted_form_cert_url: `https://cert.trustedform.com/${trustedFormCertId}`,
+    jornaya_lead_id: jornayaLeadId,  // Add Jornaya Lead ID for ExchangeFlo
     ip_address: "127.0.0.1",
     landing_url: "https://smartautoinsider.com",
     privacy_url: "https://smartautoinsider.com/privacy",
@@ -1043,6 +1050,9 @@ async function postToQuoteWizard(pingData, formData) {
   const trustedFormCertId = process.env.NODE_ENV === 'production' 
     ? (formData.trusted_form_cert_id || generateTrustedFormCertId())
     : generateTrustedFormCertId();
+  
+  // Use Jornaya Lead ID from form data or generate a test one
+  const jornayaLeadId = formData.jornaya_lead_id || '01234566-89AB-CDEF-0123-456789ABCDAF';
     
   const vendorData = {
     LeadID: '2897BDB4',
@@ -1052,7 +1062,7 @@ async function postToQuoteWizard(pingData, formData) {
     UserAgent: 'axios/1.9.0',
     DateLeadReceived: getTodayDate(),
     LeadBornOnDateTimeUTC: getTodayDate(true),
-    JornayaLeadID: '01234566-89AB-CDEF-0123-456789ABCDAF',
+    JornayaLeadID: jornayaLeadId,
     TrustedFormCertificateUrl: `https://cert.trustedform.com/${trustedFormCertId}`,
     EverQuoteEQID: 'F3C4242D-CEFC-46B5-91E0-A1B09AE7375E',
     TCPAOptIn: 'Yes',

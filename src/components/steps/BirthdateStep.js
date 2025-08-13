@@ -18,7 +18,7 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
   const [errors, setErrors] = useState({});
 
   const handleFieldChange = (field, value) => {
-    // Remove any non-digit characters
+    // Remove any non-digit characters for month and day
     const numericValue = value.replace(/\D/g, '');
     
     // Apply field-specific length limits
@@ -26,7 +26,7 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
     if (field === 'month' || field === 'day') {
       limitedValue = numericValue.slice(0, 2);
     } else if (field === 'year') {
-      limitedValue = numericValue.slice(0, 4);
+      limitedValue = value; // Keep year as is for dropdown
     }
 
     setDateFields(prev => ({ ...prev, [field]: limitedValue }));
@@ -96,7 +96,7 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
 
   const isFormValid = () => {
     const { month, day, year } = dateFields;
-    return month.length >= 1 && day.length >= 1 && year.length === 4;
+    return month.length >= 1 && day.length >= 1 && year;
   };
 
   return (
@@ -126,15 +126,22 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
               maxLength="2"
             />
             <span className="date-separator">/</span>
-            <input
+            <select
               id="year-input"
-              type="text"
               className={`date-field ${errors.year ? 'error' : ''}`}
               value={dateFields.year}
               onChange={(e) => handleFieldChange('year', e.target.value)}
-              placeholder="yyyy"
-              maxLength="4"
-            />
+            >
+              <option value="">Year</option>
+              {Array.from({ length: 100 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                );
+              })}
+            </select>
           </div>
         </div>
         

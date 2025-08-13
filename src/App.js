@@ -469,6 +469,16 @@ function App() {
     return "https://cert.trustedform.com/0123456789abcdef0123456789abcdef01234567";
   };
 
+  // Get Jornaya Lead ID
+  const getJornayaLeadId = () => {
+    // Try to get the Jornaya Lead ID from the window object
+    if (window.LeadiD && window.LeadiD.token) {
+      return window.LeadiD.token;
+    }
+    // Fallback to a test ID if Jornaya hasn't loaded yet
+    return "01234566-89AB-CDEF-0123-456789ABCDAF";
+  };
+
   // Validate and normalize insurance company names
   const normalizeInsuranceCompany = (company) => {
     if (!company) return "";
@@ -546,7 +556,8 @@ function App() {
         vehicles: formData.vehicles.filter(v => v.year && v.make && v.model),
         
         // Tracking data
-        trusted_form_cert_id: getTrustedFormCertUrl().split('/').pop()
+        trusted_form_cert_id: getTrustedFormCertUrl().split('/').pop(),
+        jornaya_lead_id: getJornayaLeadId()
       };
 
       console.log('📋 Submission Data Being Sent:');
