@@ -13,7 +13,7 @@ const CoverageTypeStep = ({ value, onChange, onNext }) => {
 
   return (
     <div>
-      <h2 className="step-title">Which coverage type do you need?</h2>
+      <h2 className="step-title">How much coverage do you need?</h2>
       <div className="options-container">
         {options.map((option) => (
           <button

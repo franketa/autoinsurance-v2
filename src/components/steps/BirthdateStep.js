@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 const BirthdateStep = ({ value, onChange, onNext }) => {
   // Parse existing value or set empty
@@ -16,10 +16,9 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
 
   const [dateFields, setDateFields] = useState(parseDate(value));
   const [errors, setErrors] = useState({});
-  const [showYearDropdown, setShowYearDropdown] = useState(false);
 
   const handleFieldChange = (field, value) => {
-    // Remove any non-digit characters for month and day
+    // Remove any non-digit characters for all fields
     const numericValue = value.replace(/\D/g, '');
     
     // Apply field-specific length limits
@@ -27,7 +26,7 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
     if (field === 'month' || field === 'day') {
       limitedValue = numericValue.slice(0, 2);
     } else if (field === 'year') {
-      limitedValue = value; // Keep year as is for dropdown
+      limitedValue = numericValue.slice(0, 4);
     }
 
     setDateFields(prev => ({ ...prev, [field]: limitedValue }));
@@ -42,25 +41,7 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
       document.getElementById('day-input').focus();
     } else if (field === 'day' && limitedValue.length === 2) {
       document.getElementById('year-input').focus();
-      setShowYearDropdown(true);
     }
-  };
-
-  const handleYearSelect = (year) => {
-    setDateFields(prev => ({ ...prev, year: year.toString() }));
-    setShowYearDropdown(false);
-    if (errors.year) {
-      setErrors(prev => ({ ...prev, year: null }));
-    }
-  };
-
-  const handleYearFocus = () => {
-    setShowYearDropdown(true);
-  };
-
-  const handleYearBlur = () => {
-    // Delay hiding dropdown to allow for clicks
-    setTimeout(() => setShowYearDropdown(false), 150);
   };
 
   const validateDate = () => {
@@ -145,39 +126,15 @@ const BirthdateStep = ({ value, onChange, onNext }) => {
               maxLength="2"
             />
             <span className="date-separator">/</span>
-            <div className="year-input-container">
-              <input
-                id="year-input"
-                type="text"
-                className={`date-field year-field ${errors.year ? 'error' : ''}`}
-                value={dateFields.year}
-                onChange={(e) => handleFieldChange('year', e.target.value)}
-                placeholder="yyyy"
-                maxLength="4"
-                readOnly
-                onFocus={handleYearFocus}
-                onBlur={handleYearBlur}
-              />
-              <div className="year-dropdown-arrow">
-                ▼
-              </div>
-              {showYearDropdown && (
-                <div className="year-dropdown">
-                  {Array.from({ length: 100 }, (_, i) => {
-                    const year = new Date().getFullYear() - i;
-                    return (
-                      <div 
-                        key={year} 
-                        className="year-option"
-                        onClick={() => handleYearSelect(year)}
-                      >
-                        {year}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <input
+              id="year-input"
+              type="text"
+              className={`date-field ${errors.year ? 'error' : ''}`}
+              value={dateFields.year}
+              onChange={(e) => handleFieldChange('year', e.target.value)}
+              placeholder="yyyy"
+              maxLength="4"
+            />
           </div>
         </div>
         

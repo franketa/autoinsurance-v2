@@ -1,7 +1,6 @@
 import React from 'react';
 import ZipCodeStep from './steps/ZipCodeStep';
 import VehicleCountStep from './steps/VehicleCountStep';
-import AddSecondVehicleStep from './steps/AddSecondVehicleStep';
 import VehicleYearStep from './steps/VehicleYearStep';
 import VehicleMakeStep from './steps/VehicleMakeStep';
 import VehicleModelStep from './steps/VehicleModelStep';
@@ -63,14 +62,7 @@ const StepContainer = ({
           />
         );
 
-      case 'add-second-vehicle':
-        return (
-          <AddSecondVehicleStep
-            value={formData.addSecondVehicle}
-            onChange={(value) => updateFormData('addSecondVehicle', value)}
-            onNext={onNext}
-          />
-        );
+
 
       case 'vehicle-year-1':
       case 'vehicle-year-2':
@@ -245,6 +237,7 @@ const StepContainer = ({
             value={formData.military}
             onChange={(value) => updateFormData('military', value)}
             onNext={onNext}
+            maritalStatus={formData.maritalStatus}
           />
         );
 

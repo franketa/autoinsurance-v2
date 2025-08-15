@@ -13,7 +13,7 @@ const HomeownerStep = ({ value, onChange, onNext }) => {
 
   return (
     <div>
-      <h2 className="step-title">Homeowner?</h2>
+      <h2 className="step-title">Are you a homeowner?</h2>
       <div className="options-container">
         {options.map((option) => (
           <button

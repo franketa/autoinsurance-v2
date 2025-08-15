@@ -1,7 +1,7 @@
 import React from 'react';
 
 const GenderStep = ({ value, onChange, onNext }) => {
-  const options = ['Male', 'Female'];
+  const options = ['Male', 'Female', 'Non Binary'];
 
   const handleSelect = (selectedValue) => {
     onChange(selectedValue);

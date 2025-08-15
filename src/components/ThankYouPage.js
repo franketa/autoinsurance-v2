@@ -29,7 +29,7 @@ const ThankYouPage = ({ location = 'Vista, California', userName = '' }) => {
     },
     {
       id: 'ace-auto-loans',
-      logo: '/images/logos/ace-auto-logo.png',
+      logo: '/images/logos/ace-logo.svg',
       headline: 'Get Approved for Your Next Car – All Credit Welcome',
       copy: 'Whether your credit is perfect or needs rebuilding, you could get approved for a new or used car loan in just minutes. Fast, easy, and no obligation—drive away sooner than you think.',
       link: 'https://www.greentrackr.com/6HZm0NuwRYhIcyXj3B3esG2MgN7WNhtA6fHUujYr4vwy90mDUZoOKGHTSzYvMQCyZceQuJj95dZBR4gtVebwnw~~/',
@@ -37,7 +37,7 @@ const ThankYouPage = ({ location = 'Vista, California', userName = '' }) => {
     },
     {
       id: 'ace-auto-refi',
-      logo: '/images/logos/ace-auto-refi-logo.png',
+      logo: '/images/logos/ace-logo.svg',
       headline: 'Lower Your Monthly Car Payment – Fast & Easy',
       copy: 'Refinancing your auto loan could put more money back in your pocket each month. Pre-qualify in minutes and see how much you could save without affecting your credit score.',
       link: 'https://www.greentrackr.com/6HZm0NuwRYhIcyXj3B3esKWdNW-lOjzCpwOKRw-z-FY-PTXfCvpbPCztP_axiazB3nvuctGQXANdfTns1VZmmw~~/',

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const MilitaryStep = ({ value, onChange, onNext }) => {
+const MilitaryStep = ({ value, onChange, onNext, maritalStatus }) => {
   const options = ['Yes', 'No'];
 
   const handleSelect = (selectedValue) => {
@@ -11,10 +11,18 @@ const MilitaryStep = ({ value, onChange, onNext }) => {
     }, 300);
   };
 
+  const getTitle = () => {
+    if (maritalStatus === 'Married') {
+      return 'Have you or your spouse ever honorably served in the U.S. military?';
+    } else {
+      return 'Have you ever honorably served in the U.S. military?';
+    }
+  };
+
   return (
     <div>
       <h2 className="step-title">
-        Are either you or your spouse an active member, or an honorably discharged veteran of the US military?
+        {getTitle()}
       </h2>
       <div className="options-container">
         {options.map((option) => (

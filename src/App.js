@@ -14,8 +14,7 @@ import { vehicleData } from './data/vehicleData';
 const STEPS = [
   { id: 'zipcode', title: 'Enter zip code' },
   { id: 'vehicle-count', title: 'How many vehicles will be on your policy?' },
-  { id: 'add-second-vehicle', title: 'Add a 2nd Vehicle (save an additional 20%)' },
-  { id: 'vehicle-year-1', title: 'First vehicle year' },
+  { id: 'vehicle-year-1', title: 'Select your vehicle year' },
   { id: 'vehicle-make-1', title: 'Select your vehicle make' },
   { id: 'vehicle-model-1', title: 'Select your vehicle model' },
   { id: 'vehicle-year-2', title: 'Second vehicle year' },
@@ -26,17 +25,17 @@ const STEPS = [
   { id: 'insurance-history', title: 'Have you had auto insurance in the past 30 days?' },
   { id: 'current-auto-insurance', title: 'Current Auto Insurance' },
   { id: 'insurance-duration', title: 'How long have you continuously had auto insurance?' },
-  { id: 'coverage-type', title: 'Which coverage type do you need?' },
+  { id: 'coverage-type', title: 'How much coverage do you need?' },
   { id: 'vehicle-purpose-1', title: 'What is the primary use for your first vehicle?' },
-  { id: 'vehicle-mileage-1', title: 'What is the annual mileage for your first vehicle?' },
+  { id: 'vehicle-mileage-1', title: 'Is your vehicle paid off, financed, or leased?' },
   { id: 'vehicle-ownership-1', title: 'How do you own your first vehicle?' },
   { id: 'vehicle-purpose-2', title: 'What is the primary use for your second vehicle?' },
-  { id: 'vehicle-mileage-2', title: 'What is the annual mileage for your second vehicle?' },
+  { id: 'vehicle-mileage-2', title: 'Is your vehicle paid off, financed, or leased?' },
   { id: 'vehicle-ownership-2', title: 'How do you own your second vehicle?' },
   { id: 'gender', title: 'Select your gender' },
   { id: 'marital-status', title: 'Are you married?' },
   { id: 'credit-score', title: 'What is your credit score?' },
-  { id: 'homeowner', title: 'Homeowner?' },
+  { id: 'homeowner', title: 'Are you a homeowner?' },
   { id: 'military', title: 'Are either you or your spouse an active member, or an honorably discharged veteran of the US military?' },
   { id: 'driver-education', title: 'What is your highest level of education?' },
   { id: 'driver-occupation', title: 'What is your occupation?' },
@@ -54,7 +53,6 @@ function App() {
     city: '',
     state: '',
     vehicleCount: '',
-    addSecondVehicle: '',
     vehicles: [
       { year: '', make: '', model: '', purpose: '', mileage: '', ownership: '' },
       { year: '', make: '', model: '', purpose: '', mileage: '', ownership: '' }
@@ -215,16 +213,8 @@ function App() {
     steps.push(STEPS.find(s => s.id === 'zipcode'));
     steps.push(STEPS.find(s => s.id === 'vehicle-count'));
     
-    // If user selected 1 vehicle, show upsell question
-    if (formData.vehicleCount === '1') {
-      steps.push(STEPS.find(s => s.id === 'add-second-vehicle'));
-    }
-    
-    // Determine final vehicle count (original selection or after upsell)
+    // Use the vehicle count directly
     let finalVehicleCount = formData.vehicleCount;
-    if (formData.vehicleCount === '1' && formData.addSecondVehicle === 'Yes') {
-      finalVehicleCount = '2';
-    }
     
     // Add vehicle steps based on final count - with details for each vehicle
     if (finalVehicleCount === '1') {
