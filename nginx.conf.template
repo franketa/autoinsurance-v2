@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name DOMAIN_NAME www.DOMAIN_NAME freequote.smartautoinsider.com;
+    server_name DOMAIN_NAME www.DOMAIN_NAME freequote.smartautoinsider.com smartautoinsider.dbs-testing.com;
     
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
