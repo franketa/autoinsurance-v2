@@ -2,7 +2,7 @@ import React from 'react';
 
 const VehicleOwnershipStep = ({ title, value, onChange, onNext }) => {
   const options = [
-    { value: 'owned', label: 'Owned' },
+    { value: 'paid_off', label: 'Paid Off' },
     { value: 'financed', label: 'Financed' },
     { value: 'leased', label: 'Leased' }
   ];

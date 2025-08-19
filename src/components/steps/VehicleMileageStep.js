@@ -2,9 +2,12 @@ import React from 'react';
 
 const VehicleMileageStep = ({ title, value, onChange, onNext }) => {
   const options = [
-    { value: 'paid_off', label: 'Paid Off' },
-    { value: 'financed', label: 'Financed' },
-    { value: 'leased', label: 'Leased' }
+    { value: 'under_10k', label: 'Under 10,000 miles' },
+    { value: '10k_25k', label: '10,000 - 25,000 miles' },
+    { value: '25k_50k', label: '25,000 - 50,000 miles' },
+    { value: '50k_75k', label: '50,000 - 75,000 miles' },
+    { value: '75k_100k', label: '75,000 - 100,000 miles' },
+    { value: 'over_100k', label: 'Over 100,000 miles' }
   ];
 
   const handleSelect = (selectedValue) => {

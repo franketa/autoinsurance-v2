@@ -53,7 +53,10 @@ const VehicleMakeStep = ({ title, value, onChange, onNext, vehicleData, selected
 
   return (
     <div>
-      <h2 className="step-title">{title}</h2>
+      <div className="step-header">
+        <div className="step-year">{selectedYear}</div>
+        <h2 className="step-title">Select your vehicle make</h2>
+      </div>
       
       {/* Makes with images - show as buttons */}
       <div className="options-container">

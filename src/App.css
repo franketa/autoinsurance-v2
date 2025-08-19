@@ -95,6 +95,18 @@
   text-align: left;
 }
 
+.step-header {
+  margin-bottom: 15px;
+}
+
+.step-year {
+  font-size: 16px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-bottom: 4px;
+  text-align: left;
+}
+
 .step-subtitle {
   font-size: 14px;
   color: #6b7280;
