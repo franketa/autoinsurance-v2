@@ -16,7 +16,10 @@ const VehicleModelStep = ({ title, value, onChange, onNext, vehicleData, selecte
 
   return (
     <div>
-      <h2 className="step-title">{title}</h2>
+      <div className="step-header">
+        <div className="step-year">{selectedYear}</div>
+        <h2 className="step-title">{selectedMake} Select your vehicle model</h2>
+      </div>
       <div className="options-container">
         {models.map((model) => (
           <button
