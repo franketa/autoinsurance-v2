@@ -1679,8 +1679,9 @@ app.post('/api/post-winner', async (req, res) => {
         }
       } else if (winner === 'exchangeflo') {
         buyerCode = 'EXF';
-        // Extract submission ID from ExchangeFlo response as buyer ID
-        buyerId = result.submission_id || 'unknown';
+        // Use the original submission_id from winnerData (ping response)
+        // since ExchangeFlo post response doesn't include submission_id
+        buyerId = winnerData.submission_id || 'unknown';
       }
       
       console.log('📊 POSTBACK INFO:', {
