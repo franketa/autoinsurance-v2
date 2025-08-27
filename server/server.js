@@ -1771,11 +1771,6 @@ app.post('/api/post-winner', async (req, res) => {
         revenue: session.revenue,
         ip: session.ip
       },
-      conversionData: {
-        adv1: adv1,
-        tid: tidToSend,
-        revenue: revenueToSend
-      },
       logs: getAndClearLogs() // Include logs in response
     });
     
