@@ -1701,12 +1701,29 @@ app.post('/api/post-winner', async (req, res) => {
     // Use ping revenue from session (what the buyer actually paid), not post result
     const pingRevenue = session.lastWinnerData?.value || 0;
     
-    logWithCapture('info', 'Always sending postbacks', {
+    // Extract revenue from post response (like PHP implementation)
+    let postRevenue = 0;
+    if (result?.response) {
+      try {
+        // Check if this is a QuoteWizard success response
+        if (result.response.includes('<Status>Success</Status>') && result.response.includes('<Payout>')) {
+          const payoutMatch = result.response.match(/<Payout>([\d.]+)<\/Payout>/);
+          if (payoutMatch) {
+            postRevenue = parseFloat(payoutMatch[1]) || 0;
+          }
+        }
+      } catch (e) {
+        logWithCapture('info', 'Could not extract revenue from post response', { error: e.message });
+      }
+    }
+    
+    logWithCapture('info', 'Checking postback conditions', {
       hasResult: !!result,
       postSuccessful: !!result?.response,
       pingRevenue: pingRevenue,
+      postRevenue: postRevenue,
       sessionTid: session.tid,
-      revenueToSend: pingRevenue > 0 ? pingRevenue : 'null'
+      shouldSendPostbacks: postRevenue > 0 && !!session.tid
     });
     
     // Determine ADV1 based on ping winner and revenue
