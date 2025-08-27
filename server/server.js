@@ -1753,6 +1753,10 @@ app.post('/api/post-winner', async (req, res) => {
       result = await postToQuoteWizard(winnerData, formData);
     } else if (winner === 'exchangeflo') {
       result = await postToExchangeFlo(winnerData, formData);
+    } else if (winner === 'none') {
+      // No winner case - skip posting but still send postbacks
+      logWithCapture('info', 'No winner case - skipping post but will send postbacks');
+      result = { success: true, message: 'No winner - postbacks only' };
     } else {
       throw new Error('Invalid winner specified');
     }

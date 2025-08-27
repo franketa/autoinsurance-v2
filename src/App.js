@@ -594,11 +594,12 @@ function App() {
         console.log(`  ExchangeFlo Error: ${comparison.exchangeflo.error}`);
       }
       
-      // If we have a winner, post to that service (with fallback logic)
+      // Always handle postbacks and potential winner posting
       let finalWinner = null;
       let finalResult = null;
       let conversionValue = 0;
       
+      // ALWAYS call post-winner endpoint to ensure postbacks fire (even with no winner)
       if (winner && winnerData) {
         console.log(`🎯 Posting lead to ${winner}...`);
         
@@ -667,7 +668,36 @@ function App() {
           } else {
             console.warn('⚠️ No valid fallback option available');
           }
+        } else {
+        // No winner - still need to send postbacks
+        console.log('⚠️ No winner found - both services may have failed');
+        console.log('📤 Sending postbacks with no winner...');
+        
+        try {
+          const postResponse = await fetch('/api/post-winner', {
+            method: 'POST',
+            headers: { 
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              winner: 'none',  // Special value for no winner
+              winnerData: null,
+              formData: submissionData
+            })
+          });
+          
+          const postResult = await postResponse.json();
+          
+          if (postResponse.ok && postResult.success) {
+            console.log('✅ No-winner postbacks sent successfully:', postResult);
+          } else {
+            console.error('❌ No-winner postbacks failed:', postResult);
+          }
+        } catch (error) {
+          console.error('❌ Error sending no-winner postbacks:', error);
         }
+      }
         
         // Always fire conversion pixels regardless of winner or conversion value
         console.log('🎯 Always firing conversion pixels:', {
