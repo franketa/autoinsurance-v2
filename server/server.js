@@ -1381,23 +1381,7 @@ app.post('/api/ping-both', async (req, res) => {
       logWithCapture('info', 'Captured tid parameter in ping-both', { tid, sessionId });
     }
     
-    // If we don't have a TID in this session, try to find an existing session with TID
-    if (!session.tid) {
-      logWithCapture('info', 'No TID in current session, searching for existing session with TID');
-      
-      // Look through all sessions to find one with TID
-      for (const [sid, sess] of sessions.entries()) {
-        if (sess.tid) {
-          logWithCapture('info', `Found existing session with TID: ${sid}`, {
-            tid: sess.tid,
-            revenue: sess.revenue
-          });
-          sessionId = sid;
-          session = sess;
-          break;
-        }
-      }
-    }
+    // Use only current session - don't search for old sessions
     
     // Store IP address
     const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
@@ -1513,52 +1497,52 @@ app.post('/api/ping-both', async (req, res) => {
     }
     
     // ALWAYS send postbacks regardless of winner or revenue
+    // Use actual ping results for revenue, not old session data
+    const actualRevenue = winner ? comparison[winner].value : 0;
+    
     logWithCapture('info', 'Always sending postbacks from ping-both', {
       hasWinner: !!winner,
-      winnerValue: winner ? comparison[winner].value : 0,
+      winnerValue: actualRevenue,
       sessionTid: session.tid,
-      revenueToSend: session.revenue > 0 ? session.revenue : 'null'
+      revenueToSend: actualRevenue > 0 ? actualRevenue : 'null'
     });
     
-    // Determine buyer information based on winner
-    let buyerCode = '';
-    let buyerId = '';
+    // Determine buyer information based on winner and revenue
+    let adv1 = 'null';
     
-    if (winner === 'quotewizard') {
-      buyerCode = 'QWD';
-      // Extract Quote ID from QuoteWizard response as buyer ID
-      try {
-        const quoteId = extractQuoteID(comparison[winner]?.data?.response);
-        buyerId = quoteId || 'unknown';
-      } catch (e) {
-        buyerId = 'unknown';
+    if (winner && actualRevenue > 0) {
+      if (winner === 'quotewizard') {
+        // Extract Quote ID from QuoteWizard response as buyer ID
+        try {
+          const quoteId = extractQuoteID(comparison[winner]?.data?.response);
+          adv1 = `QWD_${quoteId || 'unknown'}`;
+        } catch (e) {
+          adv1 = 'QWD_unknown';
+        }
+      } else if (winner === 'exchangeflo') {
+        // Use submission_id from ExchangeFlo response
+        const submissionId = comparison[winner]?.data?.submission_id || 'unknown';
+        adv1 = `EXF_${submissionId}`;
       }
-    } else if (winner === 'exchangeflo') {
-      buyerCode = 'EXF';
-      // Use submission_id from ExchangeFlo response
-      buyerId = comparison[winner]?.data?.submission_id || 'unknown';
-    } else {
-      // No winner or unknown winner
-      buyerCode = 'UNK';
-      buyerId = 'unknown';
     }
+    // If no winner or no revenue, adv1 stays 'null'
     
-    // Use 'null' as revenue if no revenue, otherwise use actual revenue
-    const revenueToSend = session.revenue > 0 ? session.revenue : 'null';
+    // Use actual ping revenue, send 'null' if no revenue
+    const revenueToSend = actualRevenue > 0 ? actualRevenue : 'null';
     const tidToSend = session.tid || 'no_tid';
     
     console.log('🎯 PING-BOTH POSTBACK INFO:', {
       winner: winner,
-      buyerCode: buyerCode,
-      buyerId: buyerId,
+      actualRevenue: actualRevenue,
+      adv1: adv1,
       tid: tidToSend,
       revenue: revenueToSend
     });
     
     // Send all 3 postbacks in parallel
     const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
-      sendHitpathPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
-      sendEverflowPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
+      sendHitpathPostback(tidToSend, revenueToSend, adv1),
+      sendEverflowPostback(tidToSend, revenueToSend, adv1),
       submitEmailToAzure(inputData, session)
     ]);
     
@@ -1611,67 +1595,7 @@ app.post('/api/post-winner', async (req, res) => {
     let sessionId = getSessionId(req);
     let session = getSession(sessionId);
     
-    // If session doesn't have TID, try to find the most recent session with TID
-    if (!session.tid) {
-      logWithCapture('info', 'Session has no TID, searching for most recent session with TID', {
-        currentSessionId: sessionId,
-        currentSession: JSON.stringify(session, null, 2)
-      });
-      
-      // Look through all sessions to find the most recent one with TID
-      logWithCapture('info', 'Searching all sessions for TID', {
-        totalSessions: sessions.size,
-        sessionKeys: Array.from(sessions.keys())
-      });
-      
-      let mostRecentSession = null;
-      let mostRecentSessionId = null;
-      let mostRecentTime = null;
-      
-      for (const [sid, sess] of sessions.entries()) {
-        logWithCapture('info', `Checking session: ${sid}`, {
-          hasTid: !!sess.tid,
-          tid: sess.tid,
-          revenue: sess.revenue,
-          ip: sess.ip,
-          created: sess.created
-        });
-        
-        if (sess.tid && sess.created) {
-          const sessionTime = new Date(sess.created);
-          if (!mostRecentTime || sessionTime > mostRecentTime) {
-            mostRecentTime = sessionTime;
-            mostRecentSession = sess;
-            mostRecentSessionId = sid;
-            
-            console.log('🕒 FOUND NEWER SESSION:', {
-              sessionId: sid,
-              tid: sess.tid,
-              created: sess.created,
-              isNewer: !mostRecentTime ? 'first' : 'yes'
-            });
-          }
-        }
-      }
-      
-      if (mostRecentSession) {
-        sessionId = mostRecentSessionId;
-        session = mostRecentSession;
-        
-        console.log('🎯 USING MOST RECENT SESSION:', {
-          sessionId: mostRecentSessionId,
-          tid: session.tid,
-          revenue: session.revenue,
-          created: session.created
-        });
-        
-        logWithCapture('info', `Using most recent session: ${mostRecentSessionId}`, {
-          tid: session.tid,
-          revenue: session.revenue,
-          created: session.created
-        });
-      }
-    }
+    // Use only current session - don't search for old sessions
     
     logWithCapture('info', 'Final session data for post-winner', { 
       sessionId, 
@@ -1710,52 +1634,52 @@ app.post('/api/post-winner', async (req, res) => {
     }
     
     // ALWAYS send postbacks regardless of revenue or winner
+    // Use actual post result for revenue, not old session data
+    const actualRevenue = result?.value || 0;
+    
     logWithCapture('info', 'Always sending postbacks', {
       hasResult: !!result,
-      sessionRevenue: session.revenue,
+      actualRevenue: actualRevenue,
       sessionTid: session.tid,
-      revenueToSend: session.revenue > 0 ? session.revenue : 'null'
+      revenueToSend: actualRevenue > 0 ? actualRevenue : 'null'
     });
     
-    // Determine buyer information based on winner
-    let buyerCode = '';
-    let buyerId = '';
+    // Determine ADV1 based on winner and revenue
+    let adv1 = 'null';
     
-    if (winner === 'quotewizard') {
-      buyerCode = 'QWD';
-      // Extract Quote ID from QuoteWizard response as buyer ID
-      try {
-        const quoteId = extractQuoteID(result?.response);
-        buyerId = quoteId || 'unknown';
-      } catch (e) {
-        buyerId = 'unknown';
+    if (result && actualRevenue > 0) {
+      if (winner === 'quotewizard') {
+        // Extract Quote ID from QuoteWizard response as buyer ID
+        try {
+          const quoteId = extractQuoteID(result?.response);
+          adv1 = `QWD_${quoteId || 'unknown'}`;
+        } catch (e) {
+          adv1 = 'QWD_unknown';
+        }
+      } else if (winner === 'exchangeflo') {
+        // Use the original submission_id from winnerData (ping response)
+        const submissionId = winnerData?.submission_id || 'unknown';
+        adv1 = `EXF_${submissionId}`;
       }
-    } else if (winner === 'exchangeflo') {
-      buyerCode = 'EXF';
-      // Use the original submission_id from winnerData (ping response)
-      buyerId = winnerData?.submission_id || 'unknown';
-    } else {
-      // No winner or unknown winner
-      buyerCode = 'UNK';
-      buyerId = 'unknown';
     }
+    // If no result or no revenue, adv1 stays 'null'
     
-    // Use 'null' as revenue if no revenue, otherwise use actual revenue
-    const revenueToSend = session.revenue > 0 ? session.revenue : 'null';
+    // Use actual post revenue, send 'null' if no revenue
+    const revenueToSend = actualRevenue > 0 ? actualRevenue : 'null';
     const tidToSend = session.tid || 'no_tid';
     
     console.log('📊 POSTBACK INFO:', {
       winner: winner,
-      buyerCode: buyerCode,
-      buyerId: buyerId,
+      actualRevenue: actualRevenue,
+      adv1: adv1,
       tid: tidToSend,
       revenue: revenueToSend
     });
     
     // Send all 3 postbacks in parallel
     const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
-      sendHitpathPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
-      sendEverflowPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
+      sendHitpathPostback(tidToSend, revenueToSend, adv1),
+      sendEverflowPostback(tidToSend, revenueToSend, adv1),
       submitEmailToAzure(formData, session)
     ]);
     
