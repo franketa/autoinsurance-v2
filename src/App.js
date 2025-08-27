@@ -669,18 +669,32 @@ function App() {
           }
         }
         
-        // Fire conversion pixels only if we had a successful post
-        if (finalWinner && finalResult && conversionValue > 0) {
-          console.log('🎯 Firing conversion pixels for successful post:', {
-            winner: finalWinner,
-            value: conversionValue
-          });
-          
-          // Note: Everflow conversion tracking is handled server-side via postback
-          // No client-side EF.conversion() needed to avoid duplicate conversions
-          console.log('✅ Everflow conversion will be tracked server-side via postback');
-        } else {
-          console.warn('⚠️ No successful posts - conversion pixels will NOT fire');
+        // Always fire conversion pixels regardless of winner or conversion value
+        console.log('🎯 Always firing conversion pixels:', {
+          winner: finalWinner || 'none',
+          value: conversionValue || 0
+        });
+        
+        // Load and fire Everflow conversion (frontend SDK)
+        try {
+          const script = document.createElement('script');
+          script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
+          script.onload = () => {
+            if (window.EF && typeof window.EF.conversion === 'function') {
+              window.EF.conversion({
+                aid: 118,
+                amount: conversionValue || 0
+              });
+              
+              console.log('✅ Everflow conversion pixel fired with data:', {
+                aid: 118,
+                amount: conversionValue || 0
+              });
+            }
+          };
+          document.head.appendChild(script);
+        } catch (pixelError) {
+          console.error('❌ Error firing conversion pixel:', pixelError);
         }
       } else {
         console.warn('⚠️ No winner found - both services may have failed');
