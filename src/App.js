@@ -668,7 +668,8 @@ function App() {
           } else {
             console.warn('⚠️ No valid fallback option available');
           }
-        } else {
+        }
+      } else {
         // No winner - still need to send postbacks
         console.log('⚠️ No winner found - both services may have failed');
         console.log('📤 Sending postbacks with no winner...');
@@ -698,25 +699,25 @@ function App() {
           console.error('❌ Error sending no-winner postbacks:', error);
         }
       }
-        
-        // Always fire conversion pixels regardless of winner or conversion value
-        console.log('🎯 Always firing conversion pixels:', {
-          winner: finalWinner || 'none',
-          value: conversionValue || 0
-        });
-        
-        // Load and fire Everflow conversion (frontend SDK)
-        try {
-          const script = document.createElement('script');
-          script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
-          script.onload = () => {
-            if (window.EF && typeof window.EF.conversion === 'function') {
-              // Get ADV1 from post result if available
-              let adv1Value = 'null';
-              
-              if (finalResult?.sessionInfo?.tid && finalWinner) {
-                // Try to construct ADV1 from available data
-                if (finalWinner === 'quotewizard' && finalResult?.result?.response) {
+      
+      // Always fire conversion pixels regardless of winner or conversion value
+      console.log('🎯 Always firing conversion pixels:', {
+        winner: finalWinner || 'none',
+        value: conversionValue || 0
+      });
+      
+      // Load and fire Everflow conversion (frontend SDK)
+      try {
+        const script = document.createElement('script');
+        script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
+        script.onload = () => {
+          if (window.EF && typeof window.EF.conversion === 'function') {
+            // Get ADV1 from post result if available
+            let adv1Value = 'null';
+            
+            if (finalResult?.sessionInfo?.tid && finalWinner) {
+              // Try to construct ADV1 from available data
+              if (finalWinner === 'quotewizard' && finalResult?.result?.response) {
                   try {
                     // Try to extract Quote ID from response
                     const quoteIdMatch = finalResult.result.response.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
@@ -798,9 +799,6 @@ function App() {
         } catch (pixelError) {
           console.error('❌ Error firing conversion pixel:', pixelError);
         }
-      } else {
-        console.warn('⚠️ No winner found - both services may have failed');
-      }
       
       // Always show results screen after completion
       setSubmissionState('results');
