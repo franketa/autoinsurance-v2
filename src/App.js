@@ -682,9 +682,9 @@ function App() {
           script.onload = () => {
             if (window.EF && typeof window.EF.conversion === 'function') {
               // Get ADV1 from post result if available
-              let adv1Value = 'frontend_null';
+              let adv1Value = 'null';
               
-              if (finalResult?.sessionInfo?.tid) {
+              if (finalResult?.sessionInfo?.tid && finalWinner) {
                 // Try to construct ADV1 from available data
                 if (finalWinner === 'quotewizard' && finalResult?.result?.response) {
                   try {
@@ -696,8 +696,34 @@ function App() {
                   } catch (e) {
                     console.log('Could not extract Quote ID for frontend ADV1');
                   }
-                } else if (finalWinner === 'exchangeflo' && winnerData?.submission_id) {
-                  adv1Value = `EXF_${winnerData.submission_id}`;
+                } else if (finalWinner === 'exchangeflo') {
+                  // Try multiple sources for ExchangeFlo submission_id
+                  let submissionId = null;
+                  
+                  // First try winnerData (success case)
+                  if (winnerData?.submission_id) {
+                    submissionId = winnerData.submission_id;
+                  }
+                  // Then try responseData (error case with 422, etc.)
+                  else if (finalResult?.result?.responseData?.submission_id) {
+                    submissionId = finalResult.result.responseData.submission_id;
+                  }
+                  // Finally try direct result (alternative structure)
+                  else if (finalResult?.result?.submission_id) {
+                    submissionId = finalResult.result.submission_id;
+                  }
+                  
+                  if (submissionId) {
+                    adv1Value = `EXF_${submissionId}`;
+                  }
+                  
+                  console.log('ExchangeFlo ADV1 Debug:', {
+                    finalWinner,
+                    winnerDataSubmissionId: winnerData?.submission_id,
+                    responseDataSubmissionId: finalResult?.result?.responseData?.submission_id,
+                    directSubmissionId: finalResult?.result?.submission_id,
+                    finalAdv1Value: adv1Value
+                  });
                 }
               }
               
