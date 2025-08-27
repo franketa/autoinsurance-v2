@@ -53,17 +53,26 @@ async function sendHitpathPostback(tid, revenue, adv1 = '') {
   try {
     // Handle revenue - convert 'null' string to 0, otherwise use as-is
     const revenueParam = revenue === 'null' ? 0 : revenue;
-    const url = `https://www.trackinglynx.com/rd/px.php?hid=${tid}&sid=3338&transid=${adv1}&ate=${revenueParam}`;
+    const url = `https://www.trackinglynx.com/rd/px.php?hid=${encodeURIComponent(tid)}&sid=3338&transid=${encodeURIComponent(adv1)}&ate=${revenueParam}`;
     
     console.log('🎯 HITPATH POSTBACK:', {
       url: url,
       tid: tid,
       revenue: revenue,
       revenueParam: revenueParam,
-      adv1: adv1
+      adv1: adv1,
+      tid_encoded: encodeURIComponent(tid),
+      adv1_encoded: encodeURIComponent(adv1)
     });
     
-    logWithCapture('info', 'Sending Hitpath postback', { url, tid, revenue, revenueParam, adv1 });
+    logWithCapture('info', 'Sending Hitpath postback', { 
+      url, 
+      tid, 
+      revenue, 
+      revenueParam, 
+      adv1,
+      actualUrlSent: url
+    });
     
     const response = await axios.get(url, { timeout: 10000 });
     
@@ -119,17 +128,26 @@ async function sendEverflowPostback(tid, revenue, adv1 = '') {
   try {
     // Handle revenue - convert 'null' string to 0, otherwise use as-is
     const revenueParam = revenue === 'null' ? 0 : revenue;
-    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${tid}&amount=${revenueParam}&adv1=${adv1}`;
+    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${encodeURIComponent(tid)}&amount=${revenueParam}&adv1=${encodeURIComponent(adv1)}`;
     
     console.log('🚀 EVERFLOW POSTBACK:', {
       url: url,
       tid: tid,
       revenue: revenue,
       revenueParam: revenueParam,
-      adv1: adv1
+      adv1: adv1,
+      tid_encoded: encodeURIComponent(tid),
+      adv1_encoded: encodeURIComponent(adv1)
     });
     
-    logWithCapture('info', 'Sending Everflow postback', { url, tid, revenue, revenueParam, adv1 });
+    logWithCapture('info', 'Sending Everflow postback', { 
+      url, 
+      tid, 
+      revenue, 
+      revenueParam, 
+      adv1,
+      actualUrlSent: url
+    });
     
     const response = await axios.get(url, { timeout: 10000 });
     
@@ -1381,21 +1399,50 @@ app.post('/api/ping-both', async (req, res) => {
       logWithCapture('info', 'Captured tid parameter in ping-both', { tid, sessionId });
     }
     
-    // If current session has no TID, try to find session with TID (created from URL params)
+    // If no TID in current session, look for the most recent session with TID (created from URL)
+    // This handles the case where form submission creates new IP session but TID was captured earlier
     if (!session.tid) {
-      logWithCapture('info', 'No TID in current session, searching for session with TID from URL');
+      logWithCapture('info', 'No TID in current session, looking for most recent session with TID');
       
-      // Look for sessions that have TID (from URL parameters)
+      let mostRecentTidSession = null;
+      let mostRecentTime = 0;
+      
       for (const [sid, sess] of sessions.entries()) {
-        if (sess.tid && sid.startsWith('tid_')) {
-          logWithCapture('info', `Found session with TID: ${sid}`, {
-            tid: sess.tid,
-            revenue: sess.revenue
-          });
-          sessionId = sid;
-          session = sess;
-          break;
+        if (sess.tid && sid.startsWith('tid_') && sess.created) {
+          const sessionTime = new Date(sess.created).getTime();
+          // Prioritize sessions created today over old sessions
+          const today = new Date().toDateString();
+          const sessionDate = new Date(sess.created).toDateString();
+          
+          if (sessionDate === today && sessionTime > mostRecentTime) {
+            mostRecentTime = sessionTime;
+            mostRecentTidSession = { sessionId: sid, session: sess };
+          }
         }
+      }
+      
+      // If no session from today, fall back to most recent overall
+      if (!mostRecentTidSession) {
+        for (const [sid, sess] of sessions.entries()) {
+          if (sess.tid && sid.startsWith('tid_') && sess.created) {
+            const sessionTime = new Date(sess.created).getTime();
+            if (sessionTime > mostRecentTime) {
+              mostRecentTime = sessionTime;
+              mostRecentTidSession = { sessionId: sid, session: sess };
+            }
+          }
+        }
+      }
+      
+      if (mostRecentTidSession) {
+        logWithCapture('info', `Using most recent TID session: ${mostRecentTidSession.sessionId}`, {
+          tid: mostRecentTidSession.session.tid,
+          created: mostRecentTidSession.session.created
+        });
+        sessionId = mostRecentTidSession.sessionId;
+        session = mostRecentTidSession.session;
+      } else {
+        logWithCapture('info', 'No TID session found - using no_tid as fallback');
       }
     }
     
@@ -1568,21 +1615,49 @@ app.post('/api/post-winner', async (req, res) => {
     let sessionId = getSessionId(req);
     let session = getSession(sessionId);
     
-    // If current session has no TID, find the session with TID (same as ping-both logic)
+    // If no TID in current session, look for the most recent session with TID (same as ping-both)
     if (!session.tid) {
-      logWithCapture('info', 'No TID in current session, searching for session with TID from ping-both');
+      logWithCapture('info', 'No TID in current session, looking for most recent session with TID');
       
-      // Look for sessions that have TID (from URL parameters)
+      let mostRecentTidSession = null;
+      let mostRecentTime = 0;
+      
       for (const [sid, sess] of sessions.entries()) {
-        if (sess.tid && sid.startsWith('tid_')) {
-          logWithCapture('info', `Found session with TID: ${sid}`, {
-            tid: sess.tid,
-            revenue: sess.revenue
-          });
-          sessionId = sid;
-          session = sess;
-          break;
+        if (sess.tid && sid.startsWith('tid_') && sess.created) {
+          const sessionTime = new Date(sess.created).getTime();
+          // Prioritize sessions created today over old sessions
+          const today = new Date().toDateString();
+          const sessionDate = new Date(sess.created).toDateString();
+          
+          if (sessionDate === today && sessionTime > mostRecentTime) {
+            mostRecentTime = sessionTime;
+            mostRecentTidSession = { sessionId: sid, session: sess };
+          }
         }
+      }
+      
+      // If no session from today, fall back to most recent overall
+      if (!mostRecentTidSession) {
+        for (const [sid, sess] of sessions.entries()) {
+          if (sess.tid && sid.startsWith('tid_') && sess.created) {
+            const sessionTime = new Date(sess.created).getTime();
+            if (sessionTime > mostRecentTime) {
+              mostRecentTime = sessionTime;
+              mostRecentTidSession = { sessionId: sid, session: sess };
+            }
+          }
+        }
+      }
+      
+      if (mostRecentTidSession) {
+        logWithCapture('info', `Using most recent TID session: ${mostRecentTidSession.sessionId}`, {
+          tid: mostRecentTidSession.session.tid,
+          created: mostRecentTidSession.session.created
+        });
+        sessionId = mostRecentTidSession.sessionId;
+        session = mostRecentTidSession.session;
+      } else {
+        logWithCapture('info', 'No TID session found - using no_tid as fallback');
       }
     }
     
@@ -1695,6 +1770,11 @@ app.post('/api/post-winner', async (req, res) => {
         tid: session.tid,
         revenue: session.revenue,
         ip: session.ip
+      },
+      conversionData: {
+        adv1: adv1,
+        tid: tidToSend,
+        revenue: revenueToSend
       },
       logs: getAndClearLogs() // Include logs in response
     });

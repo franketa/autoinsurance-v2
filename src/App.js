@@ -682,11 +682,24 @@ function App() {
             script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
             script.onload = () => {
               if (window.EF && typeof window.EF.conversion === 'function') {
+                // Get conversion data from the post-winner response
+                const conversionData = finalResult?.conversionData || {};
+                const adv1Value = conversionData.adv1 || 'null';
+                const tidValue = conversionData.tid || 'no_tid';
+                
                 window.EF.conversion({
                   aid: 118,
                   amount: conversionValue,
+                  transaction_id: tidValue,
+                  adv1: adv1Value
                 });
-                console.log('✅ Everflow conversion pixel fired');
+                
+                console.log('✅ Everflow conversion pixel fired with data:', {
+                  aid: 118,
+                  amount: conversionValue,
+                  transaction_id: tidValue,
+                  adv1: adv1Value
+                });
               }
             };
             document.head.appendChild(script);
