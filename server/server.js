@@ -200,9 +200,13 @@ async function sendEverflowPostback(tid, revenue, adv1 = '') {
 }
 
 // Email submission to Azure API
-async function submitEmailToAzure(formData, session) {
+async function submitEmailToAzure(formData, session, additionalContext = {}) {
   try {
     const url = 'https://app-dp-tst-wu3.azurewebsites.net/api/Upload/SingleUpload?auth_token=B4YMZ43H31g0o0B9Xxx9';
+    
+    // Generate IDs if not present
+    const trustedFormCertId = formData.trusted_form_cert_id || generateTrustedFormCertId();
+    const jornayaLeadId = formData.jornaya_lead_id || '01234566-89AB-CDEF-0123-456789ABCDAF';
     
     const data = {
       partitionKey: "",
@@ -214,22 +218,113 @@ async function submitEmailToAzure(formData, session) {
         firstName: formData.firstName,
         lastName: formData.lastName,
         customField: {
+          // Core tracking info
           sourceUrl: "https://www.smartautoinsider.com",
           ipAddress: session.ip,
+          tid: session.tid,
+          jornayaLeadId: jornayaLeadId,
+          trustedFormCertId: trustedFormCertId,
+          trustedFormCertUrl: `https://cert.trustedform.com/${trustedFormCertId}`,
+          
+          // Personal info
           postalAddress: formData.streetAddress,
           city: formData.city,
           state: formData.state,
           zipCode: formData.zipcode,
+          phoneNumber: formData.phoneNumber,
           gender: formData.gender,
           birthdate: formData.birthdate,
           married: formData.maritalStatus,
           ownRent: formData.homeowner,
-          optInDate: new Date().toISOString()
+          optInDate: new Date().toISOString(),
+          
+          // Insurance info
+          driversLicense: formData.driversLicense,
+          sr22: formData.sr22,
+          insuranceHistory: formData.insuranceHistory,
+          currentAutoInsurance: formData.currentAutoInsurance,
+          insuranceDuration: formData.insuranceDuration,
+          coverageType: formData.coverageType,
+          military: formData.military,
+          
+          // Driver profile
+          driverEducation: formData.driverEducation,
+          driverOccupation: formData.driverOccupation,
+          creditScore: formData.creditScore,
+          
+          // Vehicle data
+          vehicleCount: formData.vehicleCount,
+          vehicles: formData.vehicles ? formData.vehicles.map((vehicle, index) => ({
+            vehicleNumber: index + 1,
+            year: vehicle.year,
+            make: vehicle.make,
+            model: vehicle.model,
+            purpose: vehicle.purpose,
+            mileage: vehicle.mileage,
+            ownership: vehicle.ownership
+          })) : [],
+          
+          // Session info
+          sessionRevenue: session.revenue,
+          sessionLastWinner: session.lastWinner,
+          sessionCreated: session.created,
+          
+          // Postback context
+          finalTid: additionalContext.tid,
+          finalRevenue: additionalContext.revenue,
+          finalAdv1: additionalContext.adv1,
+          pingWinner: additionalContext.pingWinner,
+          postWinner: additionalContext.postWinner,
+          postSuccessful: !!additionalContext.postResult?.success,
+          
+          // Additional metadata
+          submissionDate: new Date().toISOString(),
+          userAgent: 'SmartAutoInsider/1.0',
+          formVersion: '2.0',
+          apiVersion: '1.0'
         }
       }
     };
     
-    logWithCapture('info', 'Submitting email to Azure API', { url, data });
+    logWithCapture('info', 'Submitting comprehensive data to Azure API', { 
+      url, 
+      dataSize: JSON.stringify(data).length,
+      includedFields: {
+        basicContact: !!(data.contact.email && data.contact.firstName && data.contact.lastName),
+        personalInfo: !!(data.contact.customField.gender && data.contact.customField.birthdate),
+        insuranceInfo: !!(data.contact.customField.insuranceHistory && data.contact.customField.coverageType),
+        vehicleData: data.contact.customField.vehicles?.length || 0,
+        trackingIds: {
+          tid: !!data.contact.customField.tid,
+          jornayaLeadId: !!data.contact.customField.jornayaLeadId,
+          trustedFormCertId: !!data.contact.customField.trustedFormCertId
+        },
+        postbackContext: {
+          finalTid: !!data.contact.customField.finalTid,
+          finalRevenue: !!data.contact.customField.finalRevenue,
+          finalAdv1: !!data.contact.customField.finalAdv1,
+          pingWinner: !!data.contact.customField.pingWinner,
+          postWinner: !!data.contact.customField.postWinner
+        }
+      }
+    });
+    
+    // Also log the actual data for debugging (truncated for privacy)
+    logWithCapture('debug', 'Azure API payload preview', {
+      email: data.contact.email,
+      name: `${data.contact.firstName} ${data.contact.lastName}`,
+      tracking: {
+        tid: data.contact.customField.tid,
+        jornayaLeadId: data.contact.customField.jornayaLeadId?.substring(0, 8) + '...',
+        trustedFormCertId: data.contact.customField.trustedFormCertId?.substring(0, 8) + '...'
+      },
+      context: {
+        finalAdv1: data.contact.customField.finalAdv1,
+        pingWinner: data.contact.customField.pingWinner,
+        postWinner: data.contact.customField.postWinner,
+        finalRevenue: data.contact.customField.finalRevenue
+      }
+    });
     
     const response = await axios.post(url, data, {
       headers: {
@@ -259,7 +354,15 @@ async function submitEmailToAzure(formData, session) {
     
     return { success: true, response: response.data };
   } catch (error) {
-    logWithCapture('error', 'Azure API submission failed', { error: error.message, formData });
+    logWithCapture('error', 'Azure API submission failed', { 
+      error: error.message, 
+      formData: {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName
+      },
+      additionalContext 
+    });
     
     // Log error to database (with error handling)
     try {
@@ -1887,7 +1990,14 @@ app.post('/api/post-winner', async (req, res) => {
     const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
       sendHitpathPostback(tidToSend, revenueToSend, adv1),
       sendEverflowPostback(tidToSend, revenueToSend, adv1),
-      submitEmailToAzure(formData, session)
+      submitEmailToAzure(formData, session, {
+        tid: tidToSend,
+        revenue: revenueToSend,
+        adv1: adv1,
+        pingWinner: session.lastWinner,
+        postWinner: winner,
+        postResult: result
+      })
     ]);
     
     logWithCapture('info', 'All postback results', {
