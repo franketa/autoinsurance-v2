@@ -1729,20 +1729,48 @@ app.post('/api/post-winner', async (req, res) => {
     // Determine ADV1 based on ping winner and revenue
     let adv1 = 'null';
     
+    logWithCapture('info', 'ADV1 Determination Debug', {
+      sessionLastWinner: session.lastWinner,
+      pingRevenue: pingRevenue,
+      sessionLastWinnerData: session.lastWinnerData ? 'exists' : 'missing',
+      sessionLastWinnerDataResponse: session.lastWinnerData?.data?.response ? 'exists' : 'missing'
+    });
+    
     if (session.lastWinner && pingRevenue > 0) {
       if (session.lastWinner === 'quotewizard') {
         // Extract Quote ID from ping response (not post response)
         try {
           const quoteId = extractQuoteID(session.lastWinnerData?.data?.response);
           adv1 = `QWD_${quoteId || 'unknown'}`;
+          logWithCapture('info', 'ADV1 QuoteWizard Success', { 
+            quoteId: quoteId,
+            adv1: adv1,
+            rawResponse: session.lastWinnerData?.data?.response?.substring(0, 500) + '...'
+          });
         } catch (e) {
           adv1 = 'QWD_unknown';
+          logWithCapture('error', 'ADV1 QuoteWizard Error', { 
+            error: e.message,
+            adv1: adv1,
+            rawResponse: session.lastWinnerData?.data?.response?.substring(0, 500) + '...'
+          });
         }
       } else if (session.lastWinner === 'exchangeflo') {
         // Use submission_id from ping response
         const submissionId = session.lastWinnerData?.data?.submission_id || 'unknown';
         adv1 = `EXF_${submissionId}`;
+        logWithCapture('info', 'ADV1 ExchangeFlo Success', { 
+          submissionId: submissionId,
+          adv1: adv1,
+          rawData: session.lastWinnerData?.data
+        });
       }
+    } else {
+      logWithCapture('info', 'ADV1 staying null', {
+        reason: !session.lastWinner ? 'no_winner' : 'no_revenue',
+        sessionLastWinner: session.lastWinner,
+        pingRevenue: pingRevenue
+      });
     }
     // If no ping winner or no ping revenue, adv1 stays 'null'
     
@@ -1755,8 +1783,20 @@ app.post('/api/post-winner', async (req, res) => {
       pingRevenue: pingRevenue,
       postSuccessful: !!result?.response,
       adv1: adv1,
+      adv1_type: adv1.startsWith('QWD_') ? 'quotewizard' : adv1.startsWith('EXF_') ? 'exchangeflo' : 'null',
       tid: tidToSend,
       revenue: revenueToSend
+    });
+    
+    logWithCapture('info', 'Final ADV1 and Postback Data', {
+      adv1: adv1,
+      tid: tidToSend,
+      revenue: revenueToSend,
+      pingWinner: session.lastWinner,
+      pingRevenue: pingRevenue,
+      postRevenue: postRevenue,
+      lastWinnerDataExists: !!session.lastWinnerData,
+      lastWinnerDataValue: session.lastWinnerData?.value
     });
     
     // Send all 3 postbacks in parallel

@@ -681,14 +681,60 @@ function App() {
           script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
           script.onload = () => {
             if (window.EF && typeof window.EF.conversion === 'function') {
+              // Get ADV1 from post result if available
+              let adv1Value = 'frontend_null';
+              
+              if (finalResult?.sessionInfo?.tid) {
+                // Try to construct ADV1 from available data
+                if (finalWinner === 'quotewizard' && finalResult?.result?.response) {
+                  try {
+                    // Try to extract Quote ID from response
+                    const quoteIdMatch = finalResult.result.response.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
+                    if (quoteIdMatch) {
+                      adv1Value = `QWD_${quoteIdMatch[1]}`;
+                    }
+                  } catch (e) {
+                    console.log('Could not extract Quote ID for frontend ADV1');
+                  }
+                } else if (finalWinner === 'exchangeflo' && winnerData?.submission_id) {
+                  adv1Value = `EXF_${winnerData.submission_id}`;
+                }
+              }
+              
               window.EF.conversion({
                 aid: 118,
-                amount: conversionValue || 0
+                transaction_id: finalResult?.sessionInfo?.tid || '',
+                amount: conversionValue || 0,
+                adv1: adv1Value
+              })
+              .then((conversion) => {
+                console.log('✅ Everflow conversion successful with IDs:', {
+                  conversion_id: conversion.conversion_id,
+                  transaction_id: conversion.transaction_id,
+                  sent_data: {
+                    aid: 118,
+                    transaction_id: finalResult?.sessionInfo?.tid || '',
+                    amount: conversionValue || 0,
+                    adv1: adv1Value
+                  }
+                });
+              })
+              .catch((error) => {
+                console.error('❌ Everflow conversion failed:', error);
               });
               
               console.log('✅ Everflow conversion pixel fired with data:', {
                 aid: 118,
-                amount: conversionValue || 0
+                transaction_id: finalResult?.sessionInfo?.tid || '',
+                amount: conversionValue || 0,
+                adv1: adv1Value,
+                winner: finalWinner,
+                debugInfo: {
+                  hasSessionInfo: !!finalResult?.sessionInfo,
+                  tid: finalResult?.sessionInfo?.tid,
+                  hasResult: !!finalResult?.result,
+                  winnerDataSubmissionId: winnerData?.submission_id
+                }
               });
             }
           };
