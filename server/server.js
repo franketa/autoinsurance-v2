@@ -82,7 +82,7 @@ async function sendHitpathPostback(tid, revenue, adv1 = '') {
         submission_id: `hitpath_${Date.now()}`,
         status: 'success',
         ping_count: 1,
-        total_value: revenue,
+        total_value: revenue === 'null' ? 0 : (parseFloat(revenue) || 0),
         request_data: { url, tid, revenue },
         response_data: { status: response.status, data: response.data }
       });
@@ -102,7 +102,7 @@ async function sendHitpathPostback(tid, revenue, adv1 = '') {
         submission_id: `hitpath_error_${Date.now()}`,
         status: 'error',
         ping_count: 1,
-        total_value: revenue,
+        total_value: revenue === 'null' ? 0 : (parseFloat(revenue) || 0),
         request_data: { tid, revenue },
         response_data: { error: error.message }
       });
@@ -148,7 +148,7 @@ async function sendEverflowPostback(tid, revenue, adv1 = '') {
         submission_id: `everflow_${Date.now()}`,
         status: 'success',
         ping_count: 1,
-        total_value: revenue,
+        total_value: revenue === 'null' ? 0 : (parseFloat(revenue) || 0),
         request_data: { url, tid, revenue },
         response_data: { status: response.status, data: response.data }
       });
@@ -168,7 +168,7 @@ async function sendEverflowPostback(tid, revenue, adv1 = '') {
         submission_id: `everflow_error_${Date.now()}`,
         status: 'error',
         ping_count: 1,
-        total_value: revenue,
+        total_value: revenue === 'null' ? 0 : (parseFloat(revenue) || 0),
         request_data: { tid, revenue },
         response_data: { error: error.message }
       });
@@ -1381,7 +1381,23 @@ app.post('/api/ping-both', async (req, res) => {
       logWithCapture('info', 'Captured tid parameter in ping-both', { tid, sessionId });
     }
     
-    // Use only current session - don't search for old sessions
+    // If current session has no TID, try to find session with TID (created from URL params)
+    if (!session.tid) {
+      logWithCapture('info', 'No TID in current session, searching for session with TID from URL');
+      
+      // Look for sessions that have TID (from URL parameters)
+      for (const [sid, sess] of sessions.entries()) {
+        if (sess.tid && sid.startsWith('tid_')) {
+          logWithCapture('info', `Found session with TID: ${sid}`, {
+            tid: sess.tid,
+            revenue: sess.revenue
+          });
+          sessionId = sid;
+          session = sess;
+          break;
+        }
+      }
+    }
     
     // Store IP address
     const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
@@ -1496,60 +1512,22 @@ app.post('/api/ping-both', async (req, res) => {
       // Don't throw - continue with the flow even if database logging fails
     }
     
-    // ALWAYS send postbacks regardless of winner or revenue
-    // Use actual ping results for revenue, not old session data
-    const actualRevenue = winner ? comparison[winner].value : 0;
-    
-    logWithCapture('info', 'Always sending postbacks from ping-both', {
-      hasWinner: !!winner,
-      winnerValue: actualRevenue,
-      sessionTid: session.tid,
-      revenueToSend: actualRevenue > 0 ? actualRevenue : 'null'
-    });
-    
-    // Determine buyer information based on winner and revenue
-    let adv1 = 'null';
-    
-    if (winner && actualRevenue > 0) {
-      if (winner === 'quotewizard') {
-        // Extract Quote ID from QuoteWizard response as buyer ID
-        try {
-          const quoteId = extractQuoteID(comparison[winner]?.data?.response);
-          adv1 = `QWD_${quoteId || 'unknown'}`;
-        } catch (e) {
-          adv1 = 'QWD_unknown';
-        }
-      } else if (winner === 'exchangeflo') {
-        // Use submission_id from ExchangeFlo response
-        const submissionId = comparison[winner]?.data?.submission_id || 'unknown';
-        adv1 = `EXF_${submissionId}`;
-      }
+    // Store winner info in session for post-winner endpoint
+    if (winner && comparison[winner].value > 0) {
+      session.lastWinner = winner;
+      session.lastWinnerData = comparison[winner];
+      logWithCapture('info', 'Stored winner info in session for post-winner', {
+        winner: winner,
+        value: comparison[winner].value
+      });
     }
-    // If no winner or no revenue, adv1 stays 'null'
     
-    // Use actual ping revenue, send 'null' if no revenue
-    const revenueToSend = actualRevenue > 0 ? actualRevenue : 'null';
-    const tidToSend = session.tid || 'no_tid';
-    
-    console.log('🎯 PING-BOTH POSTBACK INFO:', {
-      winner: winner,
-      actualRevenue: actualRevenue,
-      adv1: adv1,
-      tid: tidToSend,
-      revenue: revenueToSend
-    });
-    
-    // Send all 3 postbacks in parallel
-    const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
-      sendHitpathPostback(tidToSend, revenueToSend, adv1),
-      sendEverflowPostback(tidToSend, revenueToSend, adv1),
-      submitEmailToAzure(inputData, session)
-    ]);
-    
-    logWithCapture('info', 'Ping-both postback results', {
-      hitpath: hitpathResult.status === 'fulfilled' ? hitpathResult.value : hitpathResult.reason,
-      everflow: everflowResult.status === 'fulfilled' ? everflowResult.value : everflowResult.reason,
-      email: emailResult.status === 'fulfilled' ? emailResult.value : emailResult.reason
+    // Log ping results but don't send postbacks here (will be sent in post-winner)
+    logWithCapture('info', 'Ping comparison completed', {
+      hasWinner: !!winner,
+      winnerValue: winner ? comparison[winner].value : 0,
+      sessionTid: session.tid,
+      sessionId: sessionId
     });
     
     res.json({
@@ -1558,11 +1536,6 @@ app.post('/api/ping-both', async (req, res) => {
       comparison: comparison,
       winnerData: winner ? comparison[winner].data : null,
       message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed',
-      postbacks: {
-        hitpath: hitpathResult.status === 'fulfilled' ? 'sent' : 'failed',
-        everflow: everflowResult.status === 'fulfilled' ? 'sent' : 'failed',
-        email: emailResult.status === 'fulfilled' ? 'sent' : 'failed'
-      },
       sessionInfo: {
         sessionId: sessionId,
         hasTid: !!session.tid,
@@ -1591,11 +1564,27 @@ app.post('/api/post-winner', async (req, res) => {
     
     logWithCapture('info', `Posting to winner: ${winner}`);
     
-    // Get session data - try multiple approaches
+    // Get session data - try to find the session used in ping-both
     let sessionId = getSessionId(req);
     let session = getSession(sessionId);
     
-    // Use only current session - don't search for old sessions
+    // If current session has no TID, find the session with TID (same as ping-both logic)
+    if (!session.tid) {
+      logWithCapture('info', 'No TID in current session, searching for session with TID from ping-both');
+      
+      // Look for sessions that have TID (from URL parameters)
+      for (const [sid, sess] of sessions.entries()) {
+        if (sess.tid && sid.startsWith('tid_')) {
+          logWithCapture('info', `Found session with TID: ${sid}`, {
+            tid: sess.tid,
+            revenue: sess.revenue
+          });
+          sessionId = sid;
+          session = sess;
+          break;
+        }
+      }
+    }
     
     logWithCapture('info', 'Final session data for post-winner', { 
       sessionId, 
@@ -1633,44 +1622,46 @@ app.post('/api/post-winner', async (req, res) => {
       });
     }
     
-    // ALWAYS send postbacks regardless of revenue or winner
-    // Use actual post result for revenue, not old session data
-    const actualRevenue = result?.value || 0;
+    // ALWAYS send postbacks - use ping revenue for tracking
+    // Use ping revenue from session (what the buyer actually paid), not post result
+    const pingRevenue = session.lastWinnerData?.value || 0;
     
     logWithCapture('info', 'Always sending postbacks', {
       hasResult: !!result,
-      actualRevenue: actualRevenue,
+      postSuccessful: !!result?.response,
+      pingRevenue: pingRevenue,
       sessionTid: session.tid,
-      revenueToSend: actualRevenue > 0 ? actualRevenue : 'null'
+      revenueToSend: pingRevenue > 0 ? pingRevenue : 'null'
     });
     
-    // Determine ADV1 based on winner and revenue
+    // Determine ADV1 based on ping winner and revenue
     let adv1 = 'null';
     
-    if (result && actualRevenue > 0) {
-      if (winner === 'quotewizard') {
-        // Extract Quote ID from QuoteWizard response as buyer ID
+    if (session.lastWinner && pingRevenue > 0) {
+      if (session.lastWinner === 'quotewizard') {
+        // Extract Quote ID from ping response (not post response)
         try {
-          const quoteId = extractQuoteID(result?.response);
+          const quoteId = extractQuoteID(session.lastWinnerData?.data?.response);
           adv1 = `QWD_${quoteId || 'unknown'}`;
         } catch (e) {
           adv1 = 'QWD_unknown';
         }
-      } else if (winner === 'exchangeflo') {
-        // Use the original submission_id from winnerData (ping response)
-        const submissionId = winnerData?.submission_id || 'unknown';
+      } else if (session.lastWinner === 'exchangeflo') {
+        // Use submission_id from ping response
+        const submissionId = session.lastWinnerData?.data?.submission_id || 'unknown';
         adv1 = `EXF_${submissionId}`;
       }
     }
-    // If no result or no revenue, adv1 stays 'null'
+    // If no ping winner or no ping revenue, adv1 stays 'null'
     
-    // Use actual post revenue, send 'null' if no revenue
-    const revenueToSend = actualRevenue > 0 ? actualRevenue : 'null';
+    // Use ping revenue for postbacks, send 'null' if no revenue
+    const revenueToSend = pingRevenue > 0 ? pingRevenue : 'null';
     const tidToSend = session.tid || 'no_tid';
     
     console.log('📊 POSTBACK INFO:', {
-      winner: winner,
-      actualRevenue: actualRevenue,
+      pingWinner: session.lastWinner,
+      pingRevenue: pingRevenue,
+      postSuccessful: !!result?.response,
       adv1: adv1,
       tid: tidToSend,
       revenue: revenueToSend
