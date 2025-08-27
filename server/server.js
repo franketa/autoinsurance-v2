@@ -49,21 +49,21 @@ function findSessionByTid(tid) {
 }
 
 // Postback functions
-async function sendHitpathPostback(tid, revenue, buyerCode = '', buyerId = '') {
+async function sendHitpathPostback(tid, revenue, adv1 = '') {
   try {
-    const transid = buyerCode && buyerId ? `${buyerCode}_${buyerId}` : '';
-    const url = `https://www.trackinglynx.com/rd/px.php?hid=${tid}&sid=3338&transid=${transid}&ate=${revenue}`;
+    // Handle revenue - convert 'null' string to 0, otherwise use as-is
+    const revenueParam = revenue === 'null' ? 0 : revenue;
+    const url = `https://www.trackinglynx.com/rd/px.php?hid=${tid}&sid=3338&transid=${adv1}&ate=${revenueParam}`;
     
     console.log('🎯 HITPATH POSTBACK:', {
       url: url,
       tid: tid,
       revenue: revenue,
-      buyerCode: buyerCode,
-      buyerId: buyerId,
-      transid: transid
+      revenueParam: revenueParam,
+      adv1: adv1
     });
     
-    logWithCapture('info', 'Sending Hitpath postback', { url, tid, revenue, buyerCode, buyerId, transid });
+    logWithCapture('info', 'Sending Hitpath postback', { url, tid, revenue, revenueParam, adv1 });
     
     const response = await axios.get(url, { timeout: 10000 });
     
@@ -115,21 +115,21 @@ async function sendHitpathPostback(tid, revenue, buyerCode = '', buyerId = '') {
   }
 }
 
-async function sendEverflowPostback(tid, revenue, buyerCode = '', buyerId = '') {
+async function sendEverflowPostback(tid, revenue, adv1 = '') {
   try {
-    const adv1 = buyerCode && buyerId ? `${buyerCode}_${buyerId}` : '';
-    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${tid}&amount=${revenue}&adv1=${adv1}`;
+    // Handle revenue - convert 'null' string to 0, otherwise use as-is
+    const revenueParam = revenue === 'null' ? 0 : revenue;
+    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${tid}&amount=${revenueParam}&adv1=${adv1}`;
     
     console.log('🚀 EVERFLOW POSTBACK:', {
       url: url,
       tid: tid,
       revenue: revenue,
-      buyerCode: buyerCode,
-      buyerId: buyerId,
+      revenueParam: revenueParam,
       adv1: adv1
     });
     
-    logWithCapture('info', 'Sending Everflow postback', { url, tid, revenue, buyerCode, buyerId, adv1 });
+    logWithCapture('info', 'Sending Everflow postback', { url, tid, revenue, revenueParam, adv1 });
     
     const response = await axios.get(url, { timeout: 10000 });
     
@@ -1512,12 +1512,73 @@ app.post('/api/ping-both', async (req, res) => {
       // Don't throw - continue with the flow even if database logging fails
     }
     
+    // ALWAYS send postbacks regardless of winner or revenue
+    logWithCapture('info', 'Always sending postbacks from ping-both', {
+      hasWinner: !!winner,
+      winnerValue: winner ? comparison[winner].value : 0,
+      sessionTid: session.tid,
+      revenueToSend: session.revenue > 0 ? session.revenue : 'null'
+    });
+    
+    // Determine buyer information based on winner
+    let buyerCode = '';
+    let buyerId = '';
+    
+    if (winner === 'quotewizard') {
+      buyerCode = 'QWD';
+      // Extract Quote ID from QuoteWizard response as buyer ID
+      try {
+        const quoteId = extractQuoteID(comparison[winner]?.data?.response);
+        buyerId = quoteId || 'unknown';
+      } catch (e) {
+        buyerId = 'unknown';
+      }
+    } else if (winner === 'exchangeflo') {
+      buyerCode = 'EXF';
+      // Use submission_id from ExchangeFlo response
+      buyerId = comparison[winner]?.data?.submission_id || 'unknown';
+    } else {
+      // No winner or unknown winner
+      buyerCode = 'UNK';
+      buyerId = 'unknown';
+    }
+    
+    // Use 'null' as revenue if no revenue, otherwise use actual revenue
+    const revenueToSend = session.revenue > 0 ? session.revenue : 'null';
+    const tidToSend = session.tid || 'no_tid';
+    
+    console.log('🎯 PING-BOTH POSTBACK INFO:', {
+      winner: winner,
+      buyerCode: buyerCode,
+      buyerId: buyerId,
+      tid: tidToSend,
+      revenue: revenueToSend
+    });
+    
+    // Send all 3 postbacks in parallel
+    const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
+      sendHitpathPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
+      sendEverflowPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
+      submitEmailToAzure(inputData, session)
+    ]);
+    
+    logWithCapture('info', 'Ping-both postback results', {
+      hitpath: hitpathResult.status === 'fulfilled' ? hitpathResult.value : hitpathResult.reason,
+      everflow: everflowResult.status === 'fulfilled' ? everflowResult.value : everflowResult.reason,
+      email: emailResult.status === 'fulfilled' ? emailResult.value : emailResult.reason
+    });
+    
     res.json({
       success: true,
       winner: winner,
       comparison: comparison,
       winnerData: winner ? comparison[winner].data : null,
       message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed',
+      postbacks: {
+        hitpath: hitpathResult.status === 'fulfilled' ? 'sent' : 'failed',
+        everflow: everflowResult.status === 'fulfilled' ? 'sent' : 'failed',
+        email: emailResult.status === 'fulfilled' ? 'sent' : 'failed'
+      },
       sessionInfo: {
         sessionId: sessionId,
         hasTid: !!session.tid,
@@ -1648,74 +1709,70 @@ app.post('/api/post-winner', async (req, res) => {
       });
     }
     
-    // If post was successful and we have revenue, send postbacks
-    logWithCapture('info', 'Checking postback conditions', {
+    // ALWAYS send postbacks regardless of revenue or winner
+    logWithCapture('info', 'Always sending postbacks', {
       hasResult: !!result,
       sessionRevenue: session.revenue,
       sessionTid: session.tid,
-      revenueCheck: session.revenue > 0,
-      tidCheck: !!session.tid,
-      shouldSendPostbacks: !!(result && session.revenue > 0 && session.tid)
+      revenueToSend: session.revenue > 0 ? session.revenue : 'null'
     });
     
-    if (result && session.revenue > 0 && session.tid) {
-      logWithCapture('info', 'Sending postbacks due to successful post and revenue', {
-        tid: session.tid,
-        revenue: session.revenue
-      });
-      
-      // Determine buyer information based on winner
-      let buyerCode = '';
-      let buyerId = '';
-      
-      if (winner === 'quotewizard') {
-        buyerCode = 'QWD';
-        // Extract Quote ID from QuoteWizard response as buyer ID
-        try {
-          const quoteId = extractQuoteID(result.response);
-          buyerId = quoteId || 'unknown';
-        } catch (e) {
-          buyerId = 'unknown';
-        }
-      } else if (winner === 'exchangeflo') {
-        buyerCode = 'EXF';
-        // Use the original submission_id from winnerData (ping response)
-        // since ExchangeFlo post response doesn't include submission_id
-        buyerId = winnerData.submission_id || 'unknown';
+    // Determine buyer information based on winner
+    let buyerCode = '';
+    let buyerId = '';
+    
+    if (winner === 'quotewizard') {
+      buyerCode = 'QWD';
+      // Extract Quote ID from QuoteWizard response as buyer ID
+      try {
+        const quoteId = extractQuoteID(result?.response);
+        buyerId = quoteId || 'unknown';
+      } catch (e) {
+        buyerId = 'unknown';
       }
-      
-      console.log('📊 POSTBACK INFO:', {
-        winner: winner,
-        buyerCode: buyerCode,
-        buyerId: buyerId,
-        tid: session.tid,
-        revenue: session.revenue
-      });
-      
-      // Send postbacks in parallel
-      const [hitpathResult, everflowResult] = await Promise.allSettled([
-        sendHitpathPostback(session.tid, session.revenue, buyerCode, buyerId),
-        sendEverflowPostback(session.tid, session.revenue, buyerCode, buyerId)
-      ]);
-      
-      logWithCapture('info', 'Postback results', {
-        hitpath: hitpathResult.status === 'fulfilled' ? hitpathResult.value : hitpathResult.reason,
-        everflow: everflowResult.status === 'fulfilled' ? everflowResult.value : everflowResult.reason
-      });
+    } else if (winner === 'exchangeflo') {
+      buyerCode = 'EXF';
+      // Use the original submission_id from winnerData (ping response)
+      buyerId = winnerData?.submission_id || 'unknown';
+    } else {
+      // No winner or unknown winner
+      buyerCode = 'UNK';
+      buyerId = 'unknown';
     }
     
-    // Always submit email to Azure API (regardless of post success)
-    const emailResult = await submitEmailToAzure(formData, session);
-    logWithCapture('info', 'Email submission result', emailResult);
+    // Use 'null' as revenue if no revenue, otherwise use actual revenue
+    const revenueToSend = session.revenue > 0 ? session.revenue : 'null';
+    const tidToSend = session.tid || 'no_tid';
+    
+    console.log('📊 POSTBACK INFO:', {
+      winner: winner,
+      buyerCode: buyerCode,
+      buyerId: buyerId,
+      tid: tidToSend,
+      revenue: revenueToSend
+    });
+    
+    // Send all 3 postbacks in parallel
+    const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
+      sendHitpathPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
+      sendEverflowPostback(tidToSend, revenueToSend, `${buyerCode}_${buyerId}`),
+      submitEmailToAzure(formData, session)
+    ]);
+    
+    logWithCapture('info', 'All postback results', {
+      hitpath: hitpathResult.status === 'fulfilled' ? hitpathResult.value : hitpathResult.reason,
+      everflow: everflowResult.status === 'fulfilled' ? everflowResult.value : everflowResult.reason,
+      email: emailResult.status === 'fulfilled' ? emailResult.value : emailResult.reason
+    });
     
     res.json({
       success: true,
       winner: winner,
       result: result,
       postbacks: {
-        hitpath: session.revenue > 0 && session.tid ? 'sent' : 'skipped',
-        everflow: session.revenue > 0 && session.tid ? 'sent' : 'skipped',
-        email: emailResult.success ? 'sent' : 'failed'
+        hitpath: hitpathResult.status === 'fulfilled' ? 'sent' : 'failed',
+        everflow: everflowResult.status === 'fulfilled' ? 'sent' : 'failed',
+        email: emailResult.status === 'fulfilled' ? 'sent' : 'failed'
       },
       sessionInfo: {
         sessionId: sessionId,
