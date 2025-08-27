@@ -1246,12 +1246,47 @@ async function postToQuoteWizard(pingData, formData) {
 // Helper function to post to ExchangeFlo
 async function postToExchangeFlo(pingData, formData) {
   try {
-    const { submission_id, pings } = pingData;
+    // Handle different response structures from ExchangeFlo ping
+    let submission_id, pings;
     
-    const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
-    const sharedPings = pings.filter(ping => ping.type === 'shared');
-    const pingsToPost = exclusivePings.length > 0 ? exclusivePings : sharedPings;
-    const ping_ids = pingsToPost.map(ping => ping.ping_id);
+    if (pingData.submission_id && pingData.pings) {
+      // Direct structure (success case)
+      submission_id = pingData.submission_id;
+      pings = pingData.pings;
+    } else if (pingData.responseData?.submission_id) {
+      // Error case structure (422, etc.) - submission_id is still provided
+      submission_id = pingData.responseData.submission_id;
+      pings = pingData.pings || []; // May not have pings in error case
+    } else if (pingData.data?.submission_id && pingData.data?.pings) {
+      // Nested in data property
+      submission_id = pingData.data.submission_id;
+      pings = pingData.data.pings;
+    } else {
+      throw new Error('Could not extract submission_id from ping data');
+    }
+    
+    logWithCapture('info', 'ExchangeFlo post data extraction', {
+      originalPingData: pingData,
+      extractedSubmissionId: submission_id,
+      extractedPings: pings,
+      pingsCount: pings?.length || 0
+    });
+    
+    // Handle pings - may be empty in error cases
+    let ping_ids = [];
+    if (pings && pings.length > 0) {
+      const exclusivePings = pings.filter(ping => ping.type === 'exclusive');
+      const sharedPings = pings.filter(ping => ping.type === 'shared');
+      const pingsToPost = exclusivePings.length > 0 ? exclusivePings : sharedPings;
+      ping_ids = pingsToPost.map(ping => ping.ping_id);
+    }
+    
+    logWithCapture('info', 'ExchangeFlo ping IDs for posting', {
+      pingsAvailable: pings?.length || 0,
+      exclusivePings: pings?.filter(ping => ping.type === 'exclusive')?.length || 0,
+      sharedPings: pings?.filter(ping => ping.type === 'shared')?.length || 0,
+      finalPingIds: ping_ids
+    });
     
     const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
     
