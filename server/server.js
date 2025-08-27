@@ -833,6 +833,39 @@ async function prepareExchangeFloData(inputData) {
     }
   };
   
+  const mapAnnualMileage = (mileage) => {
+    switch (mileage) {
+      case 'under_10k': return "<5000";
+      case '10k_25k': return "10000-15000";
+      case '25k_50k': return "15000-20000";
+      case '50k_75k': return ">20000";
+      case '75k_100k': return ">20000";
+      case 'over_100k': return ">20000";
+      // Fallback for any direct ExchangeFlo format values
+      case '<5000':
+      case '5000-10000':
+      case '10000-15000':
+      case '15000-20000':
+      case '>20000':
+        return mileage;
+      default: return "10000-15000";
+    }
+  };
+  
+  const mapVehicleOwnership = (ownership) => {
+    switch (ownership) {
+      case 'paid_off': return "owned";
+      case 'financed': return "financed";
+      case 'leased': return "leased";
+      // Fallback for direct values
+      case 'owned':
+      case 'financed':
+      case 'leased':
+        return ownership;
+      default: return "owned";
+    }
+  };
+  
   const mapHomeowner = (homeowner) => {
     switch (homeowner) {
       case 'Own': return "own";
@@ -960,17 +993,29 @@ async function prepareExchangeFloData(inputData) {
         }
       ],
       
-      vehicles: activeVehicles.map(vehicle => ({
-        year: String(vehicle.year || "2020"),
-        make: String(vehicle.make || "Toyota"),
-        model: String(vehicle.model || "Camry"),
-        submodel: String(vehicle.submodel || vehicle.model || "Camry"),
-        primary_purpose: String(vehicle.purpose || "commute"),
-        annual_mileage: String(vehicle.mileage || "10000-15000"),
-        ownership: String(vehicle.ownership || "owned"),
-        garage: "no_cover",
-        vin: "JM3TB38A*80******"
-      }))
+      vehicles: activeVehicles.map((vehicle, index) => {
+        const mappedMileage = mapAnnualMileage(vehicle.mileage);
+        const mappedOwnership = mapVehicleOwnership(vehicle.ownership);
+        
+        logWithCapture('info', `Vehicle ${index + 1} mapping for ExchangeFlo`, {
+          originalMileage: vehicle.mileage,
+          mappedMileage: mappedMileage,
+          originalOwnership: vehicle.ownership,
+          mappedOwnership: mappedOwnership
+        });
+        
+        return {
+          year: String(vehicle.year || "2020"),
+          make: String(vehicle.make || "Toyota"),
+          model: String(vehicle.model || "Camry"),
+          submodel: String(vehicle.submodel || vehicle.model || "Camry"),
+          primary_purpose: String(vehicle.purpose || "commute"),
+          annual_mileage: mappedMileage,
+          ownership: mappedOwnership,
+          garage: "no_cover",
+          vin: "JM3TB38A*80******"
+        };
+      })
     }
   };
 }
