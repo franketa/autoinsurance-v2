@@ -614,6 +614,8 @@ function App() {
             body: JSON.stringify({
               winner: winner,
               winnerData: winnerData,
+              secondaryWinner: response.data.secondaryWinner,
+              secondaryWinnerData: response.data.secondaryWinnerData,
               formData: submissionData
             })
           });
@@ -621,53 +623,20 @@ function App() {
           const postResult = await postResponse.json();
           
           if (postResponse.ok && postResult.success) {
-            console.log('✅ Post to primary winner successful:', postResult);
-            finalWinner = winner;
-            finalResult = postResult;
-            conversionValue = comparison[winner].value;
-          } else {
-            throw new Error(`Primary winner post failed: ${postResult.error || 'Unknown error'}`);
-          }
-        } catch (primaryError) {
-          console.error('❌ Post to primary winner failed:', primaryError.message);
-          
-          // Try fallback to the other service if it was successful in ping
-          const fallbackWinner = winner === 'quotewizard' ? 'exchangeflo' : 'quotewizard';
-          const fallbackData = comparison[fallbackWinner];
-          
-          if (fallbackData.success && fallbackData.value > 0) {
-            console.log(`🔄 Trying fallback to ${fallbackWinner}...`);
-            
-            try {
-              const fallbackResponse = await fetch('/api/post-winner', {
-                method: 'POST',
-                headers: { 
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  winner: fallbackWinner,
-                  winnerData: fallbackData.data,
-                  formData: submissionData
-                })
-              });
-              
-              const fallbackResult = await fallbackResponse.json();
-              
-              if (fallbackResponse.ok && fallbackResult.success) {
-                console.log('✅ Fallback post successful:', fallbackResult);
-                finalWinner = fallbackWinner;
-                finalResult = fallbackResult;
-                conversionValue = comparison[fallbackWinner].value;
-              } else {
-                console.error('❌ Fallback post also failed:', fallbackResult);
-              }
-            } catch (fallbackError) {
-              console.error('❌ Fallback post error:', fallbackError.message);
+            console.log('✅ Post to winner successful:', postResult);
+            if (postResult.fallbackUsed) {
+              console.log(`🔄 Server used fallback from ${postResult.originalWinner} to ${postResult.winner}`);
             }
+            finalWinner = postResult.winner;
+            finalResult = postResult;
+            conversionValue = comparison[postResult.winner]?.value || 0;
           } else {
-            console.warn('⚠️ No valid fallback option available');
+            console.error('❌ Post to winner failed:', postResult.error);
+            // Even if post failed, we might still have session data for tracking
+            finalResult = postResult;
           }
+        } catch (postError) {
+          console.error('❌ Post request failed:', postError.message);
         }
       } else {
         // No winner - still need to send postbacks
@@ -712,51 +681,16 @@ function App() {
         script.src = 'https://www.iqno4trk.com/scripts/sdk/everflow.js';
         script.onload = () => {
           if (window.EF && typeof window.EF.conversion === 'function') {
-            // Get ADV1 from post result if available
-            let adv1Value = 'null';
+            // Get ADV1 from server response (server calculates it correctly)
+            let adv1Value = finalResult?.adv1 || 'null';
             
-            if (finalResult?.sessionInfo?.tid && finalWinner) {
-              // Try to construct ADV1 from available data
-              if (finalWinner === 'quotewizard' && finalResult?.result?.response) {
-                  try {
-                    // Try to extract Quote ID from response
-                    const quoteIdMatch = finalResult.result.response.match(/<Quote_ID>(.*?)<\/Quote_ID>/);
-                    if (quoteIdMatch) {
-                      adv1Value = `QWD_${quoteIdMatch[1]}`;
-                    }
-                  } catch (e) {
-                    console.log('Could not extract Quote ID for frontend ADV1');
-                  }
-                } else if (finalWinner === 'exchangeflo') {
-                  // Try multiple sources for ExchangeFlo submission_id
-                  let submissionId = null;
-                  
-                  // First try winnerData (success case)
-                  if (winnerData?.submission_id) {
-                    submissionId = winnerData.submission_id;
-                  }
-                  // Then try responseData (error case with 422, etc.)
-                  else if (finalResult?.result?.responseData?.submission_id) {
-                    submissionId = finalResult.result.responseData.submission_id;
-                  }
-                  // Finally try direct result (alternative structure)
-                  else if (finalResult?.result?.submission_id) {
-                    submissionId = finalResult.result.submission_id;
-                  }
-                  
-                  if (submissionId) {
-                    adv1Value = `EXF_${submissionId}`;
-                  }
-                  
-                  console.log('ExchangeFlo ADV1 Debug:', {
-                    finalWinner,
-                    winnerDataSubmissionId: winnerData?.submission_id,
-                    responseDataSubmissionId: finalResult?.result?.responseData?.submission_id,
-                    directSubmissionId: finalResult?.result?.submission_id,
-                    finalAdv1Value: adv1Value
-                  });
-                }
-              }
+            console.log('ADV1 Debug Info:', {
+              serverCalculatedAdv1: finalResult?.adv1,
+              finalWinner: finalWinner,
+              sessionTid: finalResult?.sessionInfo?.tid,
+              fallbackUsed: finalResult?.fallbackUsed,
+              usingServerAdv1: !!finalResult?.adv1
+            });
               
               window.EF.conversion({
                 aid: 118,

@@ -1686,19 +1686,27 @@ app.post('/api/ping-both', async (req, res) => {
       comparison.exchangeflo.value = pings.reduce((sum, ping) => sum + (parseFloat(ping.value) || 0), 0);
     }
     
-    // Determine winner based on highest value
+    // Determine winner and secondary winner based on highest value
     let winner = null;
+    let secondaryWinner = null;
+    
     if (comparison.quotewizard.value > comparison.exchangeflo.value) {
       winner = 'quotewizard';
+      if (comparison.exchangeflo.success && comparison.exchangeflo.value > 0) {
+        secondaryWinner = 'exchangeflo';
+      }
     } else if (comparison.exchangeflo.value > comparison.quotewizard.value) {
       winner = 'exchangeflo';
+      if (comparison.quotewizard.success && comparison.quotewizard.value > 0) {
+        secondaryWinner = 'quotewizard';
+      }
     } else if (comparison.quotewizard.success && !comparison.exchangeflo.success) {
       winner = 'quotewizard';
     } else if (comparison.exchangeflo.success && !comparison.quotewizard.success) {
       winner = 'exchangeflo';
     }
     
-    logWithCapture('info', `WINNER DETERMINED: ${winner}`, comparison);
+    logWithCapture('info', `WINNER DETERMINED: ${winner}, SECONDARY: ${secondaryWinner}`, comparison);
     
     // Store revenue amount in session if there's a winner with revenue
     logWithCapture('info', 'Revenue storage check', {
@@ -1763,8 +1771,10 @@ app.post('/api/ping-both', async (req, res) => {
     res.json({
       success: true,
       winner: winner,
+      secondaryWinner: secondaryWinner,
       comparison: comparison,
       winnerData: winner ? comparison[winner].data : null,
+      secondaryWinnerData: secondaryWinner ? comparison[secondaryWinner].data : null,
       message: winner ? `${winner} won with $${comparison[winner].value}` : 'No winner - both services failed',
       sessionInfo: {
         sessionId: sessionId,
@@ -1790,7 +1800,7 @@ app.post('/api/ping-both', async (req, res) => {
 // Post to winner endpoint
 app.post('/api/post-winner', async (req, res) => {
   try {
-    const { winner, winnerData, formData } = req.body;
+    const { winner, winnerData, formData, secondaryWinner, secondaryWinnerData } = req.body;
     
     logWithCapture('info', `Posting to winner: ${winner}`);
     
@@ -1866,21 +1876,59 @@ app.post('/api/post-winner', async (req, res) => {
     
     logWithCapture('info', 'Post to winner completed successfully', result);
     
+    // Check if primary post failed and we have a secondary winner
+    let actualWinner = winner;
+    let actualResult = result;
+    
+    if (result && !result.success && secondaryWinner && secondaryWinnerData) {
+      logWithCapture('info', `Primary post to ${winner} failed, attempting fallback to ${secondaryWinner}`, {
+        primaryError: result.error || 'unknown error',
+        secondaryWinner: secondaryWinner
+      });
+      
+      try {
+        let fallbackResult;
+        if (secondaryWinner === 'quotewizard') {
+          fallbackResult = await postToQuoteWizard(secondaryWinnerData, formData);
+        } else if (secondaryWinner === 'exchangeflo') {
+          fallbackResult = await postToExchangeFlo(secondaryWinnerData, formData);
+        }
+        
+        if (fallbackResult && fallbackResult.success) {
+          logWithCapture('info', `Fallback post to ${secondaryWinner} succeeded!`, fallbackResult);
+          actualWinner = secondaryWinner;
+          actualResult = fallbackResult;
+          
+          // Update session to reflect successful secondary winner
+          session.lastWinner = secondaryWinner;
+          session.lastWinnerData = { data: secondaryWinnerData, value: fallbackResult.value || 0 };
+        } else {
+          logWithCapture('info', `Fallback post to ${secondaryWinner} also failed`, {
+            fallbackError: fallbackResult?.error || 'unknown error'
+          });
+        }
+      } catch (fallbackError) {
+        logWithCapture('error', `Fallback post to ${secondaryWinner} threw error`, {
+          error: fallbackError.message
+        });
+      }
+    }
+    
     // Update session revenue if result has value
-    if (result && result.value && result.value > 0) {
-      session.revenue = result.value;
+    if (actualResult && actualResult.value && actualResult.value > 0) {
+      session.revenue = actualResult.value;
       
       console.log('💰 UPDATED SESSION REVENUE:', {
         sessionId: sessionId,
         oldRevenue: session.revenue,
-        newRevenue: result.value,
-        postResult: result.value
+        newRevenue: actualResult.value,
+        postResult: actualResult.value
       });
       
       logWithCapture('info', 'Updated session revenue from post result', {
         sessionId: sessionId,
-        newRevenue: result.value,
-        postResultValue: result.value
+        newRevenue: actualResult.value,
+        postResultValue: actualResult.value
       });
     }
     
@@ -2008,8 +2056,11 @@ app.post('/api/post-winner', async (req, res) => {
     
     res.json({
       success: true,
-      winner: winner,
-      result: result,
+      winner: actualWinner,
+      result: actualResult,
+      fallbackUsed: actualWinner !== winner, // Indicate if fallback was used
+      originalWinner: winner, // Keep track of original winner
+      adv1: adv1, // Include calculated ADV1 value
       postbacks: {
         hitpath: hitpathResult.status === 'fulfilled' ? 'sent' : 'failed',
         everflow: everflowResult.status === 'fulfilled' ? 'sent' : 'failed',
