@@ -614,8 +614,8 @@ function App() {
             body: JSON.stringify({
               winner: winner,
               winnerData: winnerData,
-              secondaryWinner: response.data.secondaryWinner,
-              secondaryWinnerData: response.data.secondaryWinnerData,
+              secondaryWinner: pingResult.secondaryWinner,
+              secondaryWinnerData: pingResult.secondaryWinnerData,
               formData: submissionData
             })
           });
