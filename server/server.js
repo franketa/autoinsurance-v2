@@ -208,76 +208,149 @@ async function submitEmailToAzure(formData, session, additionalContext = {}) {
     const trustedFormCertId = formData.trusted_form_cert_id || generateTrustedFormCertId();
     const jornayaLeadId = formData.jornaya_lead_id || '01234566-89AB-CDEF-0123-456789ABCDAF';
     
+    // Calculate age from birthdate
+    const calculateAge = (birthdate) => {
+      if (!birthdate) return '';
+      const today = new Date();
+      const birth = new Date(birthdate);
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age.toString();
+    };
+
+    // Map occupation values
+    const mapOccupation = (driverOccupation) => {
+      const occupationMap = {
+        'business_owner': 'Business Owner',
+        'employed': 'Employed',
+        'self_employed': 'Self Employed',
+        'unemployed': 'Unemployed',
+        'retired': 'Retired',
+        'student': 'Student',
+        'homemaker': 'Homemaker'
+      };
+      return occupationMap[driverOccupation] || driverOccupation || '';
+    };
+
+    // Map education values
+    const mapEducation = (driverEducation) => {
+      const educationMap = {
+        'some_high_school': 'Some High School',
+        'high_school_diploma': 'High School Diploma',
+        'some_college': 'Some College',
+        'bachelors_degree': 'Bachelor\'s Degree',
+        'masters_degree': 'Master\'s Degree',
+        'doctoral_degree': 'Doctoral Degree'
+      };
+      return educationMap[driverEducation] || driverEducation || '';
+    };
+
+    // Map military status
+    const mapMilitaryStatus = (military) => {
+      return military === 'Yes' ? 'Yes' : 'No';
+    };
+
+    // Map marital status
+    const mapMaritalStatus = (maritalStatus) => {
+      const statusMap = {
+        'Yes': 'Married',
+        'No': 'Single'
+      };
+      return statusMap[maritalStatus] || 'Single';
+    };
+
     const data = {
       partitionKey: "",
       rowKey: "",
       timestamp: new Date().toISOString(),
       eTag: "",
       contact: {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        // Required basic fields
+        email: formData.email || '',
+        firstName: formData.firstName || '',
+        lastName: formData.lastName || '',
+        
         customField: {
-          // Core tracking info
-          sourceUrl: "https://www.smartautoinsider.com",
-          ipAddress: session.ip,
-          tid: session.tid,
+          // CSV Field Mapping to match Azure expected structure
+          EMAIL: formData.email || '',
+          FIRSTNAME: formData.firstName || '',
+          LASTNAME: formData.lastName || '',
+          DATAPARTNER: 'IGNITE MEDIA GROUP',
+          DATASET: 'IGN_SAI',
+          SOURCEURL: 'https://www.smartautoinsider.com',
+          IPADDRESS: session.ip || '',
+          POSTALADDRESS: formData.streetAddress || '',
+          CITY: formData.city || '',
+          STATE: formData.state || '',
+          ZIPCODE: formData.zipcode || '',
+          OCCUPATION: mapOccupation(formData.driverOccupation),
+          EDUCATION: mapEducation(formData.driverEducation),
+          GENDER: formData.gender || '',
+          ADDRESSTYPE: '', // Not collected in our form
+          PHONEWORK: '', // Not collected in our form
+          PHONEPRIMARY: formData.phoneNumber || '',
+          BIRTHDATE: formData.birthdate || '',
+          AGE: calculateAge(formData.birthdate),
+          MARRIED: mapMaritalStatus(formData.maritalStatus),
+          CURRENTCOMPANY: '', // Not collected in our form
+          EMPLOYERYEARS: '', // Not collected in our form
+          ESTIMATEDINCOME: '', // Not collected in our form
+          ACTIVEMILITARY: mapMilitaryStatus(formData.military),
+          SERVEDMILITARY: mapMilitaryStatus(formData.military), // Same as active for our form
+          OWNRENT: formData.homeowner === 'Own' ? 'Own' : 'Rent',
+          HOMEVALUE: '', // Not collected in our form
+          PURCHASEORREFI: '', // Not collected in our form
+          ESTPROPERTYVALUE: '', // Not collected in our form
+          REFIPURPOSE: '', // Not collected in our form
+          MORTGAGEAMOUNT: '', // Not collected in our form
+          MORTGAGERATE: '', // Not collected in our form
+          RESIDENCEYEARS: '', // Not collected in our form
+          RESIDENCETYPE: '', // Not collected in our form
+          OPTINDATE: new Date().toISOString(),
+          DATASETCODE: 'IGN_SAI',
+          RECEIVEDAUTORESPONDER: 'False',
+          
+          // Additional Auto Insurance Specific Fields
+          driversLicense: formData.driversLicense || '',
+          sr22: formData.sr22 || '',
+          insuranceHistory: formData.insuranceHistory || '',
+          currentAutoInsurance: formData.currentAutoInsurance || '',
+          insuranceDuration: formData.insuranceDuration || '',
+          coverageType: formData.coverageType || '',
+          creditScore: formData.creditScore || '',
+          
+          // Vehicle Information
+          vehicleCount: formData.vehicleCount || formData.vehicles?.length || 1,
+          vehicles: formData.vehicles ? formData.vehicles.map((vehicle, index) => ({
+            vehicleNumber: index + 1,
+            year: vehicle.year || '',
+            make: vehicle.make || '',
+            model: vehicle.model || '',
+            purpose: vehicle.purpose || '',
+            mileage: vehicle.mileage || '',
+            ownership: vehicle.ownership || ''
+          })) : [],
+          
+          // Tracking and Session Data
+          tid: session.tid || '',
           jornayaLeadId: jornayaLeadId,
           trustedFormCertId: trustedFormCertId,
           trustedFormCertUrl: `https://cert.trustedform.com/${trustedFormCertId}`,
+          sessionRevenue: session.revenue || 0,
+          sessionLastWinner: session.lastWinner || '',
           
-          // Personal info
-          postalAddress: formData.streetAddress,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipcode,
-          phoneNumber: formData.phoneNumber,
-          gender: formData.gender,
-          birthdate: formData.birthdate,
-          married: formData.maritalStatus,
-          ownRent: formData.homeowner,
-          optInDate: new Date().toISOString(),
-          
-          // Insurance info
-          driversLicense: formData.driversLicense,
-          sr22: formData.sr22,
-          insuranceHistory: formData.insuranceHistory,
-          currentAutoInsurance: formData.currentAutoInsurance,
-          insuranceDuration: formData.insuranceDuration,
-          coverageType: formData.coverageType,
-          military: formData.military,
-          
-          // Driver profile
-          driverEducation: formData.driverEducation,
-          driverOccupation: formData.driverOccupation,
-          creditScore: formData.creditScore,
-          
-          // Vehicle data
-          vehicleCount: formData.vehicleCount,
-          vehicles: formData.vehicles ? formData.vehicles.map((vehicle, index) => ({
-            vehicleNumber: index + 1,
-            year: vehicle.year,
-            make: vehicle.make,
-            model: vehicle.model,
-            purpose: vehicle.purpose,
-            mileage: vehicle.mileage,
-            ownership: vehicle.ownership
-          })) : [],
-          
-          // Session info
-          sessionRevenue: session.revenue,
-          sessionLastWinner: session.lastWinner,
-          sessionCreated: session.created,
-          
-          // Postback context
-          finalTid: additionalContext.tid,
-          finalRevenue: additionalContext.revenue,
-          finalAdv1: additionalContext.adv1,
-          pingWinner: additionalContext.pingWinner,
-          postWinner: additionalContext.postWinner,
+          // Postback Context
+          finalTid: additionalContext.tid || '',
+          finalRevenue: additionalContext.revenue || 0,
+          finalAdv1: additionalContext.adv1 || '',
+          pingWinner: additionalContext.pingWinner || '',
+          postWinner: additionalContext.postWinner || '',
           postSuccessful: !!additionalContext.postResult?.success,
           
-          // Additional metadata
+          // Metadata
           submissionDate: new Date().toISOString(),
           userAgent: 'SmartAutoInsider/1.0',
           formVersion: '2.0',
@@ -289,22 +362,33 @@ async function submitEmailToAzure(formData, session, additionalContext = {}) {
     logWithCapture('info', 'Submitting comprehensive data to Azure API', { 
       url, 
       dataSize: JSON.stringify(data).length,
-      includedFields: {
-        basicContact: !!(data.contact.email && data.contact.firstName && data.contact.lastName),
-        personalInfo: !!(data.contact.customField.gender && data.contact.customField.birthdate),
-        insuranceInfo: !!(data.contact.customField.insuranceHistory && data.contact.customField.coverageType),
-        vehicleData: data.contact.customField.vehicles?.length || 0,
-        trackingIds: {
+      csvFieldMapping: {
+        EMAIL: !!data.contact.customField.EMAIL,
+        FIRSTNAME: !!data.contact.customField.FIRSTNAME,
+        LASTNAME: !!data.contact.customField.LASTNAME,
+        OCCUPATION: !!data.contact.customField.OCCUPATION,
+        EDUCATION: !!data.contact.customField.EDUCATION,
+        GENDER: !!data.contact.customField.GENDER,
+        PHONEPRIMARY: !!data.contact.customField.PHONEPRIMARY,
+        BIRTHDATE: !!data.contact.customField.BIRTHDATE,
+        AGE: !!data.contact.customField.AGE,
+        MARRIED: !!data.contact.customField.MARRIED,
+        ACTIVEMILITARY: !!data.contact.customField.ACTIVEMILITARY,
+        OWNRENT: !!data.contact.customField.OWNRENT,
+        vehicleCount: data.contact.customField.vehicleCount,
+        autoInsuranceFields: {
+          driversLicense: !!data.contact.customField.driversLicense,
+          sr22: !!data.contact.customField.sr22,
+          insuranceHistory: !!data.contact.customField.insuranceHistory,
+          currentAutoInsurance: !!data.contact.customField.currentAutoInsurance,
+          coverageType: !!data.contact.customField.coverageType,
+          creditScore: !!data.contact.customField.creditScore
+        },
+        trackingData: {
           tid: !!data.contact.customField.tid,
           jornayaLeadId: !!data.contact.customField.jornayaLeadId,
-          trustedFormCertId: !!data.contact.customField.trustedFormCertId
-        },
-        postbackContext: {
-          finalTid: !!data.contact.customField.finalTid,
-          finalRevenue: !!data.contact.customField.finalRevenue,
-          finalAdv1: !!data.contact.customField.finalAdv1,
-          pingWinner: !!data.contact.customField.pingWinner,
-          postWinner: !!data.contact.customField.postWinner
+          trustedFormCertId: !!data.contact.customField.trustedFormCertId,
+          finalAdv1: !!data.contact.customField.finalAdv1
         }
       }
     });
