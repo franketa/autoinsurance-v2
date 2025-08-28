@@ -16,9 +16,6 @@ REACT_APP_GA_ID=G-2XF3PGJPD1
 REACT_APP_EVERFLOW_AID=118
 REACT_APP_EVERFLOW_SCRIPT_URL=https://www.iqno4trk.com/scripts/sdk/everflow.js
 
-# Push Engage
-REACT_APP_PUSHENGAGE_APP_ID=ea076673-6ca3-43d0-a40f-19e23e59de74
-REACT_APP_PUSHENGAGE_SCRIPT_URL=https://clientcdn.pushengage.com/sdks/pushengage-web-sdk.js
 
 # Development/Production flags
 REACT_APP_ENVIRONMENT=development
@@ -38,10 +35,7 @@ export const trackingConfig = {
       aid: 118,
       scriptUrl: 'https://www.iqno4trk.com/scripts/sdk/everflow.js'
     },
-    pushEngage: {
-      appId: 'ea076673-6ca3-43d0-a40f-19e23e59de74',
-      scriptUrl: 'https://clientcdn.pushengage.com/sdks/pushengage-web-sdk.js'
-    },
+
     debug: true
   },
   production: {
@@ -55,10 +49,7 @@ export const trackingConfig = {
       aid: parseInt(process.env.REACT_APP_EVERFLOW_AID) || 118,
       scriptUrl: process.env.REACT_APP_EVERFLOW_SCRIPT_URL || 'https://www.iqno4trk.com/scripts/sdk/everflow.js'
     },
-    pushEngage: {
-      appId: process.env.REACT_APP_PUSHENGAGE_APP_ID || 'ea076673-6ca3-43d0-a40f-19e23e59de74',
-      scriptUrl: process.env.REACT_APP_PUSHENGAGE_SCRIPT_URL || 'https://clientcdn.pushengage.com/sdks/pushengage-web-sdk.js'
-    },
+
     debug: false
   }
 };
