@@ -737,11 +737,29 @@ function App() {
       // Always show results screen after completion
       setSubmissionState('results');
       
+      // Scroll to top when showing results
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth'
+        });
+      }, 100); // Small delay to ensure DOM has updated
+      
     } catch (error) {
       console.error('API request error:', error);
       // For demo purposes, still show results even on error
       setSubmissionState('results');
       console.warn('Continuing to results screen for demo purposes');
+      
+      // Scroll to top when showing results (error case)
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth'
+        });
+      }, 100); // Small delay to ensure DOM has updated
     }
   };
 

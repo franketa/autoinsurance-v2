@@ -4,6 +4,13 @@ import './ThankYouPage.css';
 const ThankYouPage = ({ location = 'Vista, California', userName = '' }) => {
   // Trigger tracking pixels and postbacks when page loads
   useEffect(() => {
+    // Scroll to top when the Thank You page loads
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    });
+    
     // Fire conversion pixels and tracking here
     console.log('Thank you page loaded - triggering conversion tracking');
     
