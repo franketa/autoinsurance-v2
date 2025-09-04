@@ -49,11 +49,11 @@ function findSessionByTid(tid) {
 }
 
 // Postback functions
-async function sendHitpathPostback(tid, revenue, adv1 = '') {
+async function sendHitpathPostback(tid, revenue, adv1 = '', adv2 = '') {
   try {
     // Handle revenue - convert 'null' string to 0, otherwise use as-is
     const revenueParam = revenue === 'null' ? 0 : revenue;
-    const url = `https://www.trackinglynx.com/rd/px.php?hid=${encodeURIComponent(tid)}&sid=3338&transid=${encodeURIComponent(adv1)}&ate=${revenueParam}`;
+    const url = `https://www.trackinglynx.com/rd/px.php?hid=${encodeURIComponent(tid)}&sid=3338&transid=${encodeURIComponent(adv1)}&adv2=${encodeURIComponent(adv2)}&ate=${revenueParam}`;
     
     console.log('🎯 HITPATH POSTBACK:', {
       url: url,
@@ -61,8 +61,10 @@ async function sendHitpathPostback(tid, revenue, adv1 = '') {
       revenue: revenue,
       revenueParam: revenueParam,
       adv1: adv1,
+      adv2: adv2,
       tid_encoded: encodeURIComponent(tid),
-      adv1_encoded: encodeURIComponent(adv1)
+      adv1_encoded: encodeURIComponent(adv1),
+      adv2_encoded: encodeURIComponent(adv2)
     });
     
     logWithCapture('info', 'Sending Hitpath postback', { 
@@ -71,6 +73,7 @@ async function sendHitpathPostback(tid, revenue, adv1 = '') {
       revenue, 
       revenueParam, 
       adv1,
+      adv2,
       actualUrlSent: url
     });
     
@@ -124,11 +127,11 @@ async function sendHitpathPostback(tid, revenue, adv1 = '') {
   }
 }
 
-async function sendEverflowPostback(tid, revenue, adv1 = '') {
+async function sendEverflowPostback(tid, revenue, adv1 = '', adv2 = '') {
   try {
     // Handle revenue - convert 'null' string to 0, otherwise use as-is
     const revenueParam = revenue === 'null' ? 0 : revenue;
-    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${encodeURIComponent(tid)}&amount=${revenueParam}&adv1=${encodeURIComponent(adv1)}`;
+    const url = `https://www.iqno4trk.com/?nid=2409&transaction_id=${encodeURIComponent(tid)}&amount=${revenueParam}&adv1=${encodeURIComponent(adv1)}&adv2=${encodeURIComponent(adv2)}`;
     
     console.log('🚀 EVERFLOW POSTBACK:', {
       url: url,
@@ -136,8 +139,10 @@ async function sendEverflowPostback(tid, revenue, adv1 = '') {
       revenue: revenue,
       revenueParam: revenueParam,
       adv1: adv1,
+      adv2: adv2,
       tid_encoded: encodeURIComponent(tid),
-      adv1_encoded: encodeURIComponent(adv1)
+      adv1_encoded: encodeURIComponent(adv1),
+      adv2_encoded: encodeURIComponent(adv2)
     });
     
     logWithCapture('info', 'Sending Everflow postback', { 
@@ -146,6 +151,7 @@ async function sendEverflowPostback(tid, revenue, adv1 = '') {
       revenue, 
       revenueParam, 
       adv1,
+      adv2,
       actualUrlSent: url
     });
     
@@ -2093,6 +2099,12 @@ app.post('/api/post-winner', async (req, res) => {
     }
     // If no ping winner or no ping revenue, adv1 stays 'null'
     
+    // Extract trusted form certificate ID for adv2
+    const trustedFormCertId = process.env.NODE_ENV === 'production' 
+      ? (formData.trusted_form_cert_id || generateTrustedFormCertId())
+      : generateTrustedFormCertId();
+    const adv2 = trustedFormCertId || 'null';
+    
     // Use ping revenue for postbacks, send 'null' if no revenue
     const revenueToSend = pingRevenue > 0 ? pingRevenue : 'null';
     const tidToSend = session.tid || 'no_tid';
@@ -2103,12 +2115,16 @@ app.post('/api/post-winner', async (req, res) => {
       postSuccessful: !!result?.response,
       adv1: adv1,
       adv1_type: adv1.startsWith('QWD_') ? 'quotewizard' : adv1.startsWith('EXF_') ? 'exchangeflo' : 'null',
+      adv2: adv2,
+      trustedFormCertId: trustedFormCertId,
       tid: tidToSend,
       revenue: revenueToSend
     });
     
-    logWithCapture('info', 'Final ADV1 and Postback Data', {
+    logWithCapture('info', 'Final ADV1, ADV2 and Postback Data', {
       adv1: adv1,
+      adv2: adv2,
+      trustedFormCertId: trustedFormCertId,
       tid: tidToSend,
       revenue: revenueToSend,
       pingWinner: session.lastWinner,
@@ -2120,12 +2136,14 @@ app.post('/api/post-winner', async (req, res) => {
     
     // Send all 3 postbacks in parallel
     const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
-      sendHitpathPostback(tidToSend, revenueToSend, adv1),
-      sendEverflowPostback(tidToSend, revenueToSend, adv1),
+      sendHitpathPostback(tidToSend, revenueToSend, adv1, adv2),
+      sendEverflowPostback(tidToSend, revenueToSend, adv1, adv2),
       submitEmailToAzure(formData, session, {
         tid: tidToSend,
         revenue: revenueToSend,
         adv1: adv1,
+        adv2: adv2,
+        trustedFormCertId: trustedFormCertId,
         pingWinner: session.lastWinner,
         postWinner: winner,
         postResult: result
@@ -2145,6 +2163,7 @@ app.post('/api/post-winner', async (req, res) => {
       fallbackUsed: actualWinner !== winner, // Indicate if fallback was used
       originalWinner: winner, // Keep track of original winner
       adv1: adv1, // Include calculated ADV1 value
+      adv2: adv2, // Include calculated ADV2 value (trusted form cert ID)
       postbacks: {
         hitpath: hitpathResult.status === 'fulfilled' ? 'sent' : 'failed',
         everflow: everflowResult.status === 'fulfilled' ? 'sent' : 'failed',
