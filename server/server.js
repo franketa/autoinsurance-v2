@@ -3,9 +3,19 @@ const cors = require('cors');
 const mysql = require('mysql2');
 const axios = require('axios');
 const xml2js = require('xml2js');
+const AWS = require('aws-sdk');
 const { getLocationFromIP, getLocationFromZip } = require('./location');
 const databaseService = require('./database/service');
 require('dotenv').config();
+
+// Configure AWS SDK for S3
+AWS.config.update({
+  accessKeyId: 'AKIAQWH73KTK3YYZQMI2',
+  secretAccessKey: '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',
+  region: 'us-east-1'
+});
+
+const s3 = new AWS.S3();
 
 // Session management for tracking
 const sessions = new Map();
@@ -471,6 +481,158 @@ async function submitEmailToAzure(formData, session, additionalContext = {}) {
     }
     
     return { success: false, error: error.message };
+  }
+}
+
+// S3 Data Upload Function
+async function uploadToS3(formData, session, additionalContext = {}) {
+  try {
+    // Generate unique filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const sessionId = additionalContext.sessionId || 'unknown';
+    const filename = `DataBridge/form-submission-${timestamp}-${sessionId}.json`;
+    
+    // Prepare comprehensive data object with all form fields
+    const s3Data = {
+      // Submission metadata
+      submission_timestamp: new Date().toISOString(),
+      session_id: sessionId,
+      
+      // Basic contact information
+      firstName: formData.firstName || '',
+      lastName: formData.lastName || '',
+      email: formData.email || '',
+      phoneNumber: formData.phoneNumber || '',
+      streetAddress: formData.streetAddress || '',
+      city: formData.city || '',
+      state: formData.state || '',
+      zipcode: formData.zipcode || '',
+      
+      // Personal details
+      birthdate: formData.birthdate || '',
+      gender: formData.gender || '',
+      maritalStatus: formData.maritalStatus || '',
+      creditScore: formData.creditScore || '',
+      homeowner: formData.homeowner || '',
+      military: formData.military || '',
+      driverEducation: formData.driverEducation || '',
+      driverOccupation: formData.driverOccupation || '',
+      
+      // Insurance information
+      driversLicense: formData.driversLicense || '',
+      sr22: formData.sr22 || '',
+      insuranceHistory: formData.insuranceHistory || '',
+      currentAutoInsurance: formData.currentAutoInsurance || '',
+      insuranceDuration: formData.insuranceDuration || '',
+      coverageType: formData.coverageType || '',
+      
+      // Vehicle information
+      vehicleCount: formData.vehicleCount || formData.vehicles?.length || 0,
+      vehicles: formData.vehicles ? formData.vehicles.map((vehicle, index) => ({
+        vehicleNumber: index + 1,
+        year: vehicle.year || '',
+        make: vehicle.make || '',
+        model: vehicle.model || '',
+        purpose: vehicle.purpose || '',
+        mileage: vehicle.mileage || '',
+        ownership: vehicle.ownership || ''
+      })) : [],
+      
+      // Tracking and session data
+      ip_address: session.ip || '',
+      tid: session.tid || '',
+      ef_transaction_id: session.ef_transaction_id || '',
+      hitid: session.hitid || '',
+      sid: session.sid || '',
+      oid: session.oid || '',
+      affid: session.affid || '',
+      
+      // Jornaya and TrustedForm IDs
+      jornaya_lead_id: formData.jornaya_lead_id || '',
+      trusted_form_cert_id: formData.trusted_form_cert_id || '',
+      trusted_form_cert_url: formData.trusted_form_cert_id ? `https://cert.trustedform.com/${formData.trusted_form_cert_id}` : '',
+      
+      // ADV1 and ADV2 values (null if not available)
+      adv1: additionalContext.adv1 || null,
+      adv2: additionalContext.adv2 || null,
+      
+      // Revenue and business context
+      session_revenue: session.revenue || 0,
+      ping_winner: additionalContext.pingWinner || '',
+      post_winner: additionalContext.postWinner || '',
+      final_revenue: additionalContext.revenue || 0,
+      post_successful: !!additionalContext.postResult?.success,
+      
+      // Additional metadata
+      source_url: 'https://www.smartautoinsider.com',
+      user_agent: 'SmartAutoInsider/1.0',
+      form_version: '2.0',
+      api_version: '1.0',
+      environment: process.env.NODE_ENV || 'development'
+    };
+    
+    // Convert to JSON string
+    const jsonData = JSON.stringify(s3Data, null, 2);
+    
+    // Upload parameters
+    const uploadParams = {
+      Bucket: 'email-prod-data',
+      Key: filename,
+      Body: jsonData,
+      ContentType: 'application/json',
+      Metadata: {
+        'submission-timestamp': new Date().toISOString(),
+        'session-id': sessionId,
+        'form-version': '2.0',
+        'source': 'smartautoinsider'
+      }
+    };
+    
+    logWithCapture('info', 'Uploading form data to S3', { 
+      bucket: uploadParams.Bucket,
+      filename: filename,
+      dataSize: jsonData.length,
+      hasRevenue: s3Data.session_revenue > 0,
+      hasAdv1: !!s3Data.adv1,
+      hasAdv2: !!s3Data.adv2,
+      hasTid: !!s3Data.tid,
+      hasJornaya: !!s3Data.jornaya_lead_id,
+      hasTrustedForm: !!s3Data.trusted_form_cert_id
+    });
+    
+    // Upload to S3
+    const result = await s3.upload(uploadParams).promise();
+    
+    logWithCapture('info', 'S3 upload successful', { 
+      location: result.Location,
+      etag: result.ETag,
+      bucket: result.Bucket,
+      key: result.Key
+    });
+    
+    return { 
+      success: true, 
+      location: result.Location,
+      filename: filename,
+      size: jsonData.length
+    };
+    
+  } catch (error) {
+    logWithCapture('error', 'S3 upload failed', { 
+      error: error.message,
+      code: error.code,
+      statusCode: error.statusCode,
+      formData: {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName
+      }
+    });
+    
+    return { 
+      success: false, 
+      error: error.message 
+    };
   }
 }
 
@@ -2134,8 +2296,8 @@ app.post('/api/post-winner', async (req, res) => {
       lastWinnerDataValue: session.lastWinnerData?.value
     });
     
-    // Send all 3 postbacks in parallel
-    const [hitpathResult, everflowResult, emailResult] = await Promise.allSettled([
+    // Send all 4 uploads in parallel (3 existing + S3)
+    const [hitpathResult, everflowResult, emailResult, s3Result] = await Promise.allSettled([
       sendHitpathPostback(tidToSend, revenueToSend, adv1, adv2),
       sendEverflowPostback(tidToSend, revenueToSend, adv1, adv2),
       submitEmailToAzure(formData, session, {
@@ -2147,13 +2309,25 @@ app.post('/api/post-winner', async (req, res) => {
         pingWinner: session.lastWinner,
         postWinner: winner,
         postResult: result
+      }),
+      uploadToS3(formData, session, {
+        sessionId: sessionId,
+        tid: tidToSend,
+        revenue: revenueToSend,
+        adv1: adv1,
+        adv2: adv2,
+        trustedFormCertId: trustedFormCertId,
+        pingWinner: session.lastWinner,
+        postWinner: winner,
+        postResult: result
       })
     ]);
     
-    logWithCapture('info', 'All postback results', {
+    logWithCapture('info', 'All postback and S3 upload results', {
       hitpath: hitpathResult.status === 'fulfilled' ? hitpathResult.value : hitpathResult.reason,
       everflow: everflowResult.status === 'fulfilled' ? everflowResult.value : everflowResult.reason,
-      email: emailResult.status === 'fulfilled' ? emailResult.value : emailResult.reason
+      email: emailResult.status === 'fulfilled' ? emailResult.value : emailResult.reason,
+      s3: s3Result.status === 'fulfilled' ? s3Result.value : s3Result.reason
     });
     
     res.json({
@@ -2167,7 +2341,8 @@ app.post('/api/post-winner', async (req, res) => {
       postbacks: {
         hitpath: hitpathResult.status === 'fulfilled' ? 'sent' : 'failed',
         everflow: everflowResult.status === 'fulfilled' ? 'sent' : 'failed',
-        email: emailResult.status === 'fulfilled' ? 'sent' : 'failed'
+        email: emailResult.status === 'fulfilled' ? 'sent' : 'failed',
+        s3: s3Result.status === 'fulfilled' ? 'uploaded' : 'failed'
       },
       sessionInfo: {
         sessionId: sessionId,
